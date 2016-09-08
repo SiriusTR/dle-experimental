@@ -292,6 +292,36 @@ for (short i = Count (); i >= 0; i--)
 
 // -----------------------------------------------------------------------------
 
+int CObjectManager::FindSegment (CGameObject * pObject)
+{
+	int		nBestSegment = -1;
+	double	minDistance = 1e36;
+
+for (int nSegment = 0; nSegment < segmentManager.Count (); nSegment++) {
+	CSegment* pSegment = segmentManager.Segment (nSegment);
+    // make sure object is within its segment
+    // find center of segment then find maximum distance
+	// of corner to center.  Calculate Objects () distance
+    // from center and make sure it is less than max corner.
+   CVertex center = pSegment->ComputeCenter ();
+   double radius = 0;
+	for (int corner = 0; corner < 8; corner++) {
+		if (pSegment->m_info.vertexIds [corner] <= MAX_VERTEX) {
+			double d = Distance (*vertexManager.Vertex (pSegment->m_info.vertexIds [corner]), center);
+			radius = max (radius, d);
+			}
+		}
+	double d = Distance (pObject->Position (), center);
+	if ((d <= radius) && (d < minDistance)) {
+		nBestSegment = nSegment;
+		minDistance = d;
+		}
+	}
+return nBestSegment;
+}
+
+// -----------------------------------------------------------------------------
+
 void CObjectManager::Move (CGameObject * pObject, int nSegment)
 {
 #if 0

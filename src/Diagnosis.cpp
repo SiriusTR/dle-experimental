@@ -623,12 +623,12 @@ if (theMine == null)
 
 	int				h, nObject, type, id, count, players [16 + MAX_COOP_PLAYERS], nSegment, flags, corner, nPlayers [2], bFix;
 	CVertex			center;
-	double			radius, maxRadius, object_radius;
+	double			radius, maxRadius, objectDistance;
 	CGameObject*	pObject = objectManager.Object (0);
 	CGameObject*	playerP = null;
 	int				objCount = objectManager.Count ();
 	CSegment*		pSegment;
-  ubyte				nMaxRobotId = (DLE.IsD2XFile () || theMine->m_bVertigo) ? MAX_ROBOT_TYPES : DLE.IsD2File () ? N_ROBOT_TYPES_D2 : N_ROBOT_TYPES_D1;
+	ubyte				nMaxRobotId = (DLE.IsD2XFile () || theMine->m_bVertigo) ? MAX_ROBOT_TYPES : DLE.IsD2File () ? N_ROBOT_TYPES_D2 : N_ROBOT_TYPES_D1;
 
 short sub_errors = m_nErrors [0];
 short sub_warnings = m_nErrors [1];
@@ -672,11 +672,21 @@ for (nObject = 0; nObject < objCount ; nObject++, pObject++) {
 			maxRadius = max (maxRadius, radius);
 			}
 		}
-	object_radius = Distance (pObject->Position (), center);
-   if ((object_radius > maxRadius) && (pObject->Type () != OBJ_EFFECT)) {
-      sprintf_s (message, sizeof (message), "ERROR: Object is outside of segment (object=%d, segment=%d)", nObject, nSegment);
-      if (UpdateStats (message, 1, nSegment, -1, -1, -1, -1, -1, -1, nObject))
-			return true;
+	objectDistance = Distance (pObject->Position (), center);
+   if ((objectDistance > maxRadius) && (pObject->Type () != OBJ_EFFECT)) {
+		int nNewSegment = objectManager.FindSegment (pObject);
+		if (m_bAutoFixBugs && (nNewSegment > -1) && (nNewSegment != pObject->m_info.nSegment)) {
+			//objectManager.Move (pObject, nNewSegment);
+			pObject->Info ().nSegment = nNewSegment;
+	      sprintf_s (message, sizeof (message), "FIXED: Object is outside of segment (object=%d, segment=%d, moved to %d)", nObject, nSegment, nNewSegment);
+		   if (UpdateStats (message, 1, nSegment, -1, -1, -1, -1, -1, -1, nObject))
+				return true;
+			}
+		else {
+	      sprintf_s (message, sizeof (message), "ERROR: Object is outside of segment (object=%d, segment=%d)", nObject, nSegment);
+		   if (UpdateStats (message, 1, nSegment, -1, -1, -1, -1, -1, -1, nObject))
+				return true;
+			}
     }
 
     // check for non-zero flags (I don't know what these flags are for)

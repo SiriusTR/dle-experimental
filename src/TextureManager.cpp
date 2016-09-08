@@ -631,7 +631,8 @@ for (int nIndex = 0; nIndex < textureManager.GlobalTextureCount (); nIndex++) {
 		nDbgTexture = nDbgTexture;
 #endif
 #if 1 //DBG
-	CTexture *pTexture = textureManager.TextureByIndex (nIndex);
+	// We specifically want the base texture array, not override, so we access it directly
+	CTexture *pTexture = &m_textures [nVersion][nIndex];
 	if (AnimationIndex (nIndex)) {
 		nRootIndex = -1;
 		continue;
@@ -647,7 +648,7 @@ for (int nIndex = 0; nIndex < textureManager.GlobalTextureCount (); nIndex++) {
 #else
 	if (FindAnimation (nIndex))
 		continue;
-	CTexture *pTexture = textureManager.TextureByIndex (nIndex);
+	CTexture *pTexture = &m_textures [nVersion][nIndex];
 #endif
 	if (!pRootTex) {
 		nRootIndex = nIndex;

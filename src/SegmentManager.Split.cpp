@@ -506,8 +506,8 @@ for (short nSide = 0; nSide < 6; nSide++)
 		pRootSeg->SetChild (nSide, -1);
 		}
 
-for (short nLine = 0; nLine < 12; nLine++)
-	*vertexManager.Vertex (nNewVerts [j++]) = Average (*pRootSeg->Vertex (edgeVertexTable [nLine][0]), *pRootSeg->Vertex (edgeVertexTable [nLine][1]));
+for (short nEdge = 0; nEdge < 12; nEdge++)
+	*vertexManager.Vertex (nNewVerts [j++]) = Average (*pRootSeg->Vertex (edgeVertexTable [nEdge][0]), *pRootSeg->Vertex (edgeVertexTable [nEdge][1]));
 for (j = 0; j < 19; j++)
 	vertexManager.Status (nNewVerts [j]) |= TAGGED_MASK; 
 
@@ -525,13 +525,15 @@ for (ubyte nCorner = 0; nCorner < 8; nCorner++) {
 	memset (vertexIds, 0xFF, sizeof (pSegment->m_info.vertexIds));
 
 	ushort nVertex;
+	ubyte nBasePointIdIndex = 255;
+
 	for (short i = 0; i < 3; i++) {
 		short nEdge = EdgeIndex (nCorner, adjacentPointTable [nCorner][i]);
 		nVertex = (nEdge < 0) ? 0 : 1;
 		nEdge = abs (nEdge) - 1;
 		vertexIds [edgeVertexTable [nEdge][nVertex]] = nNewVerts [7 + nEdge];
 		if (!i)
-			vertexIds [edgeVertexTable [nEdge][!nVertex]] = nBasePoint;
+			vertexIds [nBasePointIdIndex = edgeVertexTable [nEdge][!nVertex]] = nBasePoint;
 		}
 
 	for (short i = 0; i < 2; i++) {
@@ -564,19 +566,27 @@ for (ubyte nCorner = 0; nCorner < 8; nCorner++) {
 	for (short i = 0; i < 2; i++) {
 		for (short j = i + 1; j < 3; j++) {
 			short nSide, nPoint = FindCornerByPoints (nCorner, adjacentPointTable [nCorner][i], adjacentPointTable [nCorner][j], nSide);
-			if ((nSegment != nRootSeg) && rootSeg.Side (nSide)->Wall () && !pSegment->Side (nSide)->Wall () && !wallManager.Full ()) {
+			CSide	* pRootSide = rootSeg.Side (nSide),
+					* pSide = pSegment->Side (nSide);
+			if ((nSegment != nRootSeg) && pRootSide->Wall () && !pSide->Wall () && !wallManager.Full ()) {
 				CSideKey key (nSegment, nSide);
-				pSegment->Side (nSide)->m_info.nWall = wallManager.Add (false, &key);
+				pSide->m_info.nWall = wallManager.Add (false, &key);
 				CWall* pWall = wallManager.Wall (pSegment->Side (nSide)->m_info.nWall);
 				if (pWall) {
-					pWall->Info () = rootSeg.Side (nSide)->Wall ()->Info ();
+					pWall->Info () = pRootSide->Wall ()->Info ();
 					pWall->Info ().nTrigger = NO_TRIGGER;
 					*((CSideKey*) pWall) = key;
 					}
 				}
-			rootSeg.Side (nSide)->GetTextures (nBaseTex, nOvlTex);
-			pSegment->Side (nSide)->SetTextures (nBaseTex, nOvlTex);
-			memcpy (pSegment->Uvls (nSide), rootSeg.Uvls (nSide), 4 * sizeof (CUVL));
+			pRootSide->GetTextures (nBaseTex, nOvlTex);
+			pSide->SetTextures (nBaseTex, nOvlTex);
+			CUVL* pUvls = pSide->Uvls ();
+			//memcpy (pSide->m_vertexIdIndex, pRootSide->m_vertexIdIndex, sizeof (pSide->m_vertexIdIndex));
+			memcpy (pUvls, rootSeg.Uvls (nSide), 4 * sizeof (CUVL));
+			short h = pSide->FindVertexIdIndex (nBasePointIdIndex);
+			pUvls [(h + 1) % 4] = (pUvls [h] + pUvls [(h + 1) % 4]) * 0.5;
+			pUvls [(h + 2) % 4] = (pUvls [h] + pUvls [(h + 2) % 4]) * 0.5;
+			pUvls [(h + 3) % 4] = (pUvls [h] + pUvls [(h + 3) % 4]) * 0.5;
 			}
 		}
 	}

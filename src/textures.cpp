@@ -68,7 +68,7 @@ return BlendTextures (pTexture [0], pTexture [1], mode, x0, y0);
 
 //------------------------------------------------------------------------
 
-int CTexture::BlendTextures (const CTexture* pBaseTex, const CTexture* pOvlTex, short nOvlAlignment, int x0, int y0)
+int CTexture::BlendTextures (const CTexture* pBaseTex, const CTexture* pOvlTex, short nOvlAlignment, int x0, int y0, bool bCurrentFrameOnly)
 {
 if (!textureManager.Available ())
 	return 1;
@@ -88,10 +88,11 @@ if (!textureManager.Available ())
 
 // Define bmBufP based on texture numbers and rotation
 m_info.width = pBaseTex->Width ();
-m_info.height = pBaseTex->FrameHeight ();
+m_info.height = bCurrentFrameOnly ? pBaseTex->FrameHeight () : pBaseTex->Height ();
 m_bValid = true;
 
-const CBGRA* srcDataP = pBaseTex->Buffer (offs = pBaseTex->FrameOffset ());
+offs = bCurrentFrameOnly ? pBaseTex->FrameOffset () : 0;
+const CBGRA* srcDataP = pBaseTex->Buffer (offs);
 
 #ifdef _DEBUG
 if (pBaseTex && (pBaseTex->Id () == nDbgTexture))
@@ -320,7 +321,7 @@ return PaintTexture (pWindow, bkColor, pBaseTex, pOvlTex, nOvlAlignment, xOffset
 
 // --------------------------------------------------------------------------
 
-bool PaintTexture (CWnd *pWindow, int bkColor, const CTexture *pBaseTex, const CTexture *pOvlTex, short nOvlAlignment, int xOffset, int yOffset)
+bool PaintTexture (CWnd *pWindow, int bkColor, const CTexture *pBaseTex, const CTexture *pOvlTex, short nOvlAlignment, int xOffset, int yOffset, bool bCurrentFrameOnly)
 {
 if (!pWindow->m_hWnd)
 	return false;
@@ -360,7 +361,7 @@ if (bShowTexture) {
 		}
 	if (nOffset [bDescent1] > 0x10000L) {  // pig file type is v1.4a or descent 2 type
 		CTexture tex (textureManager.SharedBuffer ());
-		if (tex.BlendTextures (pBaseTex, pOvlTex, nOvlAlignment, xOffset, yOffset))
+		if (tex.BlendTextures (pBaseTex, pOvlTex, nOvlAlignment, xOffset, yOffset, bCurrentFrameOnly))
 			DEBUGMSG (" Texture renderer: Texture not found (BlendTextures failed)");
 		//CPalette *pOldPalette = pDC->SelectPalette (paletteManager.Render (), FALSE);
 		//pDC->RealizePalette ();
@@ -838,7 +839,8 @@ else {
 			}
 		}
 	}
-if (DLE.IsD2XLevel ())
+// Unsure so far whether this line is needed for anything - but it can mess with re-saving etc
+//if (DLE.IsD2XLevel ())
 	m_info.format = TGA;
 m_bValid = true;
 GenerateRenderBuffer ();
@@ -1594,19 +1596,20 @@ if (bOk) {
 		int srcWidth, srcHeight;
 
 		// Scale texture to as close to the desired size as possible
-		if (actualWidth <= (int)Width () || actualHeight <= (int)Height ()) {
+		// (using FrameHeight since we currently only want the first frame for a CBitmap)
+		if (actualWidth <= (int)Width () || actualHeight <= (int)FrameHeight ()) {
 			if (bOk) bOk = scaledTexture.Copy (*this);
-			int factor = (int)max (ceil ((float)Width () / actualWidth), ceil ((float)Height () / actualHeight));
+			int factor = (int)max (ceil ((float)Width () / actualWidth), ceil ((float)FrameHeight () / actualHeight));
 			if (bOk) 
 				bOk = (0 < scaledTexture.Shrink (factor, factor));
 			pSourceBuffer = scaledTexture.Buffer ();
 			srcWidth = scaledTexture.Width ();
-			srcHeight = scaledTexture.Height ();
+			srcHeight = scaledTexture.FrameHeight ();
 			}
 		else {
 			pSourceBuffer = Buffer ();
 			srcWidth = Width ();
-			srcHeight = Height ();
+			srcHeight = FrameHeight ();
 			}
 
 		// Now center texture

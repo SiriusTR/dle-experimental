@@ -677,22 +677,67 @@ return RunSaveFileDialog (szFilename, cchFilename, &filter, 1, hWnd);
 
 // ----------------------------------------------------------------------------
 
-void ConstructFilters (char *szFilters, const size_t cchFilters, const CFileManager::tFileFilter *filters, const DWORD nFilters)
+size_t ConstructFilter (char *szFilter, const size_t cchFilter, const CString &filterText, const CString &filterExts)
+{
+	const int extOffset = filterText.GetLength () + 1;
+	const int filterLength = filterText.GetLength () + filterExts.GetLength () + 2;
+
+memset (szFilter, 0, cchFilter * sizeof (char));
+
+// Check if we have space for the whole filter
+if ((size_t)filterLength > cchFilter)
+	return 0;
+
+strcpy_s (szFilter, cchFilter, filterText.GetString ());
+strcpy_s (szFilter + extOffset, cchFilter - extOffset, filterExts.GetString ());
+return filterLength;
+}
+
+// ----------------------------------------------------------------------------
+
+void ConstructFilters (char *szFilters, const size_t cchFilters, const CFileManager::tFileFilter *filters, const DWORD nFilters, bool bShowAllSupportedFilter)
 {
 	char *pszNextString = szFilters;
+	const char szAllFilesFilter [] = "All Files (*.*)\0*.*\0";
+	char *pszCurrentFilter = new char [cchFilters];
+	size_t cchCurrentFilter;
+	CString currentFilterText, currentFilterExts;
+
+if (pszCurrentFilter == NULL)
+	return; // allocation failed
+
+// OpenFileName doesn't like trailing characters not to be nulls, so we'll make sure of that first
+memset (szFilters, 0, cchFilters * sizeof (char));
+
+if (bShowAllSupportedFilter) {
+	currentFilterText = "All Supported Files (";
+	currentFilterExts = "";
+	for (DWORD i = 0; i < nFilters; i++) {
+		currentFilterText.AppendFormat ((i < nFilters - 1) ? "*.%s; " : "*.%s", filters [i].szExt);
+		currentFilterExts.AppendFormat ((i < nFilters - 1) ? "*.%s;" : "*.%s", filters [i].szExt);
+		}
+	currentFilterText.Append (")");
+	cchCurrentFilter = ConstructFilter (pszCurrentFilter, cchFilters, currentFilterText, currentFilterExts);
+	if (pszNextString + ARRAYSIZE (szAllFilesFilter) + cchCurrentFilter <= szFilters + cchFilters) {
+		memcpy_s (pszNextString, (szFilters + cchFilters - pszNextString) * sizeof (char), pszCurrentFilter, cchCurrentFilter * sizeof (char));
+		pszNextString += cchCurrentFilter;
+		}
+	}
 
 for (DWORD i = 0; i < nFilters; i++) {
-	if (pszNextString < szFilters + cchFilters)
-		pszNextString += sprintf_s (pszNextString, szFilters + cchFilters - pszNextString, "%s", filters [i].szFilterText) + 1;
-	if (pszNextString < szFilters + cchFilters)
-		pszNextString += sprintf_s (pszNextString, szFilters + cchFilters - pszNextString, "*.%s", filters [i].szExt) + 1;
+	currentFilterText.Format ("%s (*.%s)", filters [i].szFilterText, filters [i].szExt);
+	currentFilterExts.Format ("*.%s", filters [i].szExt);
+	cchCurrentFilter = ConstructFilter (pszCurrentFilter, cchFilters, currentFilterText, currentFilterExts);
+	// We need to leave space for the last filter (All Files) in preference to anything else
+	if (pszNextString + ARRAYSIZE (szAllFilesFilter) + cchCurrentFilter <= szFilters + cchFilters) {
+		memcpy_s (pszNextString, (szFilters + cchFilters - pszNextString) * sizeof (char), pszCurrentFilter, cchCurrentFilter * sizeof (char));
+		pszNextString += cchCurrentFilter;
+		}
 	}
-if (pszNextString < szFilters + cchFilters)
-	pszNextString += sprintf_s (pszNextString, szFilters + cchFilters - pszNextString, "All files") + 1;
-if (pszNextString < szFilters + cchFilters)
-	pszNextString += sprintf_s (pszNextString, szFilters + cchFilters - pszNextString, "*.*") + 1;
-// Zero the rest of the buffer - mainly for debug builds where sprintf_s will write 0xFF to the remainder, which OFN doesn't like
-memset (pszNextString, 0, szFilters + cchFilters - pszNextString);
+
+memcpy_s (pszNextString, (szFilters + cchFilters - pszNextString) * sizeof (char), szAllFilesFilter, sizeof (szAllFilesFilter));
+
+delete [] pszCurrentFilter;
 }
 
 // ----------------------------------------------------------------------------
@@ -705,12 +750,12 @@ bool CFileManager::RunOpenFileDialog (char *szFilename, const size_t cchFilename
 if (!filters || nFilters < 1)
 	return false;
 
-ConstructFilters (szFilters, ARRAYSIZE (szFilters), filters, nFilters);
+ConstructFilters (szFilters, ARRAYSIZE (szFilters), filters, nFilters, true);
 
 ofn.lStructSize = sizeof (OPENFILENAME);
 ofn.hwndOwner = hWnd;
 ofn.lpstrFilter = szFilters;
-ofn.nFilterIndex = nFilters;
+ofn.nFilterIndex = 1;
 ofn.lpstrFile = szFilename;
 ofn.lpstrDefExt = filters [0].szExt;
 ofn.nMaxFile = cchFilename;
@@ -732,7 +777,7 @@ bool CFileManager::RunMultiOpenDialog (CArray <CString> &filenames, const tFileF
 if (!filters || nFilters < 1)
 	return false;
 
-ConstructFilters (szFilters, ARRAYSIZE (szFilters), filters, nFilters);
+ConstructFilters (szFilters, ARRAYSIZE (szFilters), filters, nFilters, true);
 
 ofn.lStructSize = sizeof (OPENFILENAME);
 ofn.hwndOwner = hWnd;
@@ -789,7 +834,7 @@ bool CFileManager::RunSaveFileDialog (char *szFilename, const size_t cchFilename
 if (!filters || nFilters < 1)
 	return false;
 
-ConstructFilters (szFilters, ARRAYSIZE (szFilters), filters, nFilters);
+ConstructFilters (szFilters, ARRAYSIZE (szFilters), filters, nFilters, false);
 
 ofn.lStructSize = sizeof (OPENFILENAME);
 ofn.hwndOwner = hWnd;

@@ -541,7 +541,7 @@ class CTexture {
 
 		int BlendTextures (short nBaseTex, short nOvlTex, int x0, int y0);
 
-		int BlendTextures (const CTexture* pBaseTex, const CTexture* pOvlTex, short nOvlAlignment, int x0, int y0);
+		int BlendTextures (const CTexture* pBaseTex, const CTexture* pOvlTex, short nOvlAlignment, int x0, int y0, bool bCurrentFrameOnly = true);
 
 		inline void SetFlat (bool bFlat) { m_info.bFlat = bFlat; }
 
@@ -653,7 +653,7 @@ bool PaintTexture (CWnd *pWindow, int bkColor = -1, int texture1 = -1, int textu
 
 bool PaintTexture (CWnd *pWindow, int bkColor = -1, 
                    const CTexture *pBaseTex = null, const CTexture *pOvlTex = null, short nOvlAlignment = 0,
-                   int xOffset = 0, int yOffset = 0);
+                   int xOffset = 0, int yOffset = 0, bool bCurrentFrameOnly = true);
 
 bool TGA2Bitmap (tRGBA *pTGA, ubyte *pBM, int nWidth, int nHeight);
 

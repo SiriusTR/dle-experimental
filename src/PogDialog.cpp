@@ -95,6 +95,18 @@ return TRUE;
 
 //------------------------------------------------------------------------------
 
+BOOL CPogDialog::DestroyWindow (void)
+{
+for (int i = 0; i < TextureList ()->GetItemCount (); i++) {
+	TextureListItemData *pData = GetTextureListItemData (i);
+	if (pData != NULL)
+		delete pData;
+	}
+return CDialog::DestroyWindow ();
+}
+
+//------------------------------------------------------------------------------
+
 void CPogDialog::DoDataExchange (CDataExchange *pDX)
 {
 CDialog::DoDataExchange (pDX);
@@ -130,30 +142,31 @@ else
 void CPogDialog::RebuildTextureList (void)
 {
 	bool expandAnim = false;
-	uint nExpandAnimTexAll = 0;
+	uint nExpandAnimTextureIndex = 0;
 	const CTexture *pFocusTexture = GetFocusedTexture ();
 
-if (pFocusTexture) {
-	if (pFocusTexture->IsAnimated () && pFocusTexture->FrameNumber () == 0) {
-		expandAnim = true;
-		nExpandAnimTexAll = pFocusTexture->Index ();
-		}
-	else if (pFocusTexture->FrameNumber () > 0) {
-		expandAnim = true;
-		nExpandAnimTexAll = pFocusTexture->GetParent ()->Index ();
-		}
+// If the parent (or first frame due to the behavior of UpdateTextureListFrameExpansion) is selected
+// it will be expanded when we restore focus; subframes are the only case that needs special treatment
+if (pFocusTexture && pFocusTexture->FrameNumber () > 0) {
+	expandAnim = true;
+	nExpandAnimTextureIndex = pFocusTexture->GetParent ()->Index ();
 	}
 
 if (m_bLevelLoaded)
 	textureManager.TagUsedTextures ();
 
 TextureList ()->SetRedraw (FALSE);
+for (int i = 0; i < TextureList ()->GetItemCount (); i++) {
+	TextureListItemData *pData = GetTextureListItemData (i);
+	if (pData != NULL)
+		delete pData;
+	}
 TextureList ()->DeleteAllItems ();
 m_customTextureIcons.DeleteImageList ();
 m_customTextureIcons.Create (ICONLIST_ICON_SIZE, ICONLIST_ICON_SIZE, ILC_COLOR32, ICONLIST_SIZE_INITIAL, ICONLIST_SIZE_INCREMENT);
 TextureList ()->SetImageList (&m_customTextureIcons, LVSIL_SMALL);
 
-int nTexList = 0, nListItem = 0;
+int nListItem = 0;
 for (uint nIndex = 0; nIndex < (uint) textureManager.GlobalTextureCount (); nIndex++) {
 	const CTexture *pTexture = textureManager.TextureByIndex (nIndex);
 #if DBG
@@ -167,46 +180,14 @@ for (uint nIndex = 0; nIndex < (uint) textureManager.GlobalTextureCount (); nInd
 	if (!IsTextureIncluded (pTexture))
 		continue;
 
-	// Scale down texture to 16x16 and add to image list
-	CBitmap *pbmImage = null;
-	pTexture->CreateBitmap (&pbmImage, true, ICONLIST_ICON_SIZE);
-	// Mask not used, second parameter ignored
-	m_customTextureIcons.Add (pbmImage, (CBitmap *)null);
-	delete pbmImage;
-	TextureList ()->InsertItem (nListItem, pTexture->Name (), nTexList);
-	TextureList ()->SetItemData (nListItem, pTexture->Index ());
+	AddTextureListItem (nListItem, pTexture, false);
 
-	char szLabel [40] = {0};
-	int columnNum = 1;
-
-	// Dimensions
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), "%ux%u", pTexture->Width (), pTexture->Height ());
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-	// Custom
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->IsCustom () ? "Yes" : "No");
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-	// Used
-	if (m_bLevelLoaded) {
-		uint uiNumInstances = textureManager.UsedCount (pTexture);
-		sprintf_s (szLabel, ARRAYSIZE (szLabel), uiNumInstances > 0 ? "Yes (%u)" : "No", uiNumInstances);
-		TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-		}
-	// Animated
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->IsAnimated () ? "Yes (%u frames)" : "No", pTexture->GetFrameCount ());
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-	// Transparent
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->IsTransparent () ? "Yes" : "No");
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-	// See-thru
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->IsSuperTransparent () ? "Yes" : "No");
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-
-	// Only increment these when we actually process an item
-	nTexList++, nListItem++;
+	// Only increment this when we actually process an item
+	nListItem++;
 	}
 
 if (expandAnim)
-	AddTextureListFrames (textureManager.TextureByIndex (nExpandAnimTexAll));
+	AddTextureListFrames (textureManager.TextureByIndex (nExpandAnimTextureIndex));
 
 TextureList ()->SortItems (&CPogDialog::CompareTextures, 0);
 m_nTexPreviousFocused = -1;
@@ -239,53 +220,39 @@ for (uint nFrame = 0; nFrame < pTexture->GetFrameCount (); nFrame++) {
 	int columnNum = 1;
 	nListItem++;
 
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), "Frame %u", nFrame + 1);
-	// -1 prevents an icon being shown (currently we're not showing these for frames since they're not really needed)
-	TextureList ()->InsertItem (nListItem, szLabel, -1);
-	TextureList ()->SetItemData (nListItem, pFrame->Index ());
-	TextureList ()->SetItem (nListItem, 0, LVIF_INDENT, null, 0, 0, 0, null, 1);
+	AddTextureListItem (nListItem, pFrame, true);
 
-	// Dimensions
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), "%ux%u", pFrame->Width (), pFrame->Height ());
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-	// Custom
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), pFrame->IsCustom () ? "Yes" : "No");
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-	// Used
-	if (m_bLevelLoaded) {
-		// Door frames can be used individually, but most frames can't
-		uint uiNumInstances = textureManager.UsedCount (pFrame);
-		sprintf_s (szLabel, ARRAYSIZE (szLabel), uiNumInstances > 0 ? "Yes (%u)" : "", uiNumInstances);
-		TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-		}
-	// Animated
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), "");
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-	// Transparent
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), pFrame->IsTransparent () ? "Yes" : "No");
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
-	// See-thru
-	sprintf_s (szLabel, ARRAYSIZE (szLabel), pFrame->IsSuperTransparent () ? "Yes" : "No");
-	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
+	if (nFrame == 0 && pFrame->IsSingleImageAnimation ())
+		// Skipping the unused frames to (hopefully) avoid confusion
+		break;
 	}
 }
 
 //------------------------------------------------------------------------------
 
-void CPogDialog::RemoveTextureListFrames (const CTexture *pTexture)
+uint CPogDialog::RemoveTextureListFrames (const CTexture *pTexture)
 {
+	uint nFramesRemoved = 0;
+
 if (pTexture->GetFrameCount () <= 1)
-	return;
+	return nFramesRemoved;
 
 // Find the list item index for this texture
 int nListItem = GetTextureListIndexFromId (pTexture->Index ());
 if (nListItem < 0)
-	return;
+	return nFramesRemoved;
 
 // Remove all frames from animated texture
 nListItem++; // Not the root itself though
-for (uint nFrame = 0; nFrame < pTexture->GetFrameCount (); nFrame++)
+TextureListItemData *pData = GetTextureListItemData (nListItem);
+while (pData != NULL && pData->bIsFrame && pData->uiParentTextureIndex == pTexture->Index ()) {
+	nFramesRemoved++;
+	delete pData;
 	TextureList ()->DeleteItem (nListItem);
+	pData = GetTextureListItemData (nListItem);
+	}
+
+return nFramesRemoved;
 }
 
 void CPogDialog::UpdateTextureListItem (int nListItem)
@@ -327,6 +294,79 @@ TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
 
 // Display changes immediately
 TextureList ()->Update (nListItem);
+}
+
+//------------------------------------------------------------------------------
+
+void CPogDialog::AddTextureListItem (int nListItem, const CTexture *pTexture, bool asFrame)
+{
+	int nTexList = -1;
+	char szLabel [40] = { 0 };
+	int columnNum = 1;
+	TextureListItemData *pData = new TextureListItemData;
+	pData->uiIndex = pTexture->Index ();
+	pData->bIsFrame = asFrame;
+
+// For non-frame items, we add a thumbnail to the list. For frames we don't,
+// because they're not particularly helpful for identification
+if (!asFrame) {
+	// Scale down texture to 16x16 and add to image list
+	CBitmap *pbmImage = null;
+	pTexture->CreateBitmap (&pbmImage, true, ICONLIST_ICON_SIZE);
+	// Mask not used, second parameter ignored
+	m_customTextureIcons.Add (pbmImage, (CBitmap *)null);
+	delete pbmImage;
+
+	// nTexList is probably equal to nListItem but don't want to assume that
+	nTexList = m_customTextureIcons.GetImageCount () - 1;
+	sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->Name ());
+	pData->uiParentTextureIndex = pData->uiIndex;
+	}
+else {
+	if (pTexture->IsSingleImageAnimation ()) {
+		sprintf_s (szLabel, ARRAYSIZE (szLabel), "Frames 1-%u", pTexture->GetFrameCount ());
+		pData->uiParentTextureIndex = pData->uiIndex;
+		}
+	else {
+		sprintf_s (szLabel, ARRAYSIZE (szLabel), "Frame %u", pTexture->FrameNumber () + 1);
+		pData->uiParentTextureIndex = pTexture->GetParent ()->Index ();
+		}
+	}
+
+// nTexList of -1 prevents an icon being shown
+TextureList ()->InsertItem (nListItem, szLabel, nTexList);
+TextureList ()->SetItemData (nListItem, (DWORD_PTR)pData);
+if (asFrame)
+	TextureList ()->SetItem (nListItem, 0, LVIF_INDENT, null, 0, 0, 0, null, 1);
+
+// Dimensions
+sprintf_s (szLabel, ARRAYSIZE (szLabel), "%ux%u", pTexture->Width (), asFrame ? pTexture->Height () : pTexture->FrameHeight ());
+TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
+// Custom
+sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->IsCustom () ? "Yes" : "No");
+TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
+// Used
+if (m_bLevelLoaded) {
+	uint uiNumInstances = textureManager.UsedCount (pTexture);
+	if (asFrame)
+		// Door frames can be used individually, but most frames can't
+		sprintf_s (szLabel, ARRAYSIZE (szLabel), uiNumInstances > 0 ? "Yes (%u)" : "", uiNumInstances);
+	else
+		sprintf_s (szLabel, ARRAYSIZE (szLabel), uiNumInstances > 0 ? "Yes (%u)" : "No", uiNumInstances);
+	TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
+	}
+// Animated
+if (asFrame)
+	sprintf_s (szLabel, ARRAYSIZE (szLabel), "");
+else
+	sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->IsAnimated () ? "Yes (%u frames)" : "No", pTexture->GetFrameCount ());
+TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
+// Transparent
+sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->IsTransparent () ? "Yes" : "No");
+TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
+// See-thru
+sprintf_s (szLabel, ARRAYSIZE (szLabel), pTexture->IsSuperTransparent () ? "Yes" : "No");
+TextureList ()->SetItemText (nListItem, columnNum++, szLabel);
 }
 
 //------------------------------------------------------------------------------
@@ -407,8 +447,11 @@ return TextureFilters_Misc;
 
 //------------------------------------------------------------------------------
 
-int CALLBACK CPogDialog::CompareTextures (LPARAM nIndex1, LPARAM nIndex2, LPARAM /*lParamSort*/)
+int CALLBACK CPogDialog::CompareTextures (LPARAM lParam1, LPARAM lParam2, LPARAM /*lParamSort*/)
 {
+	uint nIndex1 = ((TextureListItemData *)lParam1)->uiIndex;
+	uint nIndex2 = ((TextureListItemData *)lParam2)->uiIndex;
+
 return _stricmp (textureManager.TextureByIndex (nIndex1)->Name (), textureManager.TextureByIndex (nIndex2)->Name ());
 }
 
@@ -441,9 +484,9 @@ if (ParentTexturesAreEqual (pCurrentFocusedTexture, pPreviousFocusedTexture))
 	return;
 
 if (pPreviousFocusedTexture && textureManager.IsAnimationFrame (-m_nTexPreviousFocused - 1)) {
-	RemoveTextureListFrames (pPreviousFocusedTexture->GetParent ());
+	uint nFramesRemoved = RemoveTextureListFrames (pPreviousFocusedTexture->GetParent ());
 	if (m_iSavedSelectedItem > GetTextureListIndexFromId (pPreviousFocusedTexture->GetParent ()->Index ()))
-		m_iSavedSelectedItem -= pPreviousFocusedTexture->GetParent ()->GetFrameCount ();
+		m_iSavedSelectedItem -= nFramesRemoved;
 	}
 
 if (pCurrentFocusedTexture && pCurrentFocusedTexture->IsAnimated ())
@@ -475,7 +518,8 @@ if (pTexture) {
 	if (isAnimatedTexture)
 		m_preview.StartAnimation (pTexture);
 	else
-		PaintTexture (&m_preview, IMG_BKCOLOR, pTexture);
+		// For this one we want the entire image for a TGA animation (if this is one)
+		PaintTexture (&m_preview, IMG_BKCOLOR, pTexture, null, 0, 0, 0, false);
 	sprintf_s (szLabel, ARRAYSIZE (szLabel), "%ux%u", pTexture->Width (), pTexture->Height ());
 	GetDlgItem (IDC_POGMANAGER_PREVIEW_SIZE)->SetWindowText (szLabel);
 	}
@@ -493,10 +537,9 @@ bool CPogDialog::IsAnimatedTextureRoot (uint uiTextureListIndex)
 
 if (pTexture && pTexture->IsAnimated ()) {
 	// First frame of the texture points to the same object as the animated heading - we don't
-	// want to animate that, so we have to check the first column text instead of GetCurrentFrame
-	char szName [40] = {0};
-	TextureList ()->GetItemText ((int) uiTextureListIndex, 0, szName, ARRAYSIZE (szName));
-	if (!strstr (szName, "Frame"))
+	// want to animate that. We can use the bIsFrame field in the list item data for this
+	TextureListItemData *pData = GetTextureListItemData ((int) uiTextureListIndex);
+	if (!pData->bIsFrame)
 		return true;
 	}
 return false;
@@ -540,7 +583,7 @@ return -1;
 int CPogDialog::GetTextureListIndexFromId (uint nIndex)
 {
 for (int i = 0; i < TextureList ()->GetItemCount (); i++) {
-	if (TextureList ()->GetItemData (i) == nIndex)
+	if (GetTextureListItemData (i)->uiIndex == nIndex)
 		return i;
 	}
 return -1;
@@ -565,7 +608,7 @@ const CTexture *CPogDialog::GetTextureAtIndex (uint uiTextureListIndex)
 {
 if (uiTextureListIndex >= (uint)TextureList ()->GetItemCount ())
 	return null;
-uint nIndex = (uint) TextureList ()->GetItemData (uiTextureListIndex);
+uint nIndex = GetTextureListItemData (uiTextureListIndex)->uiIndex;
 return textureManager.TextureByIndex (nIndex);
 }
 
@@ -676,7 +719,10 @@ if (!IsSingleTextureSelected ())
 	CTextureEdit e (GetFocusedTexture (), this);
 
 if (e.DoModal () == IDOK) { // was the texture actually changed?
-	UpdateTextureListItem (GetFocusedTextureIndex ());
+	if (GetFocusedTexture ()->IsSingleImageAnimation ())
+		RebuildTextureList ();
+	else
+		UpdateTextureListItem (GetFocusedTextureIndex ());
 	UpdateData (FALSE);
 	}
 }
@@ -701,7 +747,10 @@ const CTexture *pTexture = GetFocusedTexture (strstr (::_strlwr (szFile), ".tga"
 
 CTexture *pNewTexture = textureManager.OverrideTexture (pTexture->Index ());
 if (pNewTexture->LoadFromFile (szFile)) {
-	UpdateTextureListItem (GetFocusedTextureIndex ());
+	if (pNewTexture->IsSingleImageAnimation ())
+		RebuildTextureList ();
+	else
+		UpdateTextureListItem (GetFocusedTextureIndex ());
 	UpdateData (FALSE);
 	}
 }

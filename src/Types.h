@@ -101,17 +101,22 @@ public:
 	inline void GLTexCoord (void) { glTexCoord2d (u, v); }
 
 	inline CUVL operator+ (CUVL& other) { return CUVL (u + other.u, v + other.v); }
+
 	inline CUVL operator- (CUVL& other) { return CUVL (u - other.u, v - other.v); }
+
 	inline CUVL& operator+= (CUVL other) { 
 		u += other.u;
 		v += other.v;
 		return *this;
 		}
+
 	inline CUVL operator-= (CUVL other) {
 		u -= other.u;
 		v -= other.v;
 		return *this;
 		}
+
+	inline CUVL operator* (double factor) { return CUVL (u * factor, v * factor); }
 
 	inline double Mag (void) { return sqrt (u * u + v * v); }
 

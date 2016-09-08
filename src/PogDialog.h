@@ -8,6 +8,7 @@ class CPogDialog : public CDialog, private CDlgHelpers {
 		~CPogDialog (void);
 
 		virtual BOOL OnInitDialog (void);
+		virtual BOOL DestroyWindow (void);
 		virtual void DoDataExchange (CDataExchange *pDX);
 
 	private:
@@ -20,6 +21,12 @@ class CPogDialog : public CDialog, private CDlgHelpers {
 			TextureFilters_Powerup,
 			TextureFilters_Misc,
 			NUM_TEXTUREFILTERS // must come last
+			};
+
+		struct TextureListItemData {
+			uint uiIndex;
+			bool bIsFrame;
+			uint uiParentTextureIndex;
 			};
 
 		bool	m_bLevelLoaded;
@@ -36,11 +43,12 @@ class CPogDialog : public CDialog, private CDlgHelpers {
 		inline CComboBox *PaletteList (void) { return (CComboBox *) GetDlgItem (IDC_POGMANAGER_PALETTE); }
 		void RebuildTextureList (void);
 		void AddTextureListFrames (const CTexture *pTexture);
-		void RemoveTextureListFrames (const CTexture *pTexture);
+		uint RemoveTextureListFrames (const CTexture *pTexture);
+		void AddTextureListItem (int nListItem, const CTexture *pTexture, bool asFrame);
 		void UpdateTextureListItem (int nListItem);
 		bool IsTextureIncluded (const CTexture *pTexture);
 		TextureFilters ClassifyTexture (const CTexture *pTexture);
-		static int CALLBACK CompareTextures (LPARAM nTexAll1, LPARAM nTexAll2, LPARAM lParamSort);
+		static int CALLBACK CompareTextures (LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 		bool ParentTexturesAreEqual (const CTexture *pTexture, const CTexture *pOtherTexture);
 		void UpdateTextureListFrameExpansion (void);
 		void UpdateTexturePreviewAndControls (void);
@@ -58,6 +66,9 @@ class CPogDialog : public CDialog, private CDlgHelpers {
 		// Supports < 0 values to allow nulls
 		inline const CTexture *CPogDialog::GetTextureFromId (int nIndex) {
 			return (nIndex >= 0) ? textureManager.TextureByIndex (nIndex) : null;
+		}
+		inline TextureListItemData *GetTextureListItemData (uint uiTextureListIndex) {
+			return (TextureListItemData *)TextureList ()->GetItemData (uiTextureListIndex);
 		}
 
 		afx_msg void OnTextureListSelectionChanged (NMHDR *pNMHDR, LRESULT *pResult);
