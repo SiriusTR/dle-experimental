@@ -23,12 +23,13 @@ m_bEditorTB = !m_bEditorTB;
 if (m_bEditorTB) {
 	if (m_pEditTool = new CEditTool ()) {
 		m_pEditTool->Create (IDD_EDITTOOL, MineView ());
-		CRect rc0, rc1, rc2;
+		CRect rc0, rc1, rc2, rcWork;
 		MineView ()->GetClientRect (rc1);
 		MineView ()->ClientToScreen (rc1);
 		m_pEditTool->GetWindowRect (rc2);
-		rc0.left = GetPrivateProfileInt ("DLE", "xEditTB", 0, DLE.IniFile ());
-		rc0.top = GetPrivateProfileInt ("DLE", "yEditTB", 0, DLE.IniFile ());
+		SystemParametersInfo (SPI_GETWORKAREA, 0, &rcWork, 0);
+		rc0.left = GetPrivateProfileInt ("DLE", "xEditTB", rcWork.left, DLE.IniFile ());
+		rc0.top = GetPrivateProfileInt ("DLE", "yEditTB", rcWork.top, DLE.IniFile ());
 		if (rc0.left < 0)
 			rc0.left = 0;
 		else if (rc0.left > rc1.right)

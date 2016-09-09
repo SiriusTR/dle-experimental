@@ -2,7 +2,7 @@
 #define __matrix_h
 
 #include <afxwin.h>
-#include <math.h>
+#include <cmath>
 
 #include "define.h"
 #include "Vector.h"
