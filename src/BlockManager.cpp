@@ -108,7 +108,7 @@ undoManager.Begin (__FUNCTION__, udAll);
 while (!fp.EoF ()) {
 	DLE.MainFrame ()->Progress ().SetPos (fp.Tell ());
 // abort if there are not at least 8 vertices free
-	if (MAX_VERTICES - vertexManager.Count () < 8) {
+	if (VERTEX_LIMIT - vertexManager.Count () < 8) {
 		undoManager.End (__FUNCTION__);
 		ErrorMsg ("No more free vertices");
 		return nNewSegs;
@@ -683,7 +683,7 @@ for (short nSegment = 0; nSegment < SEGMENT_LIMIT; nSegment++, pSegment++) {
 	}
 
 // untag all vertices
-for (int nVertex = 0; nVertex < MAX_VERTICES; nVertex++) 
+for (int nVertex = 0; nVertex < VERTEX_LIMIT; nVertex++)
 	vertexManager.Vertex (nVertex)->UnTag (TAGGED_MASK | NEW_MASK);
 
 DLE.MainFrame ()->InitProgress (fp.Length ());
@@ -715,7 +715,7 @@ for (CSegment* pNewSeg = m_newSegments; pNewSeg != null; pNewSeg = dynamic_cast<
 		}
 	}
 // clear all new vertices as such
-for (int nVertex = 0; nVertex < MAX_VERTICES; nVertex++)
+for (int nVertex = 0; nVertex < VERTEX_LIMIT; nVertex++)
 	vertexManager.Vertex (nVertex)->UnTag (NEW_MASK);
 // now set all seg_numbers
 pSegment = segmentManager.Segment (0);

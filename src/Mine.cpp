@@ -285,7 +285,7 @@ for (i = 0; i < SEGMENT_LIMIT; i++, pSegment++)
 	pSegment->UnTag ();
 segmentManager.Count () = 0;
 // initialize vertices
-for (i = 0; i < MAX_VERTICES; i++) 
+for (i = 0; i < VERTEX_LIMIT; i++) 
 	vertexManager.Status (i) &= ~TAGGED_MASK;
 vertexManager.Count () = 0;
 lightManager.Count () = 0;

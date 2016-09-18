@@ -93,7 +93,7 @@ if (tunnelMaker.Active ())
 
 current->Get (key);
 
-if (vertexManager.Count () > (MAX_VERTICES - 1)) {
+if (vertexManager.Count () > (VERTEX_LIMIT - 1)) {
 	if (bVerbose)
 		ErrorMsg ("Cannot unjoin these points because the\nmaximum number of points is reached."); 
 	return -1; 
@@ -160,7 +160,7 @@ void CSegmentManager::SeparateLines (short nLine)
 if (tunnelMaker.Active ()) 
 	return; 
 
-if (vertexManager.Count () > (MAX_VERTICES - 2)) {
+if (vertexManager.Count () > (VERTEX_LIMIT - 2)) {
 	if (!DLE.ExpertMode ())
 		ErrorMsg ("Cannot unjoin these lines because\nthere are not enought points left."); 
 	return; 
@@ -258,7 +258,7 @@ for (i = 0; i < nVertices; i++) {
 //	ErrorMsg ("One or more of these points are not joined with any other points."); 
 //	return; 
 
-if (!bSolidify && (vertexManager.Count () > (MAX_VERTICES - nShared))) {
+if (!bSolidify && (vertexManager.Count () > (VERTEX_LIMIT - nShared))) {
 	ErrorMsg ("Cannot unjoin this side because\nthere are not enough vertices left."); 
 	return false; 
 	}
@@ -698,7 +698,7 @@ for (short h = 0; h < 2; h++) {
 	uvl.l = (uvl.l + pSide->m_info.uvls [nSideVerts [1]].l) / 2;
 	pSide->m_info.uvls [nSideVerts [0]] = uvl;
 	pSide->SetShape (pSide->Shape () + 1);
-	short h = pSide->VertexCount () - nSideVerts [1];
+	h = pSide->VertexCount () - nSideVerts [1];
 	if (h > 0) {
 		memcpy (pSide->m_vertexIdIndex + nSideVerts [1], pSide->m_vertexIdIndex + nSideVerts [1] + 1, h);
 		memcpy (pSide->m_info.uvls + nSideVerts [1], pSide->m_info.uvls + nSideVerts [1] + 1, h * sizeof (CUVL));

@@ -536,7 +536,7 @@ switch (selectMode) {
 	case BLOCK_MODE:
 		bool bMoved = false;
 		undoManager.Begin (__FUNCTION__, udVertices | udSegments);
-		for (i = 0; i < MAX_VERTICES; i++) {
+		for (i = 0; i < VERTEX_LIMIT; i++) {
 			if (vertexManager.Status (i) & TAGGED_MASK) {
 				vertexManager.Vertex (i)->SetDelta (vDelta);
 				segmentManager.UpdateTexCoords (ushort (i), false);
@@ -641,13 +641,13 @@ switch (selectMode) {
 	case BLOCK_MODE:
 		undoManager.Begin (__FUNCTION__, udObjects);
 		CGameObject *pObject = objectManager.Object (0);
-		for (i = 0; i < MAX_VERTICES; i++)
+		for (i = 0; i < VERTEX_LIMIT; i++)
 			if (vertexManager.Status (i) & TAGGED_MASK) 
 				vertexManager.Vertex (i)->SetDelta (vDelta);
-		for (i = 0; i < MAX_VERTICES; i++)
+		for (i = 0; i < VERTEX_LIMIT; i++)
 			if (vertexManager.Status (i) & TAGGED_MASK) 
 				segmentManager.UpdateTexCoords (i, false, 0x7FFF);
-		for (i = 0; i < MAX_VERTICES; i++)
+		for (i = 0; i < VERTEX_LIMIT; i++)
 			if (vertexManager.Status (i) & TAGGED_MASK) {
 				vertexManager.Vertex (i)->Move ();
 				segmentManager.UpdateTexCoords (i, true, 0x7FFF);
