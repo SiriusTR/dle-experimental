@@ -285,12 +285,12 @@ return CFrameWnd::PreCreateWindow (cs);
 
 //------------------------------------------------------------------------------
 
-#define CX_TOOLS_HORZ		750
-#define CY_TOOLS_HORZ		260
-#define CX_TOOLS_VERT		360
-#define CY_TOOLS_VERT		760
-#define CX_TEXTURES			140
-#define CY_TEXTURES			150
+#define CX_TOOLS_HORZ		(MulDiv (620 + 10, LOWORD (GetDialogBaseUnits ()), 4)) //750
+#define CY_TOOLS_HORZ		(MulDiv (130 + 30, HIWORD (GetDialogBaseUnits ()), 8)) //260
+#define CX_TOOLS_VERT		(MulDiv (222 + 10, LOWORD (GetDialogBaseUnits ()), 4)) //360
+#define CY_TOOLS_VERT		(MulDiv (389 + 30, HIWORD (GetDialogBaseUnits ()), 8)) //760
+#define CX_TEXTURES			(MulDiv (70, LOWORD (GetDialogBaseUnits ()), 4) + GetSystemMetrics (SM_CXVSCROLL)) //140
+#define CY_TEXTURES			(MulDiv (70, HIWORD (GetDialogBaseUnits ()), 8) + GetSystemMetrics (SM_CYHSCROLL)) //150
 
 BOOL CMainFrame::OnCreateClient (LPCREATESTRUCT lpcs, CCreateContext * pContext)
 {
