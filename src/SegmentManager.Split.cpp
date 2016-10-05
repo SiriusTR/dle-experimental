@@ -698,10 +698,10 @@ for (short h = 0; h < 2; h++) {
 	uvl.l = (uvl.l + pSide->m_info.uvls [nSideVerts [1]].l) / 2;
 	pSide->m_info.uvls [nSideVerts [0]] = uvl;
 	pSide->SetShape (pSide->Shape () + 1);
-	short h = pSide->VertexCount () - nSideVerts [1];
-	if (h > 0) {
-		memcpy (pSide->m_vertexIdIndex + nSideVerts [1], pSide->m_vertexIdIndex + nSideVerts [1] + 1, h);
-		memcpy (pSide->m_info.uvls + nSideVerts [1], pSide->m_info.uvls + nSideVerts [1] + 1, h * sizeof (CUVL));
+	short nVertsToMove = pSide->VertexCount () - nSideVerts [1];
+	if (nVertsToMove > 0) {
+		memcpy (pSide->m_vertexIdIndex + nSideVerts [1], pSide->m_vertexIdIndex + nSideVerts [1] + 1, nVertsToMove);
+		memcpy (pSide->m_info.uvls + nSideVerts [1], pSide->m_info.uvls + nSideVerts [1] + 1, nVertsToMove * sizeof (CUVL));
 		}
 	pSide->m_vertexIdIndex [pSide->VertexCount ()] = 0xff; //pSide->m_vertexIdIndex [nSideVerts [0]];
 	}

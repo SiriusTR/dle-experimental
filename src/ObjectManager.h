@@ -95,7 +95,7 @@ class CObjectManager {
 
 		double& BumpIncrement (void) { return m_bumpIncrement; }
 
-		inline short Add (bool bUndo = true);
+		short Add (bool bUndo = true);
 
 		bool Create (ubyte newType, short nSegment = -1);
 

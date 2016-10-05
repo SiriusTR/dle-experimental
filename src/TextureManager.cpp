@@ -625,7 +625,7 @@ int CTextureManager::CreateMissingAnimationClips (int nVersion)
 	int						nRootIndex = -1;
 	int						nClips = 0;
 
-for (int nIndex = 0; nIndex < textureManager.GlobalTextureCount (); nIndex++) {
+for (int nIndex = 0; nIndex < textureManager.GlobalTextureCount (nVersion); nIndex++) {
 #if DBG
 	if ((nDbgTexture >= 0) && (nIndex == nDbgTexture))
 		nDbgTexture = nDbgTexture;
@@ -680,7 +680,7 @@ return nClips;
 
 void CTextureManager::BuildAnimationIndex (int nVersion)
 {
-CSLLIterator <CAnimationClipInfo, CAnimationClipInfo> iter (m_animationClips [Version ()]);
+CSLLIterator <CAnimationClipInfo, CAnimationClipInfo> iter (m_animationClips [Version (nVersion)]);
 CTexture* textures = m_textures [nVersion].Buffer ();
 
 for (iter.Begin (); *iter != iter.End (); iter++) {

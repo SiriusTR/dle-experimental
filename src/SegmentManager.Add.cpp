@@ -127,7 +127,7 @@ if (Side (key)->VertexCount () < 3) {
 	}
 
 m_bCreating = true;
-undoManager.Begin (__FUNCTION__, udSegments); 
+undoManager.Begin (__FUNCTION__, udSegments | udVertices); 
 // get new segment
 
 if (addMode < 0)
@@ -348,8 +348,8 @@ bool CSegmentManager::CreateProducer (short nSegment, bool bCreate, ubyte nType,
 												  CObjectProducer* producers, CMineItemInfo& info, char* szError) 
 {
 if (info.count >= MAX_MATCENS) {
-    ErrorMsg (szError);
-	 return false;
+	ErrorMsg (szError);
+	return false;
 	}
 undoManager.Begin (__FUNCTION__, udSegments);
 if (0 > (nSegment = Create (nSegment, bCreate, nType))) {
