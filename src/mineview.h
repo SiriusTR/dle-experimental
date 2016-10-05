@@ -45,16 +45,68 @@ enum eMouseStates
 {
 	eMouseStateIdle,
 	eMouseStateButtonDown,
+	eMouseStateDrag,
+	eMouseStateRubberBand,
 	eMouseStateSelect,
 	eMouseStatePan,
 	eMouseStateRotate,
 	eMouseStateZoom,
+	// Transient states (resets to idle after input applied)
 	eMouseStateZoomIn,
 	eMouseStateZoomOut,
-	eMouseStateInitDrag,
-	eMouseStateDrag,
-	eMouseStateRubberBand,
-	eMouseStateCount	//must always be last tag
+	eMouseStateQuickSelect,
+	eMouseStateApplySelect,
+	eMouseStateApplyDrag,
+	eMouseStateApplyRubberBand,
+	//must always be last tag
+	eMouseStateCount
+};
+
+// -----------------------------------------------------------------------------
+
+enum eMovementModes
+{
+	eMovementModeStepped,
+	eMovementModeContinuous
+};
+
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+
+// do we need to move this out of mineview?
+// can we filter out input that has already hit an accelerator?
+class CInputHandler {
+	public:
+		CInputHandler ();
+		virtual ~CInputHandler ();
+	
+		void OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
+		void OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
+		void OnMouseMove (UINT nFlags, CPoint point);
+		void OnLButtonUp (UINT nFlags, CPoint point);
+		void OnLButtonDown (UINT nFlags, CPoint point);
+		void OnRButtonUp (UINT nFlags, CPoint point);
+		void OnRButtonDown (UINT nFlags, CPoint point);
+		void OnMButtonUp (UINT nFlags, CPoint point);
+		void OnMButtonDown (UINT nFlags, CPoint point);
+		void OnXButtonUp (UINT nFlags, UINT nButton, CPoint point);
+		void OnXButtonDown (UINT nFlags, UINT nButton, CPoint point);
+		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
+
+	private:
+		eMovementModes m_movementMode;
+		eMouseStates m_mouseState;
+		UINT m_clickState;
+		CPoint m_lastMousePos;
+		CPoint *m_lButtonStartPos, *m_mButtonStartPos, *m_rButtonStartPos,
+			*m_x1ButtonStartPos, *m_x2ButtonStartPos;
+
+		eMouseStates MapInputToMouseState (UINT msg, UINT nFlags, CPoint point);
+		// Mouse input
+		void UpdateMouseState (UINT msg, UINT nFlags, CPoint point);
+		// Keyboard input
+		void UpdateMouseState (UINT msg, UINT nFlags);
 };
 
 // -----------------------------------------------------------------------------
@@ -88,6 +140,8 @@ protected: // create from serialization only
 	CSplitterWnd*	m_pSplitter;
 
 	CRenderData		m_renderData;
+	CInputHandler	m_inputHandler;
+
 	// member variables
 	bool 				m_bUpdate;
 	bool 				m_bUpdateCursor;
