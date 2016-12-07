@@ -48,7 +48,7 @@ return count;
 
 #else //USE_FREELIST
 
-if (Count () + count > /*MAX_VERTICES*/ VERTEX_LIMIT)
+if (Count () + count > VERTEX_LIMIT)
 	return 0;
 for (ushort i = 0; i < count; i++) {
 	nVertices [i] = Count () + i;
@@ -145,7 +145,7 @@ for (int i = 0; i < Count (); i++)
 void CVertexManager::Write (CFileManager* fp)
 {
 m_info.offset = fp->Tell ();
-int j = Count (); //(Count () < MAX_VERTICES) ? Count () : MAX_VERTICES;
+int j = Count ();
 for (int i = 0; i < j; i++)
 	m_vertices [i].Write (fp);
 }

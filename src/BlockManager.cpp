@@ -683,8 +683,7 @@ for (short nSegment = 0; nSegment < SEGMENT_LIMIT; nSegment++, pSegment++) {
 	}
 
 // untag all vertices
-for (int nVertex = 0; nVertex < VERTEX_LIMIT; nVertex++)
-	vertexManager.Vertex (nVertex)->UnTag (TAGGED_MASK | NEW_MASK);
+vertexManager.UnTagAll (TAGGED_MASK | NEW_MASK);
 
 DLE.MainFrame ()->InitProgress (fp.Length ());
 short count = Read (fp);
@@ -715,8 +714,7 @@ for (CSegment* pNewSeg = m_newSegments; pNewSeg != null; pNewSeg = dynamic_cast<
 		}
 	}
 // clear all new vertices as such
-for (int nVertex = 0; nVertex < VERTEX_LIMIT; nVertex++)
-	vertexManager.Vertex (nVertex)->UnTag (NEW_MASK);
+vertexManager.UnTagAll (NEW_MASK);
 // now set all seg_numbers
 pSegment = segmentManager.Segment (0);
 for (short nSegment = 0; nSegment < segmentManager.Count (); nSegment++, pSegment++)
