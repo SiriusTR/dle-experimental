@@ -641,13 +641,13 @@ switch (selectMode) {
 	case BLOCK_MODE:
 		undoManager.Begin (__FUNCTION__, udObjects);
 		CGameObject *pObject = objectManager.Object (0);
-		for (i = 0; i < VERTEX_LIMIT; i++)
+		for (i = 0; i < vertexManager.Count (); i++)
 			if (vertexManager.Status (i) & TAGGED_MASK) 
 				vertexManager.Vertex (i)->SetDelta (vDelta);
-		for (i = 0; i < VERTEX_LIMIT; i++)
+		for (i = 0; i < vertexManager.Count (); i++)
 			if (vertexManager.Status (i) & TAGGED_MASK) 
 				segmentManager.UpdateTexCoords (i, false, 0x7FFF);
-		for (i = 0; i < VERTEX_LIMIT; i++)
+		for (i = 0; i < vertexManager.Count (); i++)
 			if (vertexManager.Status (i) & TAGGED_MASK) {
 				vertexManager.Vertex (i)->Move ();
 				segmentManager.UpdateTexCoords (i, true, 0x7FFF);
