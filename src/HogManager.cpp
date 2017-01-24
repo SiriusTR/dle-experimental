@@ -130,7 +130,10 @@ return TRUE;
 
 void CInputDialog::DoDataExchange (CDataExchange * pDX)
 {
-DDX_Text (pDX, IDC_INPDLG_PROMPT, m_pszPrompt, int (strlen (m_pszPrompt)));
+// m_pszPrompt can point to a string literal, and writing to those causes crashes
+// using some compiler settings, so this is read-only
+if (!pDX->m_bSaveAndValidate)
+	DDX_Text (pDX, IDC_INPDLG_PROMPT, m_pszPrompt, int (strlen (m_pszPrompt)));
 DDX_Text (pDX, IDC_INPDLG_BUF, m_pszBuf, int (m_nBufSize));
 }
 
