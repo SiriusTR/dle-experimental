@@ -51,7 +51,7 @@ enum eMouseStates
 	eMouseStatePan,
 	eMouseStateRotate,
 	eMouseStateZoom,
-	// Transient states (resets to idle after input applied)
+	// Transitional states (resets to idle after input applied)
 	eMouseStateZoomIn,
 	eMouseStateZoomOut,
 	eMouseStateQuickSelect,
@@ -64,10 +64,52 @@ enum eMouseStates
 
 // -----------------------------------------------------------------------------
 
+enum eMouseStateMatchResults
+{
+	eMatchNone = 0,
+	eMatchPartial = 1,
+	eMatchExact = 2
+};
+
+// -----------------------------------------------------------------------------
+
 enum eMovementModes
 {
 	eMovementModeStepped,
 	eMovementModeContinuous
+};
+
+// -----------------------------------------------------------------------------
+
+enum eModifierKeys
+{
+	eModifierShift,
+	eModifierCtrl,
+	eModifierAlt,
+	// must always be last tag
+	eModifierCount
+};
+
+// -----------------------------------------------------------------------------
+
+struct MouseStateConfig {
+	// Mouse button used for state (if any)
+	UINT button;
+	// List of modifiers (true means the modifier is required for this state)
+	bool modifiers [eModifierCount];
+	// Do the modifier keys act as toggles, rather than needing to be held down?
+	bool bToggleModifiers = false;
+	// Are the mouse X/Y axes inverted for this state?
+	bool bInvertX = false;
+	bool bInvertY = false;
+};
+
+// -----------------------------------------------------------------------------
+
+struct KeyboardBinding {
+	// key
+	// List of modifiers (true means the modifier is required for this state)
+	bool modifiers [eModifierCount];
 };
 
 // -----------------------------------------------------------------------------
@@ -95,18 +137,25 @@ class CInputHandler {
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
 	private:
+		MouseStateConfig m_stateConfigs [eMouseStateCount];
 		eMovementModes m_movementMode;
 		eMouseStates m_mouseState;
-		UINT m_clickState;
+		CPoint *m_clickStartPos;
 		CPoint m_lastMousePos;
-		CPoint *m_lButtonStartPos, *m_mButtonStartPos, *m_rButtonStartPos,
-			*m_x1ButtonStartPos, *m_x2ButtonStartPos;
+		bool m_bModifierActive [eModifierCount];
+		bool m_bMouseLockActive;
 
-		eMouseStates MapInputToMouseState (UINT msg, UINT nFlags, CPoint point);
-		// Mouse input
-		void UpdateMouseState (UINT msg, UINT nFlags, CPoint point);
-		// Keyboard input
-		void UpdateMouseState (UINT msg, UINT nFlags);
+		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
+		eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
+		bool HasExitedState (UINT msg) const;
+		bool ButtonUpMatchesState (eMouseStates state, UINT msg) const;
+		bool IsClickState (eMouseStates state) const;
+		bool CheckValidDragTarget (const CPoint point) const;
+		void ProcessTransitionalStates (CPoint point);
+		// Update mouse state in response to mouse input (e.g. clicks)
+		void UpdateMouseState (UINT msg, CPoint point);
+		// Update mouse state in response to keyboard input
+		void UpdateMouseState (UINT msg);
 };
 
 // -----------------------------------------------------------------------------
