@@ -141,6 +141,7 @@ class CInputHandler {
 		eMovementModes m_movementMode;
 		eMouseStates m_mouseState;
 		CPoint *m_clickStartPos;
+		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
 		bool m_bModifierActive [eModifierCount];
 		bool m_bMouseLockActive;

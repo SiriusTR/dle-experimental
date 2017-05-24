@@ -3,6 +3,7 @@
 CInputHandler::CInputHandler ()
 {
 m_clickStartPos = nullptr;
+m_zoomStartPos = nullptr;
 }
 
 CInputHandler::~CInputHandler ()
@@ -10,6 +11,10 @@ CInputHandler::~CInputHandler ()
 if (m_clickStartPos != nullptr) {
 	delete m_clickStartPos;
 	m_clickStartPos = nullptr;
+	}
+if (m_zoomStartPos != nullptr) {
+	delete m_zoomStartPos;
+	m_zoomStartPos = nullptr;
 	}
 }
 
@@ -63,8 +68,8 @@ switch (m_movementMode) {
 
 void CInputHandler::OnMouseMove (UINT nFlags, CPoint point)
 {
-UpdateMouseState (WM_MOUSEMOVE, point);
 CPoint change = m_lastMousePos - point;
+UpdateMouseState (WM_MOUSEMOVE, point);
 
 if (change.x || change.y) {
 	switch (m_mouseState) {
@@ -106,26 +111,15 @@ if (change.x || change.y) {
 					}
 				}
 			else {
-				// This is pretty ugly, can we do better?
-				// Also won't work when this state just started because it doesn't reset nChange
-				static int nChange = 0;
-				if ((change.x < 0) || ((change.x == 0) && (change.y < 0))) {
-					if (nChange > 0)
-						nChange = 0;
-					nChange += change.x ? change.x : change.y;
-					if (nChange < -30) {
-						nChange = 0;
-						ZoomIn (1, true);
-						}
+				CPoint zoomOffset = point - *m_zoomStartPos;
+				int nChange = zoomOffset.x + zoomOffset.y;
+				if (nChange > 30) {
+					*m_zoomStartPos = point;
+					ZoomIn (1, true);
 					}
-				else if ((change.x > 0) || ((change.x == 0) && (change.y > 0))) {
-					if (nChange < 0)
-						nChange = 0;
-					nChange += change.x ? change.x : change.y;
-					if (nChange > 30) {
-						nChange = 0;
-						ZoomOut (1, true);
-						}
+				else if (nChange < -30) {
+					*m_zoomStartPos = point;
+					ZoomOut (1, true);
 					}
 				}
 			break;
@@ -500,8 +494,22 @@ if (m_mouseState != newState) {
 		delete m_clickStartPos;
 		m_clickStartPos = nullptr;
 		}
+
+	// Some special handling for zoom - we need to track where we started even if it
+	// isn't a click state, because it uses stepping
+	if (m_mouseState == eMouseStateZoom) {
+		if (m_zoomStartPos == nullptr)
+			m_zoomStartPos = new CPoint (point);
+		else
+			*m_zoomStartPos = point;
+		}
+	else if (m_zoomStartPos != nullptr) {
+		delete m_zoomStartPos;
+		m_zoomStartPos = nullptr;
+		}
 	}
 
+// TODO leave this to OnMouseMove?
 m_lastMousePos = point;
 }
 
