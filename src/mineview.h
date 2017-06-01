@@ -106,10 +106,36 @@ struct MouseStateConfig {
 
 // -----------------------------------------------------------------------------
 
+enum eKeyCommands {
+	eKeyCommandMoveForward,
+	eKeyCommandMoveBackward,
+	eKeyCommandMoveLeft,
+	eKeyCommandMoveRight,
+	eKeyCommandMoveUp,
+	eKeyCommandMoveDown,
+	eKeyCommandRotateUp,
+	eKeyCommandRotateDown,
+	eKeyCommandRotateLeft,
+	eKeyCommandRotateRight,
+	eKeyCommandRotateBankLeft,
+	eKeyCommandRotateBankRight,
+	eKeyCommandZoomIn,
+	eKeyCommandZoomOut,
+	eKeyCommandInputLock,
+	// Must always be last tags; add new commands above this line
+	eKeyCommandCount,
+	eKeyCommandUnknown = -1
+};
+
+// -----------------------------------------------------------------------------
+
 struct KeyboardBinding {
-	// key
+	// Virtual key code (0 if the command is not bound to a key)
+	UINT nChar;
 	// List of modifiers (true means the modifier is required for this state)
 	bool modifiers [eModifierCount];
+	// Is the binding ignored except under input lock?
+	bool bNeedsInputLock;
 };
 
 // -----------------------------------------------------------------------------
@@ -137,6 +163,7 @@ class CInputHandler {
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
 	private:
+		KeyboardBinding m_keyBindings [eKeyCommandCount];
 		MouseStateConfig m_stateConfigs [eMouseStateCount];
 		eMovementModes m_movementMode;
 		eMouseStates m_mouseState;
@@ -144,7 +171,7 @@ class CInputHandler {
 		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
 		bool m_bModifierActive [eModifierCount];
-		bool m_bMouseLockActive;
+		bool m_bInputLockActive;
 
 		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
 		eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
@@ -157,6 +184,11 @@ class CInputHandler {
 		void UpdateMouseState (UINT msg, CPoint point);
 		// Update mouse state in response to keyboard input
 		void UpdateMouseState (UINT msg);
+		void UpdateModifierStates (UINT msg, UINT nChar, UINT nFlags);
+		void UpdateInputLockState (UINT msg, UINT nChar);
+		bool IsMovementCommand (eKeyCommands command);
+		eKeyCommands MapKeyToCommand (UINT nChar);
+		bool KeyMatchesKeyCommand (eKeyCommands command, UINT nChar);
 };
 
 // -----------------------------------------------------------------------------

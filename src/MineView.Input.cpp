@@ -4,6 +4,10 @@ CInputHandler::CInputHandler ()
 {
 m_clickStartPos = nullptr;
 m_zoomStartPos = nullptr;
+for (int i = 0; i < eModifierCount; i++) {
+	m_bModifierActive [i] = false;
+	}
+m_bInputLockActive = false;
 }
 
 CInputHandler::~CInputHandler ()
@@ -22,19 +26,20 @@ void CInputHandler::OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 UpdateModifierStates (WM_KEYUP, nChar, nFlags);
 UpdateMouseState (WM_KEYUP);
-if (!IsMovementKey (nChar))
-	return;
+UpdateInputLockState (WM_KEYUP, nChar);
 
-movementDirection = MapKeyToDirection (nChar);
+eKeyCommands command = MapKeyToCommand (nChar);
+if (!IsMovementCommand (command))
+	return;
 
 switch (m_movementMode) {
 	case eMovementModeStepped:
 		for (int i = 0; i < nRepCnt; i++) {
-			ApplyMovement (movementDirection);
+			ApplyMovement (command);
 			}
 		break;
 	case eMovementModeContinuous:
-		StopMovement (movementDirection);
+		StopMovement (command);
 		break;
 	default:
 		// Unknown mode
@@ -46,19 +51,20 @@ void CInputHandler::OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 UpdateModifierStates (WM_KEYDOWN, nChar, nFlags);
 UpdateMouseState (WM_KEYDOWN);
-if (!IsMovementKey (nChar))
-	return;
+UpdateInputLockState (WM_KEYDOWN, nChar);
 
-movementDirection = MapKeyToDirection (nChar);
+eKeyCommands command = MapKeyToCommand (nChar);
+if (!IsMovementCommand (command))
+	return;
 
 switch (m_movementMode) {
 	case eMovementModeStepped:
 		for (int i = 0; i < nRepCnt; i++) {
-			ApplyMovement (movementDirection);
+			ApplyMovement (command);
 			}
 		break;
 	case eMovementModeContinuous:
-		StartMovement (movementDirection);
+		StartMovement (command);
 		break;
 	default:
 		// Unknown mode
@@ -522,4 +528,87 @@ if (m_mouseState != newState) {
 	ProcessTransitionalStates (m_lastMousePos);
 	UpdateCursor (m_mouseState);
 	}
+}
+
+void CInputHandler::UpdateModifierStates (UINT msg, UINT nChar, UINT nFlags)
+{
+switch (nChar) {
+	case VK_SHIFT:
+		m_bModifierActive [eModifierShift] = (msg == WM_KEYDOWN);
+		break;
+
+	case VK_CONTROL:
+		m_bModifierActive [eModifierCtrl] = (msg == WM_KEYDOWN);
+		break;
+
+	case VK_MENU:
+		m_bModifierActive[eModifierAlt] = (msg == WM_KEYDOWN);
+		break;
+
+	default:
+		break;
+	}
+}
+
+bool CInputHandler::IsMovementCommand (eKeyCommands command)
+{
+switch (command) {
+	case eKeyCommandMoveForward:
+	case eKeyCommandMoveBackward:
+	case eKeyCommandMoveLeft:
+	case eKeyCommandMoveRight:
+	case eKeyCommandMoveUp:
+	case eKeyCommandMoveDown:
+	case eKeyCommandRotateUp:
+	case eKeyCommandRotateDown:
+	case eKeyCommandRotateLeft:
+	case eKeyCommandRotateRight:
+	case eKeyCommandRotateBankLeft:
+	case eKeyCommandRotateBankRight:
+	case eKeyCommandZoomIn:
+	case eKeyCommandZoomOut:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+void CInputHandler::UpdateInputLockState (UINT msg, UINT nChar)
+{
+if (KeyMatchesKeyCommand (eKeyCommandInputLock, nChar))
+	m_bInputLockActive = (msg == WM_KEYDOWN);
+}
+
+eKeyCommands CInputHandler::MapKeyToCommand (UINT nChar)
+{
+for (int command = 0; command < eKeyCommandCount; command++)
+	if (KeyMatchesKeyCommand ((eKeyCommands)command, nChar))
+		return (eKeyCommands)command;
+
+return eKeyCommandUnknown;
+}
+
+bool CInputHandler::KeyMatchesKeyCommand (eKeyCommands command, UINT nChar)
+{
+if (command < 0 || command >= eKeyCommandCount)
+	return false;
+
+const KeyboardBinding &binding = m_keyBindings [command];
+
+if (binding.bNeedsInputLock && !m_bInputLockActive)
+	return false;
+
+if (nChar != binding.nChar)
+	return false;
+
+// Check modifiers
+for (int i = 0; i < eModifierCount; i++) {
+	bool bRequired = binding.modifiers [i];
+
+	if (bRequired && !m_bModifierActive [i])
+		return false;
+	}
+
+return true;
 }
