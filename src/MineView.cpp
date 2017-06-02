@@ -782,14 +782,17 @@ return CView::OnSetCursor (pWnd, nHitTest, message);
 
 //------------------------------------------------------------------------------
 
-BOOL CMineView::SetCursor (HCURSOR hCursor)
+BOOL CMineView::SetCursor (eMouseStates state)
 {
-if (!hCursor) // || (hCursor == m_hCursor))
-   return FALSE;
-::SetClassLong (GetSafeHwnd (), -12 /*int (GCL_HCURSOR)*/, int (hCursor));
+	HCURSOR hCursor = m_hCursors [state];
+
+if (hCursor == NULL)
+	return FALSE;
+::SetClassLongPtr (GetSafeHwnd (), GCL_HCURSOR, LONG (hCursor));
+::SetCursor (hCursor); // to update the cursor this frame
 return TRUE;
 }
-                        
+
 //------------------------------------------------------------------------------
 
 void CMineView::SetMouseState (int newMouseState)

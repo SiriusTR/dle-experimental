@@ -146,7 +146,7 @@ struct KeyboardBinding {
 // can we filter out input that has already hit an accelerator?
 class CInputHandler {
 	public:
-		CInputHandler ();
+		CInputHandler (CMineView *pMineView);
 		virtual ~CInputHandler ();
 	
 		void OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
@@ -163,6 +163,7 @@ class CInputHandler {
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
 	private:
+		CMineView *m_pMineView;
 		KeyboardBinding m_keyBindings [eKeyCommandCount];
 		MouseStateConfig m_stateConfigs [eMouseStateCount];
 		eMovementModes m_movementMode;
@@ -189,6 +190,9 @@ class CInputHandler {
 		bool IsMovementCommand (eKeyCommands command);
 		eKeyCommands MapKeyToCommand (UINT nChar);
 		bool KeyMatchesKeyCommand (eKeyCommands command, UINT nChar);
+		void DoMousePan (const CPoint point);
+		void DoMouseZoom (const CPoint point);
+		void DoMouseRotate (const CPoint point);
 };
 
 // -----------------------------------------------------------------------------
@@ -432,7 +436,7 @@ public:
 	void SetMouseState (int newMouseState);
 	inline bool MouseState (int nMouseState) { return m_mouseState == nMouseState; }
 	void RecordMousePos (CPoint& mousePos, CPoint point);
-	BOOL SetCursor (HCURSOR hCursor);
+	BOOL SetCursor (eMouseStates state);
 //	void UpdateCursor (void);
 
 	inline short Wrap (short v, short delta, short min, short max) {

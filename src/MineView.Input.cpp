@@ -1,6 +1,7 @@
 #include "mineview.h"
 
-CInputHandler::CInputHandler ()
+CInputHandler::CInputHandler (CMineView *pMineView)
+	: m_pMineView (pMineView)
 {
 m_clickStartPos = nullptr;
 m_zoomStartPos = nullptr;
@@ -74,80 +75,40 @@ switch (m_movementMode) {
 
 void CInputHandler::OnMouseMove (UINT nFlags, CPoint point)
 {
-CPoint change = m_lastMousePos - point;
 UpdateMouseState (WM_MOUSEMOVE, point);
 
+CPoint change = m_lastMousePos - point;
 if (change.x || change.y) {
 	switch (m_mouseState) {
 		case eMouseStateIdle:
 			break;
 
-		case eMouseStatePan:
-			double scale = m_nRenderer ? 0.5 : 1.0;
-			double d = double (change.x) * scale;
-			if (d != 0.0)
-				Pan ('X', Perspective() ? -d : d);
-			d = double (change.y) * scale;
-			if (d != 0.0)
-				Pan ('Y', -d);
+		case eMouseStateDrag:
+			m_pMineView->UpdateDragPos (point);
 			break;
 
-		case eMouseStateRotate:
-			double scale = Perspective() ? 300.0 : 200.0;
-			Rotate ('Y', -double (change.x) / scale);
-			Rotate ('X', (m_nRenderer && !Perspective()) ? double (change.y) / scale : -double (change.y) / scale);
+		case eMouseStateRubberBand:
+			m_pMineView->UpdateRubberRect (*m_clickStartPos, point);
 			break;
 
 		case eMouseStateSelect:
+			m_pMineView->UpdateSelectHighlights (point);
+			/*
 			if (SelectMode (eSelectPoint) || SelectMode (eSelectLine) || SelectMode (eSelectSide) || SelectMode (eSelectSegment))
 				Invalidate (FALSE);
-			break;
-
-		case eMouseStateDrag:
-			UpdateDragPos ();
-			break;
-
-		case eMouseStateZoom:
-			if (Perspective ()) {
-				if ((change.x > 0) || ((change.x == 0) && (change.y > 0))) {
-					ZoomOut (1, true);
-					}
-				else if ((change.x < 0) || ((change.x == 0) && (change.y < 0))) {
-					ZoomIn (1, true);
-					}
-				}
-			else {
-				CPoint zoomOffset = point - *m_zoomStartPos;
-				int nChange = zoomOffset.x + zoomOffset.y;
-				if (nChange > 30) {
-					*m_zoomStartPos = point;
-					ZoomIn (1, true);
-					}
-				else if (nChange < -30) {
-					*m_zoomStartPos = point;
-					ZoomOut (1, true);
-					}
-				}
-			break;
-			
-		case eMouseStateRubberBand:
-			UpdateRubberRect (point);
-			break;
-
-		case eMouseStateSelect:
-			UpdateSelectHighlights (point);
-			break;
-
-		case eMouseStateZoom:
-			ApplyZoom (point);
+			*/
 			break;
 
 		case eMouseStatePan:
-			ApplyPan (point);
+			DoMousePan (point);
 			break;
 
 		case eMouseStateRotate:
-			ApplyRotate (point);
+			DoMouseRotate (point);
+			break;
+
+		case eMouseStateZoom:
+			DoMouseZoom (point);
 			break;
 		}
 	}
@@ -449,7 +410,7 @@ switch (m_mouseState) {
 		break;
 
 	case eMouseStateApplyDrag:
-		ApplyDrag (point);
+		m_pMineView->FinishDrag (point);
 		m_mouseState = eMouseStateIdle;
 		break;
 
@@ -464,12 +425,12 @@ switch (m_mouseState) {
 		break;
 
 	case eMouseStateZoomIn:
-		ZoomIn (1, true);
+		m_pMineView->ZoomIn (1, true);
 		m_mouseState = eMouseStateIdle;
 		break;
 
 	case eMouseStateZoomOut:
-		ZoomOut (1, true);
+		m_pMineView->ZoomOut (1, true);
 		m_mouseState = eMouseStateIdle;
 		break;
 
@@ -486,7 +447,7 @@ eMouseStates newState = MapInputToMouseState (msg, point);
 if (m_mouseState != newState) {
 	m_mouseState = newState;
 	ProcessTransitionalStates (point);
-	UpdateCursor (m_mouseState);
+	m_pMineView->SetCursor (m_mouseState);
 
 	// If this is a state that requires a mouse button down, record where it started.
 	// Otherwise, clear the start location if there was one
@@ -514,9 +475,6 @@ if (m_mouseState != newState) {
 		m_zoomStartPos = nullptr;
 		}
 	}
-
-// TODO leave this to OnMouseMove?
-m_lastMousePos = point;
 }
 
 void CInputHandler::UpdateMouseState (UINT msg)
@@ -526,7 +484,7 @@ eMouseStates newState = MapInputToMouseState (msg, m_lastMousePos);
 if (m_mouseState != newState) {
 	m_mouseState = newState;
 	ProcessTransitionalStates (m_lastMousePos);
-	UpdateCursor (m_mouseState);
+	m_pMineView->SetCursor (m_mouseState);
 	}
 }
 
@@ -611,4 +569,74 @@ for (int i = 0; i < eModifierCount; i++) {
 	}
 
 return true;
+}
+
+void CInputHandler::DoMousePan (const CPoint point)
+{
+	CPoint change = m_lastMousePos - point;
+	double scale = 0.5;
+	double panAmountX = double(change.x) * scale;
+	double panAmountY = -double(change.y) * scale;
+
+if (m_pMineView->Perspective ())
+	panAmountX = -panAmountX;
+if (m_stateConfigs [eMouseStatePan].bInvertX)
+	panAmountX = -panAmountX;
+if (m_stateConfigs [eMouseStatePan].bInvertY)
+	panAmountY = -panAmountY;
+
+if (panAmountX != 0.0)
+	m_pMineView->Pan ('X', panAmountX);
+if (panAmountY != 0.0)
+	m_pMineView->Pan ('Y', panAmountY);
+}
+
+void CInputHandler::DoMouseZoom (const CPoint point)
+{
+	CPoint zoomOffset = m_pMineView->Perspective () ?
+		m_lastMousePos - point :
+		point - *m_zoomStartPos;
+
+if (m_stateConfigs [eMouseStateZoom].bInvertX)
+	zoomOffset.x = -zoomOffset.x;
+if (m_stateConfigs [eMouseStateZoom].bInvertY)
+	zoomOffset.y = -zoomOffset.y;
+
+if (m_pMineView->Perspective ()) {
+	if ((zoomOffset.x > 0) || ((zoomOffset.x == 0) && (zoomOffset.y > 0))) {
+		m_pMineView->ZoomOut (1, true);
+		}
+	else if ((zoomOffset.x < 0) || ((zoomOffset.x == 0) && (zoomOffset.y < 0))) {
+		m_pMineView->ZoomIn (1, true);
+		}
+	}
+else {
+	int nChange = zoomOffset.x + zoomOffset.y;
+	if (nChange > 30) {
+		*m_zoomStartPos = point;
+		m_pMineView->ZoomIn (1, true);
+		}
+	else if (nChange < -30) {
+		*m_zoomStartPos = point;
+		m_pMineView->ZoomOut (1, true);
+		}
+	}
+}
+
+void CInputHandler::DoMouseRotate (const CPoint point)
+{
+	CPoint change = m_lastMousePos - point;
+	double scale = m_pMineView->Perspective () ? 300.0 : 200.0;
+	double rotateAmountX = double(change.y) / scale;
+	double rotateAmountY = -double(change.x) / scale;
+
+if (m_pMineView->Perspective ())
+	rotateAmountX = -rotateAmountX;
+if (m_stateConfigs [eMouseStateRotate].bInvertX)
+	rotateAmountX = -rotateAmountX;
+if (m_stateConfigs [eMouseStateRotate].bInvertY)
+	rotateAmountY = -rotateAmountY;
+
+m_pMineView->Rotate ('Y', rotateAmountY);
+m_pMineView->Rotate ('X', rotateAmountX);
 }
