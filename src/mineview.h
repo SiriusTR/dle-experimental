@@ -148,6 +148,8 @@ class CInputHandler {
 	public:
 		CInputHandler (CMineView *pMineView);
 		virtual ~CInputHandler ();
+
+		void UpdateMovement (double timeElapsed);
 	
 		void OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
 		void OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
@@ -172,7 +174,9 @@ class CInputHandler {
 		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
 		bool m_bModifierActive [eModifierCount];
-		bool m_bInputLockActive;
+		bool m_bKeyCommandActive [eKeyCommandCount];
+		bool &m_bInputLockActive = m_bKeyCommandActive [eKeyCommandInputLock];
+		int m_nMovementCommandsActive;
 
 		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
 		eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
@@ -193,6 +197,9 @@ class CInputHandler {
 		void DoMousePan (const CPoint point);
 		void DoMouseZoom (const CPoint point);
 		void DoMouseRotate (const CPoint point);
+		void ApplyMovement (eKeyCommands command);
+		void StartMovement (eKeyCommands command);
+		void StopMovement (eKeyCommands command);
 };
 
 // -----------------------------------------------------------------------------

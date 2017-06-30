@@ -8,7 +8,11 @@ m_zoomStartPos = nullptr;
 for (int i = 0; i < eModifierCount; i++) {
 	m_bModifierActive [i] = false;
 	}
+for (int i = 0; i < eKeyCommandCount; i++) {
+	m_bKeyCommandActive [i] = false;
+	}
 m_bInputLockActive = false;
+m_nMovementCommandsActive = 0;
 }
 
 CInputHandler::~CInputHandler ()
@@ -639,4 +643,121 @@ if (m_stateConfigs [eMouseStateRotate].bInvertY)
 
 m_pMineView->Rotate ('Y', rotateAmountY);
 m_pMineView->Rotate ('X', rotateAmountX);
+}
+
+void CInputHandler::ApplyMovement (eKeyCommands command)
+{
+if (!IsMovementCommand (command))
+	return;
+
+switch (command) {
+	case eKeyCommandMoveForward:
+		m_pMineView->Pan ('Z', 1);
+		break;
+	case eKeyCommandMoveBackward:
+		m_pMineView->Pan ('Z', -1);
+		break;
+	case eKeyCommandMoveLeft:
+		m_pMineView->Pan ('X', -1);
+		break;
+	case eKeyCommandMoveRight:
+		m_pMineView->Pan ('X', 1);
+		break;
+	case eKeyCommandMoveUp:
+		m_pMineView->Pan ('Y', 1);
+		break;
+	case eKeyCommandMoveDown:
+		m_pMineView->Pan ('Y', -1);
+		break;
+	case eKeyCommandRotateUp:
+		m_pMineView->Rotate ('X', 1);
+		break;
+	case eKeyCommandRotateDown:
+		m_pMineView->Rotate ('X', -1);
+		break;
+	case eKeyCommandRotateLeft:
+		m_pMineView->Rotate ('Y', 1);
+		break;
+	case eKeyCommandRotateRight:
+		m_pMineView->Rotate ('Y', -1);
+		break;
+	case eKeyCommandRotateBankLeft:
+		m_pMineView->Rotate ('Z', 1);
+		break;
+	case eKeyCommandRotateBankRight:
+		m_pMineView->Rotate ('Z', -1);
+		break;
+	case eKeyCommandZoomIn:
+		m_pMineView->ZoomIn ();
+		break;
+	case eKeyCommandZoomOut:
+		m_pMineView->ZoomOut ();
+		break;
+	default:
+		break;
+	}
+}
+
+void CInputHandler::StartMovement (eKeyCommands command)
+{
+if (!IsMovementCommand (command))
+	return;
+
+m_bKeyCommandActive [command] = true;
+m_nMovementCommandsActive++;
+if (m_nMovementCommandsActive == 1)
+	m_pMineView->StartMovementTimer ();
+}
+
+void CInputHandler::StopMovement (eKeyCommands command)
+{
+if (!IsMovementCommand (command))
+	return;
+
+m_bKeyCommandActive [command] = false;
+m_nMovementCommandsActive--;
+if (m_nMovementCommandsActive == 0)
+	m_pMineView->StopMovementTimer ();
+}
+
+void CInputHandler::UpdateMovement (double timeElapsed)
+{
+	double scale = 1.0;
+	// MineView/Renderer already apply view move rate
+	double moveAmount = timeElapsed * scale;
+	static double zoomAmount = 0;
+
+if (m_bKeyCommandActive [eKeyCommandMoveForward])
+	m_pMineView->Pan ('Z', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveBackward])
+	m_pMineView->Pan ('Z', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveLeft])
+	m_pMineView->Pan ('X', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveRight])
+	m_pMineView->Pan ('X', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveUp])
+	m_pMineView->Pan ('Y', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveDown])
+	m_pMineView->Pan ('Y', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateUp])
+	m_pMineView->Rotate ('X', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateDown])
+	m_pMineView->Rotate ('X', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateLeft])
+	m_pMineView->Rotate ('Y', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateRight])
+	m_pMineView->Rotate ('Y', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateBankLeft])
+	m_pMineView->Rotate ('Z', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateBankRight])
+	m_pMineView->Rotate ('Z', -moveAmount);
+
+if (m_bKeyCommandActive [eKeyCommandZoomIn])
+	zoomAmount += moveAmount;
+if (m_bKeyCommandActive [eKeyCommandZoomOut])
+	zoomAmount -= moveAmount;
+if (fabs (zoomAmount) >= 1) {
+	m_pMineView->ZoomIn ((int)zoomAmount);
+	zoomAmount -= (int)zoomAmount;
+	}
 }
