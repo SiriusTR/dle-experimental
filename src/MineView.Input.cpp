@@ -1,4 +1,5 @@
 #include "mineview.h"
+#include "dle-xp.h"
 
 CInputHandler::CInputHandler (CMineView *pMineView)
 	: m_pMineView (pMineView)
@@ -13,6 +14,9 @@ for (int i = 0; i < eKeyCommandCount; i++) {
 	}
 m_bInputLockActive = false;
 m_nMovementCommandsActive = 0;
+ZeroMemory (m_keyBindings, sizeof (m_keyBindings));
+ZeroMemory (m_stateConfigs, sizeof (m_stateConfigs));
+LoadSettings ();
 }
 
 CInputHandler::~CInputHandler ()
@@ -25,6 +29,31 @@ if (m_zoomStartPos != nullptr) {
 	delete m_zoomStartPos;
 	m_zoomStartPos = nullptr;
 	}
+}
+
+void CInputHandler::LoadSettings()
+{
+LoadKeyBinding (m_keyBindings [eKeyCommandMoveForward], "MoveForward");
+LoadKeyBinding (m_keyBindings [eKeyCommandMoveBackward], "MoveBackward");
+LoadKeyBinding (m_keyBindings [eKeyCommandMoveLeft], "MoveLeft");
+LoadKeyBinding (m_keyBindings [eKeyCommandMoveRight], "MoveRight");
+LoadKeyBinding (m_keyBindings [eKeyCommandMoveUp], "MoveUp");
+LoadKeyBinding (m_keyBindings [eKeyCommandMoveDown], "MoveDown");
+LoadKeyBinding (m_keyBindings [eKeyCommandRotateUp], "RotateUp");
+LoadKeyBinding (m_keyBindings [eKeyCommandRotateDown], "RotateDown");
+LoadKeyBinding (m_keyBindings [eKeyCommandRotateLeft], "RotateLeft");
+LoadKeyBinding (m_keyBindings [eKeyCommandRotateRight], "RotateRight");
+LoadKeyBinding (m_keyBindings [eKeyCommandRotateBankLeft], "BankLeft");
+LoadKeyBinding (m_keyBindings [eKeyCommandRotateBankRight], "BankRight");
+LoadKeyBinding (m_keyBindings [eKeyCommandZoomIn], "ZoomIn");
+LoadKeyBinding (m_keyBindings [eKeyCommandZoomOut], "ZoomOut");
+LoadKeyBinding (m_keyBindings [eKeyCommandInputLock], "InputLock");
+// Idle/Drag/RubberBand and transient states don't need configs due to transition rules
+LoadStateConfig (m_stateConfigs [eMouseStateButtonDown], "ButtonDown");
+LoadStateConfig (m_stateConfigs [eMouseStateSelect], "AdvSelect");
+LoadStateConfig (m_stateConfigs [eMouseStatePan], "Pan");
+LoadStateConfig (m_stateConfigs [eMouseStateRotate], "Rotate");
+LoadStateConfig (m_stateConfigs [eMouseStateZoom], "Zoom");
 }
 
 void CInputHandler::OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
@@ -760,4 +789,198 @@ if (fabs (zoomAmount) >= 1) {
 	m_pMineView->ZoomIn ((int)zoomAmount);
 	zoomAmount -= (int)zoomAmount;
 	}
+}
+
+void CInputHandler::LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName)
+{
+	TCHAR szSettingNameChar [80] = { 0 };
+	TCHAR szSettingNameModifiers [80] = { 0 };
+	TCHAR szSettingNameInputLock [80] = { 0 };
+	TCHAR szChar [80] = { 0 };
+	TCHAR szMods [80] = { 0 };
+
+_stprintf_s (szSettingNameChar, _T ("%sKey"), bindingName);
+_stprintf_s (szSettingNameModifiers, _T ("%sModifiers"), bindingName);
+_stprintf_s (szSettingNameInputLock, _T ("%sInputLock"), bindingName);
+
+GetPrivateProfileString ("DLE.Bindings", szSettingNameChar, "", szChar, ARRAYSIZE (szChar), DLE.IniFile ());
+GetPrivateProfileString ("DLE.Bindings", szSettingNameModifiers, "", szMods, ARRAYSIZE (szMods), DLE.IniFile ());
+UINT nNeedsInputLock = GetPrivateProfileInt ("DLE.Bindings", szSettingNameInputLock, 0, DLE.IniFile ());
+
+binding.nChar = StringToVK (szChar);
+LoadModifiers (binding.modifiers, szMods);
+binding.bNeedsInputLock = nNeedsInputLock > 0;
+}
+
+void CInputHandler::LoadStateConfig (MouseStateConfig &config, LPCTSTR bindingName)
+{
+	TCHAR szSettingNameButton [80] = { 0 };
+	TCHAR szSettingNameModifiers [80] = { 0 };
+	TCHAR szSettingNameToggleModifiers [80] = { 0 };
+	TCHAR szSettingNameInvertX [80] = { 0 };
+	TCHAR szSettingNameInvertY [80] = { 0 };
+	TCHAR szButton [80] = { 0 };
+	TCHAR szMods [80] = { 0 };
+
+_stprintf_s (szSettingNameButton, _T ("%sButton"), bindingName);
+_stprintf_s (szSettingNameModifiers, _T ("%sModifiers"), bindingName);
+_stprintf_s (szSettingNameToggleModifiers, _T ("%sToggleModifiers"), bindingName);
+_stprintf_s (szSettingNameInvertX, _T ("%sInvertX"), bindingName);
+_stprintf_s (szSettingNameInvertY, _T ("%sInvertY"), bindingName);
+
+GetPrivateProfileString ("DLE.Bindings", szSettingNameButton, "", szButton, ARRAYSIZE (szButton), DLE.IniFile ());
+GetPrivateProfileString ("DLE.Bindings", szSettingNameModifiers, "", szMods, ARRAYSIZE (szMods), DLE.IniFile ());
+UINT nToggleModifiers = GetPrivateProfileInt ("DLE.Bindings", szSettingNameToggleModifiers, 0, DLE.IniFile ());
+UINT nInvertX = GetPrivateProfileInt ("DLE.Bindings", szSettingNameInvertX, 0, DLE.IniFile ());
+UINT nInvertY = GetPrivateProfileInt ("DLE.Bindings", szSettingNameInvertY, 0, DLE.IniFile ());
+
+config.button = StringToMK (szButton);
+LoadModifiers (config.modifiers, szMods);
+config.bToggleModifiers = nToggleModifiers > 0;
+config.bInvertX = nInvertX > 0;
+config.bInvertY = nInvertY > 0;
+}
+
+void CInputHandler::LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods)
+{
+	LPCTSTR delimiters = _T (",");
+	LPTSTR context = NULL;
+	LPTSTR pszNext = NULL;
+
+pszNext = _tcstok_s (szMods, delimiters, &context);
+while (pszNext != NULL) {
+	switch (StringToVK (pszNext)) {
+		case VK_SHIFT:
+			modifierList [eModifierShift] = true;
+			break;
+		case VK_CONTROL:
+			modifierList [eModifierCtrl] = true;
+			break;
+		case VK_MENU:
+			modifierList [eModifierAlt] = true;
+			break;
+		default:
+			break;
+		}
+	pszNext = _tcstok_s (szMods, delimiters, &context);
+	}
+}
+
+#define VK_TABLE_ENTRY(vk) \
+	{ vk, _T (#vk) }
+#define VK_TABLE_ENTRY_NUM(vk) \
+	{ 0x30 + vk, _T (#vk) }
+#define VK_TABLE_ENTRY_ALPHA(vk) \
+	{ 0x41 + (#@vk - 'A'), _T (#vk) }
+typedef struct {
+	UINT vk;
+	LPCTSTR szKey;
+	} VKMapTableEntry;
+
+UINT CInputHandler::StringToVK (LPCTSTR pszKey)
+{
+	static const VKMapTableEntry table [] = {
+		VK_TABLE_ENTRY (VK_LBUTTON),
+		VK_TABLE_ENTRY (VK_RBUTTON),
+		VK_TABLE_ENTRY (VK_MBUTTON),
+		VK_TABLE_ENTRY (VK_XBUTTON1),
+		VK_TABLE_ENTRY (VK_XBUTTON2),
+		VK_TABLE_ENTRY (VK_BACK),
+		VK_TABLE_ENTRY (VK_TAB),
+		VK_TABLE_ENTRY (VK_RETURN),
+		VK_TABLE_ENTRY (VK_SHIFT),
+		VK_TABLE_ENTRY (VK_CONTROL),
+		VK_TABLE_ENTRY (VK_MENU),
+		VK_TABLE_ENTRY (VK_ESCAPE),
+		VK_TABLE_ENTRY (VK_SPACE),
+		VK_TABLE_ENTRY (VK_PRIOR),
+		VK_TABLE_ENTRY (VK_NEXT),
+		VK_TABLE_ENTRY (VK_END),
+		VK_TABLE_ENTRY (VK_HOME),
+		VK_TABLE_ENTRY (VK_LEFT),
+		VK_TABLE_ENTRY (VK_UP),
+		VK_TABLE_ENTRY (VK_RIGHT),
+		VK_TABLE_ENTRY (VK_DOWN),
+		VK_TABLE_ENTRY (VK_INSERT),
+		VK_TABLE_ENTRY (VK_DELETE),
+		VK_TABLE_ENTRY_NUM (0),
+		VK_TABLE_ENTRY_NUM (1),
+		VK_TABLE_ENTRY_NUM (2),
+		VK_TABLE_ENTRY_NUM (3),
+		VK_TABLE_ENTRY_NUM (4),
+		VK_TABLE_ENTRY_NUM (5),
+		VK_TABLE_ENTRY_NUM (6),
+		VK_TABLE_ENTRY_NUM (7),
+		VK_TABLE_ENTRY_NUM (8),
+		VK_TABLE_ENTRY_NUM (9),
+		VK_TABLE_ENTRY_ALPHA (A),
+		VK_TABLE_ENTRY_ALPHA (B),
+		VK_TABLE_ENTRY_ALPHA (C),
+		VK_TABLE_ENTRY_ALPHA (D),
+		VK_TABLE_ENTRY_ALPHA (E),
+		VK_TABLE_ENTRY_ALPHA (F),
+		VK_TABLE_ENTRY_ALPHA (G),
+		VK_TABLE_ENTRY_ALPHA (H),
+		VK_TABLE_ENTRY_ALPHA (I),
+		VK_TABLE_ENTRY_ALPHA (J),
+		VK_TABLE_ENTRY_ALPHA (K),
+		VK_TABLE_ENTRY_ALPHA (L),
+		VK_TABLE_ENTRY_ALPHA (M),
+		VK_TABLE_ENTRY_ALPHA (N),
+		VK_TABLE_ENTRY_ALPHA (O),
+		VK_TABLE_ENTRY_ALPHA (P),
+		VK_TABLE_ENTRY_ALPHA (Q),
+		VK_TABLE_ENTRY_ALPHA (R),
+		VK_TABLE_ENTRY_ALPHA (S),
+		VK_TABLE_ENTRY_ALPHA (T),
+		VK_TABLE_ENTRY_ALPHA (U),
+		VK_TABLE_ENTRY_ALPHA (V),
+		VK_TABLE_ENTRY_ALPHA (W),
+		VK_TABLE_ENTRY_ALPHA (X),
+		VK_TABLE_ENTRY_ALPHA (Y),
+		VK_TABLE_ENTRY_ALPHA (Z),
+		VK_TABLE_ENTRY (VK_NUMPAD0),
+		VK_TABLE_ENTRY (VK_NUMPAD1),
+		VK_TABLE_ENTRY (VK_NUMPAD2),
+		VK_TABLE_ENTRY (VK_NUMPAD3),
+		VK_TABLE_ENTRY (VK_NUMPAD4),
+		VK_TABLE_ENTRY (VK_NUMPAD5),
+		VK_TABLE_ENTRY (VK_NUMPAD6),
+		VK_TABLE_ENTRY (VK_NUMPAD7),
+		VK_TABLE_ENTRY (VK_NUMPAD8),
+		VK_TABLE_ENTRY (VK_NUMPAD9),
+		VK_TABLE_ENTRY (VK_MULTIPLY),
+		VK_TABLE_ENTRY (VK_ADD),
+		VK_TABLE_ENTRY (VK_SUBTRACT),
+		VK_TABLE_ENTRY (VK_DECIMAL),
+		VK_TABLE_ENTRY (VK_DIVIDE)
+		};
+
+for (size_t i = 0; i < ARRAYSIZE (table); i++)
+	if (_tcsicmp (pszKey, table [i].szKey) == 0)
+		return table [i].vk;
+return 0;
+}
+
+#define MK_TABLE_ENTRY(mk) \
+	{ MK_##mk, _T (#mk) }
+typedef struct {
+	UINT mk;
+	LPCTSTR szButton;
+	} MKMapTableEntry;
+
+UINT CInputHandler::StringToMK (LPCTSTR pszButton)
+{
+	static const MKMapTableEntry table[] = {
+		MK_TABLE_ENTRY(LBUTTON),
+		MK_TABLE_ENTRY(MBUTTON),
+		MK_TABLE_ENTRY(RBUTTON),
+		MK_TABLE_ENTRY(XBUTTON1),
+		MK_TABLE_ENTRY(XBUTTON2)
+		};
+
+for (size_t i = 0; i < ARRAYSIZE (table); i++)
+	if (_tcsicmp (pszButton, table [i].szButton) == 0)
+		return table [i].mk;
+return 0;
 }

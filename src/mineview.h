@@ -149,6 +149,7 @@ class CInputHandler {
 		CInputHandler (CMineView *pMineView);
 		virtual ~CInputHandler ();
 
+		void LoadSettings ();
 		void UpdateMovement (double timeElapsed);
 	
 		void OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
@@ -200,6 +201,11 @@ class CInputHandler {
 		void ApplyMovement (eKeyCommands command);
 		void StartMovement (eKeyCommands command);
 		void StopMovement (eKeyCommands command);
+		void LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName);
+		void LoadStateConfig (MouseStateConfig &config, LPCTSTR bindingName);
+		void LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods);
+		static UINT StringToVK (LPCTSTR pszKey);
+		static UINT StringToMK (LPCTSTR pszButton);
 };
 
 // -----------------------------------------------------------------------------
