@@ -33,6 +33,18 @@ if (m_zoomStartPos != nullptr) {
 
 void CInputHandler::LoadSettings()
 {
+// Set default settings where applicable
+m_stateConfigs [eMouseStateButtonDown].button = MK_LBUTTON;
+m_stateConfigs [eMouseStateSelect].modifiers [eModifierShift] = true;
+m_stateConfigs [eMouseStatePan].modifiers [eModifierCtrl] = true;
+m_stateConfigs [eMouseStateRotate].modifiers [eModifierShift] = true;
+m_stateConfigs [eMouseStateRotate].modifiers [eModifierCtrl] = true;
+m_stateConfigs [eMouseStateZoom].modifiers [eModifierCtrl] = true;
+m_stateConfigs [eMouseStateZoom].button = MK_LBUTTON | MK_RBUTTON; // can enter with either button
+m_stateConfigs [eMouseStateZoomIn].button = MK_LBUTTON;
+m_stateConfigs [eMouseStateZoomOut].button = MK_RBUTTON;
+m_stateConfigs [eMouseStateApplySelect].button = MK_LBUTTON;
+
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveForward], "MoveForward");
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveBackward], "MoveBackward");
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveLeft], "MoveLeft");
@@ -48,12 +60,66 @@ LoadKeyBinding (m_keyBindings [eKeyCommandRotateBankRight], "BankRight");
 LoadKeyBinding (m_keyBindings [eKeyCommandZoomIn], "ZoomIn");
 LoadKeyBinding (m_keyBindings [eKeyCommandZoomOut], "ZoomOut");
 LoadKeyBinding (m_keyBindings [eKeyCommandInputLock], "InputLock");
-// Idle/Drag/RubberBand and transient states don't need configs due to transition rules
+
+// Idle, ApplyDrag and ApplyRubberBand states don't need configs due to transition rules
 LoadStateConfig (m_stateConfigs [eMouseStateButtonDown], "ButtonDown");
 LoadStateConfig (m_stateConfigs [eMouseStateSelect], "AdvSelect");
 LoadStateConfig (m_stateConfigs [eMouseStatePan], "Pan");
 LoadStateConfig (m_stateConfigs [eMouseStateRotate], "Rotate");
 LoadStateConfig (m_stateConfigs [eMouseStateZoom], "Zoom");
+LoadStateConfig (m_stateConfigs [eMouseStateZoomIn], "ZoomIn");
+LoadStateConfig (m_stateConfigs [eMouseStateZoomOut], "ZoomOut");
+LoadStateConfig (m_stateConfigs [eMouseStateApplySelect], "ApplyAdvSelect");
+
+// Drag, RubberBand and QuickSelect are copied from ButtonDown
+memcpy_s (&m_stateConfigs [eMouseStateDrag], sizeof (m_stateConfigs [eMouseStateDrag]),
+	&m_stateConfigs [eMouseStateButtonDown], sizeof (m_stateConfigs [eMouseStateButtonDown]));
+memcpy_s (&m_stateConfigs [eMouseStateRubberBand], sizeof (m_stateConfigs [eMouseStateRubberBand]),
+	&m_stateConfigs [eMouseStateButtonDown], sizeof (m_stateConfigs [eMouseStateButtonDown]));
+memcpy_s (&m_stateConfigs [eMouseStateQuickSelect], sizeof (m_stateConfigs [eMouseStateQuickSelect]),
+	&m_stateConfigs [eMouseStateButtonDown], sizeof (m_stateConfigs [eMouseStateButtonDown]));
+}
+
+void CInputHandler::UpdateMovement (double timeElapsed)
+{
+	double scale = 1.0;
+	// MineView/Renderer already apply view move rate
+	double moveAmount = timeElapsed * scale;
+	static double zoomAmount = 0;
+
+if (m_bKeyCommandActive [eKeyCommandMoveForward])
+	m_pMineView->Pan ('Z', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveBackward])
+	m_pMineView->Pan ('Z', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveLeft])
+	m_pMineView->Pan ('X', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveRight])
+	m_pMineView->Pan ('X', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveUp])
+	m_pMineView->Pan ('Y', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandMoveDown])
+	m_pMineView->Pan ('Y', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateUp])
+	m_pMineView->Rotate ('X', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateDown])
+	m_pMineView->Rotate ('X', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateLeft])
+	m_pMineView->Rotate ('Y', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateRight])
+	m_pMineView->Rotate ('Y', -moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateBankLeft])
+	m_pMineView->Rotate ('Z', moveAmount);
+if (m_bKeyCommandActive [eKeyCommandRotateBankRight])
+	m_pMineView->Rotate ('Z', -moveAmount);
+
+if (m_bKeyCommandActive [eKeyCommandZoomIn])
+	zoomAmount += moveAmount;
+if (m_bKeyCommandActive [eKeyCommandZoomOut])
+	zoomAmount -= moveAmount;
+if (fabs (zoomAmount) >= 1) {
+	m_pMineView->ZoomIn ((int)zoomAmount);
+	zoomAmount -= (int)zoomAmount;
+	}
 }
 
 void CInputHandler::OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
@@ -333,29 +399,30 @@ for (int i = 0; i < eModifierCount; i++) {
 
 if (result != eMatchNone) {
 	// Check mouse button
+	// Using bitwise comparisons to allow states to have multiple buttons mapping to them
 	switch (msg) {
 		case WM_LBUTTONDOWN:
-			if (m_stateConfigs [state].button != MK_LBUTTON)
+			if (!(m_stateConfigs [state].button & MK_LBUTTON))
 				result = eMatchNone;
 			break;
 
 		case WM_MBUTTONDOWN:
-			if (m_stateConfigs [state].button != MK_MBUTTON)
+			if (!(m_stateConfigs [state].button & MK_MBUTTON))
 				result = eMatchNone;
 			break;
 
 		case WM_RBUTTONDOWN:
-			if (m_stateConfigs [state].button != MK_RBUTTON)
+			if (!(m_stateConfigs [state].button & MK_RBUTTON))
 				result = eMatchNone;
 			break;
 
 		case (0x10000 | WM_XBUTTONDOWN):
-			if (m_stateConfigs [state].button != MK_XBUTTON1)
+			if (!(m_stateConfigs [state].button & MK_XBUTTON1))
 				result = eMatchNone;
 			break;
 
 		case (0x20000 | WM_XBUTTONDOWN):
-			if (m_stateConfigs [state].button != MK_XBUTTON2)
+			if (!(m_stateConfigs [state].button & MK_XBUTTON2))
 				result = eMatchNone;
 			break;
 
@@ -749,48 +816,6 @@ if (m_nMovementCommandsActive == 0)
 	m_pMineView->StopMovementTimer ();
 }
 
-void CInputHandler::UpdateMovement (double timeElapsed)
-{
-	double scale = 1.0;
-	// MineView/Renderer already apply view move rate
-	double moveAmount = timeElapsed * scale;
-	static double zoomAmount = 0;
-
-if (m_bKeyCommandActive [eKeyCommandMoveForward])
-	m_pMineView->Pan ('Z', moveAmount);
-if (m_bKeyCommandActive [eKeyCommandMoveBackward])
-	m_pMineView->Pan ('Z', -moveAmount);
-if (m_bKeyCommandActive [eKeyCommandMoveLeft])
-	m_pMineView->Pan ('X', -moveAmount);
-if (m_bKeyCommandActive [eKeyCommandMoveRight])
-	m_pMineView->Pan ('X', moveAmount);
-if (m_bKeyCommandActive [eKeyCommandMoveUp])
-	m_pMineView->Pan ('Y', moveAmount);
-if (m_bKeyCommandActive [eKeyCommandMoveDown])
-	m_pMineView->Pan ('Y', -moveAmount);
-if (m_bKeyCommandActive [eKeyCommandRotateUp])
-	m_pMineView->Rotate ('X', moveAmount);
-if (m_bKeyCommandActive [eKeyCommandRotateDown])
-	m_pMineView->Rotate ('X', -moveAmount);
-if (m_bKeyCommandActive [eKeyCommandRotateLeft])
-	m_pMineView->Rotate ('Y', moveAmount);
-if (m_bKeyCommandActive [eKeyCommandRotateRight])
-	m_pMineView->Rotate ('Y', -moveAmount);
-if (m_bKeyCommandActive [eKeyCommandRotateBankLeft])
-	m_pMineView->Rotate ('Z', moveAmount);
-if (m_bKeyCommandActive [eKeyCommandRotateBankRight])
-	m_pMineView->Rotate ('Z', -moveAmount);
-
-if (m_bKeyCommandActive [eKeyCommandZoomIn])
-	zoomAmount += moveAmount;
-if (m_bKeyCommandActive [eKeyCommandZoomOut])
-	zoomAmount -= moveAmount;
-if (fabs (zoomAmount) >= 1) {
-	m_pMineView->ZoomIn ((int)zoomAmount);
-	zoomAmount -= (int)zoomAmount;
-	}
-}
-
 void CInputHandler::LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName)
 {
 	TCHAR szSettingNameChar [80] = { 0 };
@@ -807,8 +832,11 @@ GetPrivateProfileString ("DLE.Bindings", szSettingNameChar, "", szChar, ARRAYSIZ
 GetPrivateProfileString ("DLE.Bindings", szSettingNameModifiers, "", szMods, ARRAYSIZE (szMods), DLE.IniFile ());
 UINT nNeedsInputLock = GetPrivateProfileInt ("DLE.Bindings", szSettingNameInputLock, 0, DLE.IniFile ());
 
-binding.nChar = StringToVK (szChar);
-LoadModifiers (binding.modifiers, szMods);
+// Leave settings as default if not specified. Boolean values are currently always false by default
+if (_tcslen (szChar) > 0)
+	binding.nChar = StringToVK (szChar);
+if (_tcslen (szMods) > 0)
+	LoadModifiers (binding.modifiers, szMods);
 binding.bNeedsInputLock = nNeedsInputLock > 0;
 }
 
@@ -834,8 +862,11 @@ UINT nToggleModifiers = GetPrivateProfileInt ("DLE.Bindings", szSettingNameToggl
 UINT nInvertX = GetPrivateProfileInt ("DLE.Bindings", szSettingNameInvertX, 0, DLE.IniFile ());
 UINT nInvertY = GetPrivateProfileInt ("DLE.Bindings", szSettingNameInvertY, 0, DLE.IniFile ());
 
-config.button = StringToMK (szButton);
-LoadModifiers (config.modifiers, szMods);
+// Leave settings as default if not specified. Boolean values are currently always false by default
+if (_tcslen (szButton) > 0)
+	config.button = StringToMK (szButton);
+if (_tcslen (szMods) > 0)
+	LoadModifiers (config.modifiers, szMods);
 config.bToggleModifiers = nToggleModifiers > 0;
 config.bInvertX = nInvertX > 0;
 config.bInvertY = nInvertY > 0;
@@ -971,12 +1002,12 @@ typedef struct {
 
 UINT CInputHandler::StringToMK (LPCTSTR pszButton)
 {
-	static const MKMapTableEntry table[] = {
-		MK_TABLE_ENTRY(LBUTTON),
-		MK_TABLE_ENTRY(MBUTTON),
-		MK_TABLE_ENTRY(RBUTTON),
-		MK_TABLE_ENTRY(XBUTTON1),
-		MK_TABLE_ENTRY(XBUTTON2)
+	static const MKMapTableEntry table [] = {
+		MK_TABLE_ENTRY (LBUTTON),
+		MK_TABLE_ENTRY (MBUTTON),
+		MK_TABLE_ENTRY (RBUTTON),
+		MK_TABLE_ENTRY (XBUTTON1),
+		MK_TABLE_ENTRY (XBUTTON2)
 		};
 
 for (size_t i = 0; i < ARRAYSIZE (table); i++)
