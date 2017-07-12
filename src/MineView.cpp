@@ -131,7 +131,8 @@ for (int nWeight = 0; nWeight < 2; nWeight++)
 //------------------------------------------------------------------------------
 // CMineView construction/destruction
 
-CMineView::CMineView()
+CMineView::CMineView() :
+	m_inputHandler (this)
 {
 static LPSTR nIdCursors [eMouseStateCount] = {
 	IDC_ARROW,
@@ -183,8 +184,6 @@ ViewWidth () = ViewHeight () = ViewDepth () = 0;	// force OnDraw to initialize t
 
 tunnelMaker.Destroy ();
 m_bUpdate = true;
-m_mouseState  = 
-m_lastMouseState = eMouseStateIdle;
 m_selectMode = eSelectSide;
 m_lastSegment = 0;
 
@@ -194,7 +193,6 @@ m_lightTimer =
 m_selectTimer = -1;
 m_nFrameRate = 100;
 m_xRenderOffs = m_yRenderOffs = 0;
-m_clickState = 0;
 }
 
 //------------------------------------------------------------------------------
@@ -795,163 +793,23 @@ return TRUE;
 
 //------------------------------------------------------------------------------
 
-void CMineView::SetMouseState (int newMouseState)
+CPoint CMineView::AdjustMousePos (CPoint point)
 {
-if (newMouseState != m_mouseState) {
-	m_lastMouseState = m_mouseState;
-	m_mouseState = newMouseState;
-	m_bUpdateCursor = true;
-	SetCursor (m_hCursors [m_mouseState]);
-	m_bUpdateCursor = false;
-#ifdef _DEBUG
-  	INFOMSG (szMouseStates [m_mouseState]);
-#endif
-	}
-}
-
-//------------------------------------------------------------------------------
-
-void CMineView::RecordMousePos (CPoint& mousePos, CPoint point)
-{
-mousePos.x = point.x;
-mousePos.y = m_nRenderer ? ViewHeight () - point.y : point.y;
+return CPoint (point.x, m_nRenderer ? ViewHeight () - point.y : point.y);
 }
 
 //------------------------------------------------------------------------------
 
 void CMineView::OnMouseMove (UINT nFlags, CPoint point)
 {
-RecordMousePos (point, point);
-
-	CPoint change = m_lastMousePos - point;
-
-if (GetFocus () != this)
-	SetFocus ();
-if (change.x || change.y) {
-	switch (m_mouseState) {
-		case eMouseStateIdle:
-		case eMouseStatePan:
-		case eMouseStateRotate:
-			if (nFlags & MK_CONTROL) {
-				if (nFlags & MK_SHIFT) {
-					SetMouseState (eMouseStateRotate);
-					double scale = Perspective () ? 300.0 : 200.0;
-					Rotate('Y', -double (change.x) / scale);
-					Rotate('X', (m_nRenderer && !Perspective ()) ? double (change.y) / scale : -double (change.y) / scale);
-					}
-				else {
-					double scale = m_nRenderer ? 0.5 : 1.0;
-					SetMouseState (eMouseStatePan);
-					double d = double (change.x) * scale;
-					if (d != 0.0)
-						Pan ('X', Perspective () ? -d : d);
-					d = double (change.y) * scale;
-					if (d != 0.0)
-						Pan ('Y', -d);
-					}
-				}
-			else if (m_clickState & MK_LBUTTON) {
-				SetMouseState (eMouseStateRubberBand);
-				UpdateRubberRect (point);
-				}
-			else if (nFlags & MK_SHIFT)
-				SetMouseState (eMouseStateSelect);
-			else if ((m_mouseState == eMouseStatePan) || (m_mouseState == eMouseStateRotate) || (m_mouseState == eMouseStateSelect))
-				SetMouseState (eMouseStateIdle);
-			break;
-
-		case eMouseStateButtonDown:
-			if (nFlags & MK_CONTROL)
-				SetMouseState (eMouseStateZoom);
-			else {
-				int v = vertexManager.Index (current->Vertex ());
-				if ((abs (m_clickPos.x - vertexManager [v].m_screen.x) < 5) && 
-					 (abs (m_clickPos.y - vertexManager [v].m_screen.y) < 5)) {
-					SetMouseState (eMouseStateInitDrag);
-					UpdateDragPos ();
-					}
-				else {
-					SetMouseState (eMouseStateRubberBand);
-					UpdateRubberRect (point);
-					}
-				}
-			break;
-
-		case eMouseStateSelect:
-			if (m_clickState & MK_LBUTTON) {
-				SetMouseState (eMouseStateRubberBand);
-				UpdateRubberRect (point);
-				}			
-			else if (!(nFlags & MK_SHIFT))
-				SetMouseState (eMouseStateIdle);
-			if (SelectMode (eSelectPoint) || SelectMode (eSelectLine) || SelectMode (eSelectSide) || SelectMode (eSelectSegment))
-				Invalidate (FALSE);
-			break;
-
-		case eMouseStateDrag:
-			if (change.x || change.y)
-				UpdateDragPos ();
-			break;
-
-		case eMouseStateZoom:
-		case eMouseStateZoomIn:
-		case eMouseStateZoomOut:
-			if (Perspective ()) {
-				if ((change.x > 0) || ((change.x == 0) && (change.y > 0))) {
-					SetMouseState (eMouseStateZoomOut);
-					ZoomOut (1, true);
-					}
-				else if ((change.x < 0) || ((change.x == 0) && (change.y < 0))) {
-					SetMouseState (eMouseStateZoomIn);
-					ZoomIn (1, true);
-					}
-				}
-			else {
-				static int nChange = 0;
-				if ((m_lastMouseState != eMouseStateZoomOut) && (m_lastMouseState != eMouseStateZoomIn))
-					nChange = 0;
-				if ((change.x < 0) || ((change.x == 0) && (change.y < 0))) {
-					SetMouseState (eMouseStateZoomIn);
-					if (nChange > 0)
-						nChange = 0;
-					nChange += change.x ? change.x : change.y;
-					if (nChange < -30) {
-						nChange = 0;
-						ZoomIn (1, true);
-						}
-					}
-				else if ((change.x > 0) || ((change.x == 0) && (change.y > 0))) {
-					SetMouseState (eMouseStateZoomOut);
-					if (nChange < 0)
-						nChange = 0;
-					nChange += change.x ? change.x : change.y;
-					if (nChange > 30) {
-						nChange = 0;
-						ZoomOut (1, true);
-						}
-					}
-				}
-			break;
-			
-		case eMouseStateRubberBand:
-			UpdateRubberRect (point);
-			break;
-		}
-	m_lastMousePos = point;
-	}
-//CView::OnMouseMove(nFlags, point);
+m_inputHandler.OnMouseMove (nFlags, AdjustMousePos (point));
 }
 
 //------------------------------------------------------------------------------
 
 void CMineView::OnLButtonDown (UINT nFlags, CPoint point)
 {
-RecordMousePos (m_clickPos, point);
-m_clickState |= MK_LBUTTON;
-if ((m_mouseState != eMouseStateSelect) || !(nFlags & MK_SHIFT))
-	SetMouseState (eMouseStateButtonDown);
-m_clickState = nFlags;
-//m_selectTimer = SetTimer (4, 500U, null);
+m_inputHandler.OnLButtonDown (nFlags, AdjustMousePos (point));
 CView::OnLButtonDown (nFlags, point);
 }
 
@@ -959,34 +817,7 @@ CView::OnLButtonDown (nFlags, point);
 
 void CMineView::OnLButtonUp (UINT nFlags, CPoint point)
 {
-RecordMousePos (m_releasePos, point);
-m_clickState &= ~MK_LBUTTON;
-if (m_selectTimer != -1) {
-	KillTimer (m_selectTimer);
-	m_selectTimer = -1;
-	}
-m_releaseState = nFlags;
-switch (m_mouseState) {
-	case eMouseStateButtonDown:
-		if (m_clickState & MK_CONTROL)
-			ZoomIn ();
-		else {
-			SetMouseState (eMouseStateIdle);
-			SelectCurrentElement (m_clickPos.x, m_clickPos.y, Perspective () && (m_clickState & MK_SHIFT));
-		}
-		break;
-	case eMouseStateSelect:
-		SelectCurrentElement (m_clickPos.x, m_clickPos.y, false);
-		break;
-	case eMouseStateRubberBand:
-		ResetRubberRect ();
-		TagRubberBandedVertices ();
-		break;
-	case eMouseStateDrag:
-		FinishDrag ();
-		break;
-	}
-SetMouseState (eMouseStateIdle);
+m_inputHandler.OnLButtonUp (nFlags, AdjustMousePos (point));
 CView::OnLButtonUp (nFlags, point);
 }
 
@@ -994,9 +825,7 @@ CView::OnLButtonUp (nFlags, point);
 
 void CMineView::OnRButtonDown (UINT nFlags, CPoint point)
 {
-SetMouseState (eMouseStateButtonDown);
-RecordMousePos (m_clickPos, point);
-m_clickState = nFlags;
+m_inputHandler.OnRButtonDown (nFlags, AdjustMousePos (point));
 CView::OnRButtonDown (nFlags, point);
 }
 
@@ -1004,67 +833,7 @@ CView::OnRButtonDown (nFlags, point);
 
 void CMineView::OnRButtonUp (UINT nFlags, CPoint point)
 {
-	static char* showSelectionCandidates [] = {"Show Selection Candidates: Off", "Show Selection Candidates: Circles", "Show Selection Candidates: Full"};
-
-RecordMousePos (m_releasePos, point);
-m_releaseState = nFlags;
-if (m_mouseState == eMouseStateButtonDown) {
-	if (m_clickState & MK_CONTROL)
-		ZoomOut ();
-	else if (!(Perspective () || (m_clickState & MK_SHIFT))) {
-		SetMouseState (eMouseStateIdle);
-		SelectCurrentObject (m_clickPos.x, m_clickPos.y);
-		}
-	else {
-		CMenu		contextMenu;
-		CMenu*	tracker;
-		contextMenu.LoadMenu (IDR_MINE_CONTEXT_MENU);
-		ClientToScreen (&point);
-		tracker = contextMenu.GetSubMenu (0); 
-		tracker->CheckMenuItem ((UINT) theMine->SelectMode (), MF_BYPOSITION | MF_CHECKED);
-		if (GetElementMovementReference ())
-			tracker->CheckMenuItem ((UINT) ID_EDIT_MOVE_ALONG_VIEWER_AXES, MF_BYCOMMAND | MF_CHECKED);
-		if (m_bEnableQuickSelection)
-			tracker->CheckMenuItem ((UINT) ID_EDIT_ENABLE_QUICK_SELECTION, MF_BYCOMMAND | MF_CHECKED);
-		tracker->ModifyMenu (ID_EDIT_SHOW_SELECTION_CANDIDATES, MF_BYCOMMAND | MF_STRING, ID_EDIT_SHOW_SELECTION_CANDIDATES, showSelectionCandidates [m_nShowSelectionCandidates]);
-	   int nChoice = tracker->TrackPopupMenu (TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x , point.y, AfxGetMainWnd ()); 
-		contextMenu.DestroyMenu ();
-		if (nChoice) {
-			if ((nChoice >= ID_SEL_POINTMODE) && (nChoice <= ID_SEL_BLOCKMODE))
-				SetSelectMode (nChoice - ID_SEL_POINTMODE);
-			else if (nChoice == ID_EDIT_ENABLE_QUICK_SELECTION)
-				m_bEnableQuickSelection = !m_bEnableQuickSelection;
-			else if (nChoice == ID_EDIT_SHOW_SELECTION_CANDIDATES)
-				m_nShowSelectionCandidates = (m_nShowSelectionCandidates + 1) % 3;
-			else if (nChoice == ID_EDIT_MOVE_ALONG_VIEWER_AXES)
-				SetElementMovementReference (!GetElementMovementReference ());
-			else if (nChoice == ID_EDIT_ALIGN_VIEWER_WITH_SIDE)
-				AlignViewerWithSide ();
-			else if (nChoice == ID_EDIT_QUICKCOPY)
-				blockManager.QuickCopy ();
-			else if (nChoice == ID_EDIT_QUICKPASTE)
-				blockManager.QuickPaste ();
-			else if (nChoice == ID_EDIT_DELETEBLOCK)
-				blockManager.Delete ();
-			else if (nChoice == ID_VIEW_COLLAPSE_EDGE)
-				segmentManager.CollapseEdge ();
-			else if (nChoice == ID_VIEW_CREATE_WEDGE)
-				segmentManager.CreateWedge ();
-			else if (nChoice == ID_VIEW_CREATE_PYRAMID)
-				segmentManager.CreatePyramid ();
-			else if (nChoice == ID_MAKE_POINTS_PARALLEL)
-				segmentManager.MakePointsParallel ();
-			else if (nChoice == ID_EDIT_UNDO)
-				undoManager.Undo ();
-			else if (nChoice == ID_EDIT_REDO)
-				undoManager.Redo ();
-			Refresh ();
-			}
-		}
-	}
-else if (m_mouseState == eMouseStateRubberBand)
-   ResetRubberRect ();
-SetMouseState (eMouseStateIdle);
+m_inputHandler.OnRButtonUp (nFlags, AdjustMousePos (point));
 CView::OnRButtonUp (nFlags, point);
 }
 
@@ -1128,16 +897,14 @@ return false;
 
 //------------------------------------------------------------------------------
 
-void CMineView::TagRubberBandedVertices (void)
+void CMineView::TagRubberBandedVertices (CPoint clickPos, CPoint releasePos, bool bTag)
 {
 CHECKMINE;
 
-	bool bTag = (m_clickState & MK_SHIFT) == 0;
-
 for (int i = 0, j = vertexManager.Count (); i < j; i++) {
 	CVertex& v = vertexManager [i];
-	if (BETWEEN (m_clickPos.x, v.m_screen.x, m_releasePos.x) &&
-		 BETWEEN (m_clickPos.y, v.m_screen.y, m_releasePos.y) &&
+	if (BETWEEN (clickPos.x, v.m_screen.x, releasePos.x) &&
+		 BETWEEN (clickPos.y, v.m_screen.y, releasePos.y) &&
 		 VertexVisible (i)) {
 		if (bTag)
 			vertexManager [i].Tag ();
@@ -1167,18 +934,20 @@ Refresh (false);
 
 BOOL CMineView::DrawRubberBox (void)
 {
-if (theMine == null) return FALSE;
+	static CRect prevRect (0, 0, 0, 0);
 
-	static CRect	prevRect (0, 0, 0, 0);
-      
+if (theMine == null)
+	return FALSE;
+
 if (m_mouseState != eMouseStateRubberBand)
 	return FALSE;
+
 if ((m_rubberRect.Width () || m_rubberRect.Height ())) {
-      CPoint	rubberPoly [5];
-   
+	CPoint	rubberPoly[5];
+
 	if (m_nRenderer) {
 		glPushAttrib (GL_ENABLE_BIT);
-		glLineStipple (1, 0x3333);  
+		glLineStipple (1, 0x3333);
 		glEnable (GL_LINE_STIPPLE);
 		Renderer ().SelectPen (penWhite + 1);
 		}
@@ -1186,71 +955,62 @@ if ((m_rubberRect.Width () || m_rubberRect.Height ())) {
 		DC ()->SetROP2 (R2_XORPEN);
 		Renderer ().SelectPen (penBlack + 1);
 		}
-   rubberPoly [0].x = m_rubberRect.left + RUBBER_BORDER;
-   rubberPoly [0].y = m_rubberRect.top + RUBBER_BORDER;
-   rubberPoly [1].x = m_rubberRect.right - RUBBER_BORDER;
-   rubberPoly [1].y = m_rubberRect.top + RUBBER_BORDER;
-   rubberPoly [2].x = m_rubberRect.right - RUBBER_BORDER;
-   rubberPoly [2].y = m_rubberRect.bottom - RUBBER_BORDER;
-   rubberPoly [3].x = m_rubberRect.left + RUBBER_BORDER;
-   rubberPoly [3].y = m_rubberRect.bottom - RUBBER_BORDER;
-   rubberPoly [4] = rubberPoly [0];
+	rubberPoly [0].x = m_rubberRect.left + RUBBER_BORDER;
+	rubberPoly [0].y = m_rubberRect.top + RUBBER_BORDER;
+	rubberPoly [1].x = m_rubberRect.right - RUBBER_BORDER;
+	rubberPoly [1].y = m_rubberRect.top + RUBBER_BORDER;
+	rubberPoly [2].x = m_rubberRect.right - RUBBER_BORDER;
+	rubberPoly [2].y = m_rubberRect.bottom - RUBBER_BORDER;
+	rubberPoly [3].x = m_rubberRect.left + RUBBER_BORDER;
+	rubberPoly [3].y = m_rubberRect.bottom - RUBBER_BORDER;
+	rubberPoly [4] = rubberPoly [0];
 	Renderer ().BeginRender (true);
 	Renderer ().PolyLine (rubberPoly, sizeof (rubberPoly) / sizeof (POINT));
 	Renderer ().EndRender ();
 	if (m_nRenderer)
 		glPopAttrib ();
 	else 
-	   DC ()->SetROP2 (R2_COPYPEN);
-   }
+		DC ()->SetROP2 (R2_COPYPEN);
+	}
+
 return TRUE;
-}                        
-                        
+}
+
 //------------------------------------------------------------------------------
-                        
-void CMineView::UpdateRubberRect (CPoint pt)
+
+void CMineView::UpdateRubberRect (CPoint clickPos, CPoint pt)
 {
 CHECKMINE;
 
-if (m_mouseState == eMouseStateZoom)
-	return;
-if (m_mouseState == eMouseStateDrag)
-	return;
 if (m_mouseState == eMouseStateButtonDown)
-   SetCapture ();
-else {
-   //InvalidateRect (&m_rubberRect, FALSE);
-   //UpdateWindow ();
-   }
+	SetCapture ();
 CRect rc = m_rubberRect;
-if (m_clickPos.x < pt.x) {
-   rc.left = m_clickPos.x - RUBBER_BORDER;
-   rc.right = pt.x + RUBBER_BORDER;
-   }
-else if (m_clickPos.x > pt.x) {
-   rc.right = m_clickPos.x + RUBBER_BORDER;
-   rc.left = pt.x - RUBBER_BORDER;
-   }
-if (m_clickPos.y < pt.y) {
-   rc.top = m_clickPos.y - RUBBER_BORDER;
-   rc.bottom = pt.y + RUBBER_BORDER;
-   }
-else if (m_clickPos.y > pt.y) {
-   rc.bottom = m_clickPos.y + RUBBER_BORDER;
-   rc.top = pt.y - RUBBER_BORDER;
-   }
+if (clickPos.x < pt.x) {
+	rc.left = clickPos.x - RUBBER_BORDER;
+	rc.right = pt.x + RUBBER_BORDER;
+	}
+else if (clickPos.x > pt.x) {
+	rc.right = clickPos.x + RUBBER_BORDER;
+	rc.left = pt.x - RUBBER_BORDER;
+	}
+if (clickPos.y < pt.y) {
+	rc.top = clickPos.y - RUBBER_BORDER;
+	rc.bottom = pt.y + RUBBER_BORDER;
+	}
+else if (clickPos.y > pt.y) {
+	rc.bottom = clickPos.y + RUBBER_BORDER;
+	rc.top = pt.y - RUBBER_BORDER;
+	}
 if (rc != m_rubberRect) {
-	SetMouseState (eMouseStateRubberBand);
 	InvalidateRect (&m_rubberRect, TRUE);
 	UpdateWindow ();
 	m_rubberRect = rc;
 	InvalidateRect (&m_rubberRect, TRUE);
-	//UpdateWindow ();
 	}
-}                        
-                        
+}
+
 //------------------------------------------------------------------------------
-                        
+
 void CMineView::ResetRubberRect ()
 {
 CHECKMINE;
@@ -1260,6 +1020,58 @@ InvalidateRect (&m_rubberRect, FALSE);
 UpdateWindow ();
 m_rubberRect.left = m_rubberRect.right =
 m_rubberRect.top = m_rubberRect.bottom = 0;
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::DoContextMenu (CPoint point)
+{
+	static char* showSelectionCandidates [] = {"Show Selection Candidates: Off", "Show Selection Candidates: Circles", "Show Selection Candidates: Full"};
+	CMenu contextMenu;
+	CMenu* tracker;
+
+contextMenu.LoadMenu (IDR_MINE_CONTEXT_MENU);
+ClientToScreen (&point);
+tracker = contextMenu.GetSubMenu (0); 
+tracker->CheckMenuItem ((UINT) theMine->SelectMode (), MF_BYPOSITION | MF_CHECKED);
+if (GetElementMovementReference ())
+	tracker->CheckMenuItem ((UINT) ID_EDIT_MOVE_ALONG_VIEWER_AXES, MF_BYCOMMAND | MF_CHECKED);
+if (m_bEnableQuickSelection)
+	tracker->CheckMenuItem ((UINT) ID_EDIT_ENABLE_QUICK_SELECTION, MF_BYCOMMAND | MF_CHECKED);
+tracker->ModifyMenu (ID_EDIT_SHOW_SELECTION_CANDIDATES, MF_BYCOMMAND | MF_STRING, ID_EDIT_SHOW_SELECTION_CANDIDATES, showSelectionCandidates [m_nShowSelectionCandidates]);
+int nChoice = tracker->TrackPopupMenu (TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x , point.y, AfxGetMainWnd ());
+contextMenu.DestroyMenu ();
+if (nChoice) {
+	if ((nChoice >= ID_SEL_POINTMODE) && (nChoice <= ID_SEL_BLOCKMODE))
+		SetSelectMode (nChoice - ID_SEL_POINTMODE);
+	else if (nChoice == ID_EDIT_ENABLE_QUICK_SELECTION)
+		m_bEnableQuickSelection = !m_bEnableQuickSelection;
+	else if (nChoice == ID_EDIT_SHOW_SELECTION_CANDIDATES)
+		m_nShowSelectionCandidates = (m_nShowSelectionCandidates + 1) % 3;
+	else if (nChoice == ID_EDIT_MOVE_ALONG_VIEWER_AXES)
+		SetElementMovementReference (!GetElementMovementReference ());
+	else if (nChoice == ID_EDIT_ALIGN_VIEWER_WITH_SIDE)
+		AlignViewerWithSide ();
+	else if (nChoice == ID_EDIT_QUICKCOPY)
+		blockManager.QuickCopy ();
+	else if (nChoice == ID_EDIT_QUICKPASTE)
+		blockManager.QuickPaste ();
+	else if (nChoice == ID_EDIT_DELETEBLOCK)
+		blockManager.Delete ();
+	else if (nChoice == ID_VIEW_COLLAPSE_EDGE)
+		segmentManager.CollapseEdge ();
+	else if (nChoice == ID_VIEW_CREATE_WEDGE)
+		segmentManager.CreateWedge ();
+	else if (nChoice == ID_VIEW_CREATE_PYRAMID)
+		segmentManager.CreatePyramid ();
+	else if (nChoice == ID_MAKE_POINTS_PARALLEL)
+		segmentManager.MakePointsParallel ();
+	else if (nChoice == ID_EDIT_UNDO)
+		undoManager.Undo ();
+	else if (nChoice == ID_EDIT_REDO)
+		undoManager.Redo ();
+	Refresh ();
+	}
 }
 
 								/*---------------------------*/

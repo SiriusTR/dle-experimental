@@ -227,7 +227,7 @@ GetClientRect (viewport);
 
 #if 1
 if (bCurrentSideOnly) {
-	short nEdge = current->Side ()->NearestEdge (viewport, m_lastMousePos.x, m_lastMousePos.y, current->Segment ()->m_info.vertexIds, minDist);
+	short nEdge = current->Side ()->NearestEdge (viewport, LastMousePos ().x, LastMousePos ().y, current->Segment ()->m_info.vertexIds, minDist);
 	if (nEdge >= 0) {
 		*nearestSegment = current->Segment ();
 		*nearestSide = current->Side ();
@@ -243,7 +243,7 @@ else {
 		for (short nSide = 0; nSide < 6; nSide++, pSide++) {
 			if (pSide->Shape () > SIDE_SHAPE_TRIANGLE)
 				continue;
-			short nEdge = pSide->NearestEdge (viewport, m_lastMousePos.x, m_lastMousePos.y, pSegment->m_info.vertexIds, minDist);
+			short nEdge = pSide->NearestEdge (viewport, LastMousePos ().x, LastMousePos ().y, pSegment->m_info.vertexIds, minDist);
 			if (nEdge >= 0) {
 				*nearestSegment = pSegment;
 				*nearestSide = pSide;
@@ -253,12 +253,12 @@ else {
 		}
 	}
 #else
-if (!segmentManager.GatherSelectableSides (viewport, m_lastMousePos.x, m_lastMousePos.y))
+if (!segmentManager.GatherSelectableSides (viewport, LastMousePos ().x, LastMousePos ().y))
 	return false;
 
 for (CSide* pSide = segmentManager.SelectedSides (); pSide; pSide = pSide->GetLink ()) {
 	CSegment* pSegment = segmentManager.Segment (pSide->GetParent ());
-	short nEdge = pSide->NearestEdge (viewport, m_lastMousePos.x, m_lastMousePos.y, pSegment->m_info.vertexIds, minDist);
+	short nEdge = pSide->NearestEdge (viewport, LastMousePos ().x, LastMousePos ().y, pSegment->m_info.vertexIds, minDist);
 	if (nEdge >= 0) {
 		nearestSegment = pSegment;
 		nearestSide = pSide;

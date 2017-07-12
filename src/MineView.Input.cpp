@@ -34,16 +34,23 @@ if (m_zoomStartPos != nullptr) {
 void CInputHandler::LoadSettings()
 {
 // Set default settings where applicable
-m_stateConfigs [eMouseStateButtonDown].button = MK_LBUTTON;
+m_stateConfigs [eMouseStateButtonDown].button = MK_LBUTTON | MK_RBUTTON;
 m_stateConfigs [eMouseStateSelect].modifiers [eModifierShift] = true;
 m_stateConfigs [eMouseStatePan].modifiers [eModifierCtrl] = true;
 m_stateConfigs [eMouseStateRotate].modifiers [eModifierShift] = true;
 m_stateConfigs [eMouseStateRotate].modifiers [eModifierCtrl] = true;
+m_stateConfigs [eMouseStateZoom].button = MK_LBUTTON | MK_RBUTTON;
 m_stateConfigs [eMouseStateZoom].modifiers [eModifierCtrl] = true;
-m_stateConfigs [eMouseStateZoom].button = MK_LBUTTON | MK_RBUTTON; // can enter with either button
 m_stateConfigs [eMouseStateZoomIn].button = MK_LBUTTON;
 m_stateConfigs [eMouseStateZoomOut].button = MK_RBUTTON;
 m_stateConfigs [eMouseStateApplySelect].button = MK_LBUTTON;
+m_stateConfigs [eMouseStateTagRubberBand].button = MK_LBUTTON | MK_RBUTTON;
+m_stateConfigs [eMouseStateUnTagRubberBand].button = MK_LBUTTON | MK_RBUTTON;
+m_stateConfigs [eMouseStateUnTagRubberBand].modifiers [eModifierShift] = true;
+m_stateConfigs [eMouseStateQuickTag].button = MK_LBUTTON;
+m_stateConfigs [eMouseStateQuickTag].modifiers [eModifierShift] = true;
+m_stateConfigs [eMouseStateDoContextMenu].button = MK_RBUTTON;
+m_stateConfigs [eMouseStateDoContextMenu].modifiers [eModifierShift] = true;
 
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveForward], "MoveForward");
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveBackward], "MoveBackward");
@@ -61,7 +68,7 @@ LoadKeyBinding (m_keyBindings [eKeyCommandZoomIn], "ZoomIn");
 LoadKeyBinding (m_keyBindings [eKeyCommandZoomOut], "ZoomOut");
 LoadKeyBinding (m_keyBindings [eKeyCommandInputLock], "InputLock");
 
-// Idle, ApplyDrag and ApplyRubberBand states don't need configs due to transition rules
+// Idle and ApplyDrag states don't need configs due to transition rules
 LoadStateConfig (m_stateConfigs [eMouseStateButtonDown], "ButtonDown");
 LoadStateConfig (m_stateConfigs [eMouseStateSelect], "AdvSelect");
 LoadStateConfig (m_stateConfigs [eMouseStatePan], "Pan");
@@ -69,14 +76,17 @@ LoadStateConfig (m_stateConfigs [eMouseStateRotate], "Rotate");
 LoadStateConfig (m_stateConfigs [eMouseStateZoom], "Zoom");
 LoadStateConfig (m_stateConfigs [eMouseStateZoomIn], "ZoomIn");
 LoadStateConfig (m_stateConfigs [eMouseStateZoomOut], "ZoomOut");
+LoadStateConfig (m_stateConfigs [eMouseStateQuickSelect], "QuickSelect");
 LoadStateConfig (m_stateConfigs [eMouseStateApplySelect], "ApplyAdvSelect");
+LoadStateConfig (m_stateConfigs [eMouseStateTagRubberBand], "Mark");
+LoadStateConfig (m_stateConfigs [eMouseStateUnTagRubberBand], "Unmark");
+LoadStateConfig (m_stateConfigs [eMouseStateQuickTag], "QuickMark");
+LoadStateConfig (m_stateConfigs [eMouseStateDoContextMenu], "ContextMenu");
 
-// Drag, RubberBand and QuickSelect are copied from ButtonDown
+// Drag and RubberBand are copied from ButtonDown
 memcpy_s (&m_stateConfigs [eMouseStateDrag], sizeof (m_stateConfigs [eMouseStateDrag]),
 	&m_stateConfigs [eMouseStateButtonDown], sizeof (m_stateConfigs [eMouseStateButtonDown]));
 memcpy_s (&m_stateConfigs [eMouseStateRubberBand], sizeof (m_stateConfigs [eMouseStateRubberBand]),
-	&m_stateConfigs [eMouseStateButtonDown], sizeof (m_stateConfigs [eMouseStateButtonDown]));
-memcpy_s (&m_stateConfigs [eMouseStateQuickSelect], sizeof (m_stateConfigs [eMouseStateQuickSelect]),
 	&m_stateConfigs [eMouseStateButtonDown], sizeof (m_stateConfigs [eMouseStateButtonDown]));
 }
 
@@ -134,7 +144,7 @@ if (!IsMovementCommand (command))
 
 switch (m_movementMode) {
 	case eMovementModeStepped:
-		for (int i = 0; i < nRepCnt; i++) {
+		for (unsigned int i = 0; i < nRepCnt; i++) {
 			ApplyMovement (command);
 			}
 		break;
@@ -159,7 +169,7 @@ if (!IsMovementCommand (command))
 
 switch (m_movementMode) {
 	case eMovementModeStepped:
-		for (int i = 0; i < nRepCnt; i++) {
+		for (unsigned int i = 0; i < nRepCnt; i++) {
 			ApplyMovement (command);
 			}
 		break;
@@ -301,6 +311,8 @@ switch (m_mouseState) {
 	case eMouseStateButtonDown:
 		// If this is a move: move to either drag or rubber band state, depending on whether there is a target
 		if (!HasExitedState (msg) && point != *m_clickStartPos) {
+			// In default config, RMB can be used for drag/rubber band like this.
+			// Can recheck input if this becomes a problem
 			if (CheckValidDragTarget (*m_clickStartPos))
 				return eMouseStateDrag;
 			else
@@ -308,10 +320,21 @@ switch (m_mouseState) {
 			}
 		if (HasExitedState (msg)) {
 			// If this is a mouse-up: move to quick select state
-			if (ButtonUpMatchesState (eMouseStateQuickSelect, msg))
+			if (HasEnteredTransitionalState (eMouseStateQuickSelect, msg) == eMatchExact)
 				return eMouseStateQuickSelect;
-			else
-				return eMouseStateIdle;
+			if (HasEnteredTransitionalState (eMouseStateQuickTag, msg) == eMatchExact)
+				return eMouseStateQuickTag;
+			if (HasEnteredTransitionalState (eMouseStateDoContextMenu, msg) == eMatchExact)
+				return eMouseStateDoContextMenu;
+
+			if (HasEnteredTransitionalState (eMouseStateQuickSelect, msg))
+				return eMouseStateQuickSelect;
+			if (HasEnteredTransitionalState (eMouseStateQuickTag, msg))
+				return eMouseStateQuickTag;
+			if (HasEnteredTransitionalState (eMouseStateDoContextMenu, msg))
+				return eMouseStateDoContextMenu;
+
+			return eMouseStateIdle;
 			}
 		// Ignore other inputs (other mouse buttons, modifier changes)
 		break;
@@ -326,15 +349,26 @@ switch (m_mouseState) {
 	case eMouseStateRubberBand:
 		// If this is a move: no state change
 		// If this is a mouse-up for the select button: move to apply rubber band state
-		if (HasExitedState (msg))
-			return eMouseStateApplyRubberBand;
+		if (HasExitedState (msg)) {
+			if (HasEnteredTransitionalState (eMouseStateTagRubberBand, msg) == eMatchExact)
+				return eMouseStateTagRubberBand;
+			if (HasEnteredTransitionalState (eMouseStateUnTagRubberBand, msg) == eMatchExact)
+				return eMouseStateUnTagRubberBand;
+
+			if (HasEnteredTransitionalState (eMouseStateTagRubberBand, msg))
+				return eMouseStateTagRubberBand;
+			if (HasEnteredTransitionalState (eMouseStateUnTagRubberBand, msg))
+				return eMouseStateUnTagRubberBand;
+
+			return eMouseStateIdle;
+			}
 		break;
 
 	case eMouseStateSelect:
 		// If modifiers do not map to power select action, move to idle state
 		if (HasExitedState (msg)) {
 			// If click, move to apply power select state
-			if (ButtonUpMatchesState (eMouseStateApplySelect, msg))
+			if (HasEnteredTransitionalState (eMouseStateApplySelect, msg))
 				return eMouseStateApplySelect;
 			return eMouseStateIdle;
 			}
@@ -344,9 +378,14 @@ switch (m_mouseState) {
 	case eMouseStateZoom:
 		// If this is a mouse-up and mouse hasn't moved: move to ZoomIn/ZoomOut state
 		if (HasExitedState (msg) && point == m_lastMousePos) {
-			if (ButtonUpMatchesState (eMouseStateZoomIn, msg))
+			if (HasEnteredTransitionalState (eMouseStateZoomIn, msg) == eMatchExact)
 				return eMouseStateZoomIn;
-			else if (ButtonUpMatchesState (eMouseStateZoomOut, msg))
+			if (HasEnteredTransitionalState (eMouseStateZoomOut, msg) == eMatchExact)
+				return eMouseStateZoomOut;
+
+			if (HasEnteredTransitionalState (eMouseStateZoomIn, msg))
+				return eMouseStateZoomIn;
+			if (HasEnteredTransitionalState (eMouseStateZoomOut, msg))
 				return eMouseStateZoomOut;
 			}
 	case eMouseStatePan:
@@ -450,31 +489,58 @@ for (int i = 0; i < eModifierCount; i++) {
 return ButtonUpMatchesState (m_mouseState, msg);
 }
 
+eMouseStateMatchResults CInputHandler::HasEnteredTransitionalState (eMouseStates state, UINT msg) const
+{
+	eMouseStateMatchResults result = eMatchExact;
+
+// Check modifiers
+for (int i = 0; i < eModifierCount; i++) {
+	bool bRequired = m_stateConfigs [state].modifiers [i];
+
+	if (m_bModifierActive [i]) {
+		if (!bRequired)
+			result = eMatchPartial;
+		}
+	else if (bRequired) {
+		result = eMatchNone;
+		break;
+		}
+	}
+
+// Check mouse button
+if (!ButtonUpMatchesState (state, msg))
+	result = eMatchNone;
+
+return result;
+}
+
 bool CInputHandler::ButtonUpMatchesState (eMouseStates state, UINT msg) const
 {
 switch (msg) {
+	// Using bitwise again. Note that this will allow any button up to leave a state
+	// even if others are still held. Currently this is what we want but it may change later
 	case WM_LBUTTONUP:
-		if (m_stateConfigs [state].button == MK_LBUTTON)
+		if (m_stateConfigs [state].button & MK_LBUTTON)
 			return true;
 		break;
 
 	case WM_MBUTTONUP:
-		if (m_stateConfigs [state].button == MK_MBUTTON)
+		if (m_stateConfigs [state].button & MK_MBUTTON)
 			return true;
 		break;
 
 	case WM_RBUTTONUP:
-		if (m_stateConfigs [state].button == MK_RBUTTON)
+		if (m_stateConfigs [state].button & MK_RBUTTON)
 			return true;
 		break;
 
 	case (0x10000 | WM_XBUTTONUP):
-		if (m_stateConfigs [state].button == MK_XBUTTON1)
+		if (m_stateConfigs [state].button & MK_XBUTTON1)
 			return true;
 		break;
 
 	case (0x20000 | WM_XBUTTONUP):
-		if (m_stateConfigs [state].button == MK_XBUTTON2)
+		if (m_stateConfigs [state].button & MK_XBUTTON2)
 			return true;
 		break;
 
@@ -505,7 +571,7 @@ void CInputHandler::ProcessTransitionalStates (CPoint point)
 // apply the corresponding action then reset the mouse state to idle
 switch (m_mouseState) {
 	case eMouseStateQuickSelect:
-		// Do selection
+		m_pMineView->SelectCurrentElement (point.x, point.y, false);
 		m_mouseState = eMouseStateIdle;
 		break;
 
@@ -514,13 +580,15 @@ switch (m_mouseState) {
 		m_mouseState = eMouseStateIdle;
 		break;
 
-	case eMouseStateApplyRubberBand:
-		ApplyRubberBand (point);
+	case eMouseStateTagRubberBand:
+	case eMouseStateUnTagRubberBand:
+		m_pMineView->ResetRubberRect ();
+		m_pMineView->TagRubberBandedVertices (*m_clickStartPos, point, m_mouseState == eMouseStateTagRubberBand);
 		m_mouseState = eMouseStateIdle;
 		break;
 
 	case eMouseStateApplySelect:
-		ApplySelect (point);
+		m_pMineView->SelectCurrentElement (point.x, point.y, false);
 		m_mouseState = eMouseStateIdle;
 		break;
 
@@ -531,6 +599,16 @@ switch (m_mouseState) {
 
 	case eMouseStateZoomOut:
 		m_pMineView->ZoomOut (1, true);
+		m_mouseState = eMouseStateIdle;
+		break;
+
+	case eMouseStateQuickTag:
+		m_pMineView->SelectCurrentElement (point.x, point.y, true);
+		m_mouseState = eMouseStateIdle;
+		break;
+
+	case eMouseStateDoContextMenu:
+		m_pMineView->DoContextMenu (point);
 		m_mouseState = eMouseStateIdle;
 		break;
 

@@ -85,7 +85,7 @@ if (theMine == null) return FALSE;
 
 if (m_mouseState != eMouseStateDrag)
 	return FALSE;
-if (m_lastMousePos == m_lastDragPos)
+if (LastMousePos () == m_lastDragPos)
 	return FALSE;
 
 int i;
@@ -97,15 +97,15 @@ Renderer ().BeginRender (true);
 if (!m_nRenderer)
 	HighlightDrag (nVert, m_lastDragPos.x, m_lastDragPos.y);
 // highlight the new position
-HighlightDrag (nVert, m_lastMousePos.x, m_lastMousePos.y);
-m_lastDragPos = m_lastMousePos;
+HighlightDrag (nVert, LastMousePos ().x, LastMousePos ().y);
+m_lastDragPos = LastMousePos ();
 
 if (!m_nRenderer)
 	DC ()->SetROP2 (R2_NOT);
 
 for (i = 0; i < vertexManager.Count (); i++) {
 	CVertex& v = vertexManager [i];
-	if ((abs (v.m_screen.x - m_lastMousePos.x) < 5) && (abs (v.m_screen.y - m_lastMousePos.y) < 5)) {
+	if ((abs (v.m_screen.x - LastMousePos ().x) < 5) && (abs (v.m_screen.y - LastMousePos ().y) < 5)) {
 		if ((v.m_screen.x != m_highlightPos.x) || (v.m_screen.y != m_highlightPos.y)) {
 			if (m_highlightPos.x != -1)
 				// erase last point
@@ -133,8 +133,8 @@ return TRUE;
 }
 
 //------------------------------------------------------------------------------
-                        
-void CMineView::FinishDrag (void)
+
+void CMineView::FinishDrag (CPoint releasePos)
 {
 CHECKMINE;
 
@@ -146,8 +146,8 @@ CHECKMINE;
 	short		point2,vert2;
 
 undoManager.Begin (__FUNCTION__, udVertices | udSegments);
-xPos = m_releasePos.x;
-yPos = m_releasePos.y;
+xPos = releasePos.x;
+yPos = releasePos.y;
 point1 = current->Side ()->VertexIdIndex (current->Point ());
 vert1 = segmentManager.Segment (0) [current->SegmentId ()].m_info.vertexIds [point1];
 // find point to merge with

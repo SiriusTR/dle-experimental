@@ -57,7 +57,10 @@ enum eMouseStates
 	eMouseStateQuickSelect,
 	eMouseStateApplySelect,
 	eMouseStateApplyDrag,
-	eMouseStateApplyRubberBand,
+	eMouseStateTagRubberBand,
+	eMouseStateUnTagRubberBand,
+	eMouseStateQuickTag,
+	eMouseStateDoContextMenu,
 	//must always be last tag
 	eMouseStateCount
 };
@@ -142,8 +145,9 @@ struct KeyboardBinding {
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
-// do we need to move this out of mineview?
-// can we filter out input that has already hit an accelerator?
+// Forward declaration for CInputHandler
+class CMineView;
+
 class CInputHandler {
 	public:
 		CInputHandler (CMineView *pMineView);
@@ -165,6 +169,8 @@ class CInputHandler {
 		void OnXButtonDown (UINT nFlags, UINT nButton, CPoint point);
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
+		const CPoint& LastMousePos () const { return m_lastMousePos; }
+
 	private:
 		CMineView *m_pMineView;
 		KeyboardBinding m_keyBindings [eKeyCommandCount];
@@ -182,6 +188,7 @@ class CInputHandler {
 		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
 		eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
 		bool HasExitedState (UINT msg) const;
+		eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
 		bool ButtonUpMatchesState (eMouseStates state, UINT msg) const;
 		bool IsClickState (eMouseStates state) const;
 		bool CheckValidDragTarget (const CPoint point) const;
@@ -250,15 +257,8 @@ protected: // create from serialization only
 	uint				m_selectMode;
 	HCURSOR			m_hCursors [eMouseStateCount];
 
-	int 				m_mouseState;
-	int 				m_lastMouseState;
-	CPoint			m_lastMousePos;
-	CPoint			m_clickPos, 
-						m_releasePos,
-						m_lastDragPos,
-						m_highlightPos;
-	UINT				m_clickState,
-						m_releaseState;
+	CPoint			m_lastDragPos;
+	CPoint			m_highlightPos;
 	short				m_lastSegment;
 	CRect				m_rubberRect;
 	UINT_PTR			m_lightTimer;
@@ -446,11 +446,9 @@ public:
 	inline CPoint& ViewCenter (void) { return m_viewCenter; }
 	inline CPoint& ViewMax (void) { return m_viewMax; }
 
-	void SetMouseState (int newMouseState);
-	inline bool MouseState (int nMouseState) { return m_mouseState == nMouseState; }
-	void RecordMousePos (CPoint& mousePos, CPoint point);
+	CPoint AdjustMousePos (CPoint point);
 	BOOL SetCursor (eMouseStates state);
-//	void UpdateCursor (void);
+	const CPoint& LastMousePos () { return m_inputHandler.LastMousePos (); }
 
 	inline short Wrap (short v, short delta, short min, short max) {
 		v += delta;
@@ -470,14 +468,15 @@ public:
 	void SelectCurrentObject (long xMouse, long yMouse);
 	bool SelectCurrentElement (long xMouse, long yMouse, bool bAddToTagged);
 	void RefreshObject(short old_object, short new_object);
-	void TagRubberBandedVertices (void);
+	void TagRubberBandedVertices (CPoint clickPos, CPoint releasePos, bool bTag);
 	BOOL DrawRubberBox ();
-	void UpdateRubberRect (CPoint pt);
+	void UpdateRubberRect (CPoint clickPos, CPoint pt);
 	void ResetRubberRect ();
+	void DoContextMenu (CPoint point);
 	BOOL UpdateDragPos ();
 	void HighlightDrag (short nVert, long x, long y);
 	BOOL DrawDragPos (void);
-	void FinishDrag (void);
+	void FinishDrag (CPoint releasePos);
 
 	void LocateTexture (short nTexture);
 
