@@ -169,6 +169,7 @@ class CInputHandler {
 		void OnXButtonDown (UINT nFlags, UINT nButton, CPoint point);
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
+		eMouseStates MouseState () const { return m_mouseState; }
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
 
 	private:

@@ -863,7 +863,7 @@ if (!(bRefreshing || m_nDelayRefresh)) {
 	bRefreshing = true;
 	InvalidateRect (null, TRUE);
 //	SetFocus ();
-	if (bAll && (m_mouseState == eMouseStateIdle)) {
+	if (bAll && (m_inputHandler.MouseState () == eMouseStateIdle)) {
 		DLE.ToolView ()->Refresh ();
 		DLE.TextureView ()->Refresh ();
 //		UpdateWindow ();
@@ -939,7 +939,7 @@ BOOL CMineView::DrawRubberBox (void)
 if (theMine == null)
 	return FALSE;
 
-if (m_mouseState != eMouseStateRubberBand)
+if (m_inputHandler.MouseState () != eMouseStateRubberBand)
 	return FALSE;
 
 if ((m_rubberRect.Width () || m_rubberRect.Height ())) {
@@ -982,8 +982,11 @@ void CMineView::UpdateRubberRect (CPoint clickPos, CPoint pt)
 {
 CHECKMINE;
 
-if (m_mouseState == eMouseStateButtonDown)
+// If this is the first frame we're drawing the rubber rect, capture the mouse
+CRect emptyRect (0, 0, 0, 0);
+if (EqualRect (m_rubberRect, emptyRect))
 	SetCapture ();
+
 CRect rc = m_rubberRect;
 if (clickPos.x < pt.x) {
 	rc.left = clickPos.x - RUBBER_BORDER;
