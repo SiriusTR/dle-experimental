@@ -193,7 +193,7 @@ if (change.x || change.y) {
 			break;
 
 		case eMouseStateDrag:
-			m_pMineView->UpdateDragPos (point);
+			m_pMineView->UpdateDragPos ();
 			break;
 
 		case eMouseStateRubberBand:
@@ -201,11 +201,7 @@ if (change.x || change.y) {
 			break;
 
 		case eMouseStateSelect:
-			m_pMineView->UpdateSelectHighlights (point);
-			/*
-			if (SelectMode (eSelectPoint) || SelectMode (eSelectLine) || SelectMode (eSelectSide) || SelectMode (eSelectSegment))
-				Invalidate (FALSE);
-			*/
+			m_pMineView->UpdateSelectHighlights ();
 			break;
 
 		case eMouseStatePan:
@@ -651,6 +647,10 @@ if (m_mouseState != newState) {
 	else if (m_zoomStartPos != nullptr) {
 		delete m_zoomStartPos;
 		m_zoomStartPos = nullptr;
+		}
+
+	if (m_mouseState == eMouseStateDrag) {
+		m_pMineView->InitDrag ();
 		}
 	}
 }

@@ -422,6 +422,7 @@ public:
 	void EnableDeltaShading (int bEnable, int nFrameRate, int bShowLightSource);
 	void AdvanceLightTick (void);
 	bool SetLightStatus (void);
+	void UpdateSelectHighlights ();
 	void Invalidate (BOOL bErase);
 	void InvalidateRect (LPCRECT lpRect, BOOL bErase);
 
@@ -477,6 +478,7 @@ public:
 	BOOL UpdateDragPos ();
 	void HighlightDrag (short nVert, long x, long y);
 	BOOL DrawDragPos (void);
+	void InitDrag ();
 	void FinishDrag (CPoint releasePos);
 
 	void LocateTexture (short nTexture);

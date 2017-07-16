@@ -17,33 +17,41 @@
 #include <time.h>
 
 //------------------------------------------------------------------------------
-                        
+
 BOOL CMineView::UpdateDragPos (void)
 {
 if (theMine == null) return FALSE;
 
-if ((m_mouseState != eMouseStateInitDrag) && (m_mouseState != eMouseStateDrag))
+if (m_inputHandler.MouseState () != eMouseStateDrag)
 	return FALSE;
 
 	short nVert = current->Side ()->VertexIdIndex (current->Point ());
 	short i = current->Segment ()->m_info.vertexIds [nVert];
 	CVertex& v = vertexManager [i];
 
-if (m_mouseState == eMouseStateInitDrag) {
-	SetMouseState (eMouseStateDrag);
-// SetCapture ();
-	m_highlightPos.x = v.m_screen.x;
-	m_highlightPos.y = v.m_screen.y;
-	m_lastDragPos = m_highlightPos;
-	}
 HighlightDrag (nVert, v.m_screen.x, v.m_screen.y);
-	
+
 //InvalidateRect (null, TRUE);
 return TRUE;
 }
 
 //------------------------------------------------------------------------------
-                        
+
+void CMineView::InitDrag ()
+{
+	short nVert = current->Side ()->VertexIdIndex (current->Point ());
+	short i = current->Segment ()->m_info.vertexIds [nVert];
+	CVertex& v = vertexManager [i];
+
+m_highlightPos.x = v.m_screen.x;
+m_highlightPos.y = v.m_screen.y;
+m_lastDragPos = m_highlightPos;
+
+HighlightDrag (nVert, v.m_screen.x, v.m_screen.y);
+}
+
+//------------------------------------------------------------------------------
+
 void CMineView::HighlightDrag (short nVert, long x, long y) 
 {
 CHECKMINE;
@@ -59,7 +67,7 @@ for (int i = 0; i < 3; i++) {
 	Renderer ().MoveTo (x, y);
 	short nVert2 = adjacentPointTable [nVert][i];
 	CVertex& v = vertexManager [current->Segment ()->m_info.vertexIds [nVert2]];
-   Renderer ().LineTo (v.m_screen.x, v.m_screen.y);
+	Renderer ().LineTo (v.m_screen.x, v.m_screen.y);
 	if (rc.left > v.m_screen.x)
 		rc.left = v.m_screen.x;
 	if (rc.right < v.m_screen.x)
@@ -78,12 +86,12 @@ UpdateWindow ();
 }
 
 //------------------------------------------------------------------------------
-                        
+
 BOOL CMineView::DrawDragPos (void)
 {
 if (theMine == null) return FALSE;
 
-if (m_mouseState != eMouseStateDrag)
+if (m_inputHandler.MouseState () != eMouseStateDrag)
 	return FALSE;
 if (LastMousePos () == m_lastDragPos)
 	return FALSE;
@@ -192,7 +200,7 @@ if (count == 1) {
 			segmentManager.FixChildren ();
 			segmentManager.SetLinesToDraw ();
 			}
-		}	
+		}
 	}
 else {
 	// no vertex found, just drop point along screen axii

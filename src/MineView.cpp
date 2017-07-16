@@ -839,6 +839,14 @@ CView::OnRButtonUp (nFlags, point);
 
 //------------------------------------------------------------------------------
 
+void CMineView::UpdateSelectHighlights ()
+{
+if (SelectMode (eSelectPoint) || SelectMode (eSelectLine) || SelectMode (eSelectSide) || SelectMode (eSelectSegment))
+	Invalidate (FALSE);
+}
+
+//------------------------------------------------------------------------------
+
 void CMineView::Invalidate (BOOL bErase)
 {
 CWnd::Invalidate (bErase);
