@@ -171,9 +171,11 @@ m_nViewDist = 0;
 SetElementMovementReference (1);
 SetMineMoveRate (1.0);
 SetViewMoveRate (1.0);
-Reset ();
 m_bEnableQuickSelection = GetPrivateProfileInt ("DLE", "EnableQuickSelection", 1, DLE.IniFile ());
 m_nShowSelectionCandidates = GetPrivateProfileInt ("DLE", "ShowSelectionCandidates", 2, DLE.IniFile ());
+m_bMovementTimerActive = false;
+QueryPerformanceFrequency (&m_qpcFrequency);
+Reset ();
 }
 
 //------------------------------------------------------------------------------
@@ -393,6 +395,16 @@ if (!GetUpdateRect (rc))
 pDC = BeginPaint (&ps);
 DrawRubberBox ();
 EndPaint (&ps);
+
+// If the movement timer is active we measure the elapsed time since the last frame
+// and immediately update the camera position
+if (m_bMovementTimerActive) {
+	LARGE_INTEGER newFrameTime = { 0 };
+	QueryPerformanceCounter (&newFrameTime);
+	double timeElapsed = ((double)(newFrameTime.QuadPart - m_lastFrameTime.QuadPart)) / m_qpcFrequency.QuadPart;
+	m_inputHandler.UpdateMovement (timeElapsed);
+	m_lastFrameTime = newFrameTime;
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -835,6 +847,23 @@ void CMineView::OnRButtonUp (UINT nFlags, CPoint point)
 {
 m_inputHandler.OnRButtonUp (nFlags, AdjustMousePos (point));
 CView::OnRButtonUp (nFlags, point);
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::StartMovementTimer()
+{
+QueryPerformanceCounter (&m_lastFrameTime);
+m_bMovementTimerActive = true;
+Refresh (false);
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::StopMovementTimer()
+{
+m_bMovementTimerActive = false;
+Refresh (false);
 }
 
 //------------------------------------------------------------------------------

@@ -291,6 +291,10 @@ protected: // create from serialization only
 
 	CDynamicArray< CPreviewUVL > m_previewUVLs;
 
+	bool m_bMovementTimerActive;
+	LARGE_INTEGER m_lastFrameTime;
+	LARGE_INTEGER m_qpcFrequency;
+
 // Attributes
 public:
 	CDlcDoc* GetDocument();
@@ -422,6 +426,8 @@ public:
 	void EnableDeltaShading (int bEnable, int nFrameRate, int bShowLightSource);
 	void AdvanceLightTick (void);
 	bool SetLightStatus (void);
+	void StartMovementTimer ();
+	void StopMovementTimer ();
 	void UpdateSelectHighlights ();
 	void Invalidate (BOOL bErase);
 	void InvalidateRect (LPCRECT lpRect, BOOL bErase);
