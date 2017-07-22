@@ -4,7 +4,7 @@
 CInputHandler::CInputHandler (CMineView *pMineView)
 	: m_pMineView (pMineView)
 {
-m_clickStartPos = nullptr;
+m_stateStartPos = nullptr;
 m_zoomStartPos = nullptr;
 for (int i = 0; i < eModifierCount; i++) {
 	m_bModifierActive [i] = false;
@@ -21,9 +21,9 @@ LoadSettings ();
 
 CInputHandler::~CInputHandler ()
 {
-if (m_clickStartPos != nullptr) {
-	delete m_clickStartPos;
-	m_clickStartPos = nullptr;
+if (m_stateStartPos != nullptr) {
+	delete m_stateStartPos;
+	m_stateStartPos = nullptr;
 	}
 if (m_zoomStartPos != nullptr) {
 	delete m_zoomStartPos;
@@ -43,6 +43,7 @@ m_stateConfigs [eMouseStateZoom].button = MK_LBUTTON | MK_RBUTTON;
 m_stateConfigs [eMouseStateZoom].modifiers [eModifierCtrl] = true;
 m_stateConfigs [eMouseStateZoomIn].button = MK_LBUTTON;
 m_stateConfigs [eMouseStateZoomOut].button = MK_RBUTTON;
+m_stateConfigs [eMouseStateQuickSelect].button = MK_LBUTTON;
 m_stateConfigs [eMouseStateApplySelect].button = MK_LBUTTON;
 m_stateConfigs [eMouseStateTagRubberBand].button = MK_LBUTTON | MK_RBUTTON;
 m_stateConfigs [eMouseStateUnTagRubberBand].button = MK_LBUTTON | MK_RBUTTON;
@@ -68,7 +69,7 @@ LoadKeyBinding (m_keyBindings [eKeyCommandZoomIn], "ZoomIn");
 LoadKeyBinding (m_keyBindings [eKeyCommandZoomOut], "ZoomOut");
 LoadKeyBinding (m_keyBindings [eKeyCommandInputLock], "InputLock");
 
-// Idle and ApplyDrag states don't need configs due to transition rules
+// Idle, CancelSelect and ApplyDrag states don't need configs due to transition rules
 LoadStateConfig (m_stateConfigs [eMouseStateButtonDown], "ButtonDown");
 LoadStateConfig (m_stateConfigs [eMouseStateSelect], "AdvSelect");
 LoadStateConfig (m_stateConfigs [eMouseStatePan], "Pan");
@@ -184,6 +185,7 @@ switch (m_movementMode) {
 
 void CInputHandler::OnMouseMove (UINT nFlags, CPoint point)
 {
+UpdateModifierStates (WM_MOUSEMOVE, 0, nFlags);
 UpdateMouseState (WM_MOUSEMOVE, point);
 
 CPoint change = m_lastMousePos - point;
@@ -197,7 +199,7 @@ if (change.x || change.y) {
 			break;
 
 		case eMouseStateRubberBand:
-			m_pMineView->UpdateRubberRect (*m_clickStartPos, point);
+			m_pMineView->UpdateRubberRect (*m_stateStartPos, point);
 			break;
 
 		case eMouseStateSelect:
@@ -306,10 +308,10 @@ switch (m_mouseState) {
 
 	case eMouseStateButtonDown:
 		// If this is a move: move to either drag or rubber band state, depending on whether there is a target
-		if (!HasExitedState (msg) && point != *m_clickStartPos) {
+		if (!HasExitedState (msg) && HasMouseMoved (point)) {
 			// In default config, RMB can be used for drag/rubber band like this.
 			// Can recheck input if this becomes a problem
-			if (CheckValidDragTarget (*m_clickStartPos))
+			if (CheckValidDragTarget (*m_stateStartPos))
 				return eMouseStateDrag;
 			else
 				return eMouseStateRubberBand;
@@ -361,19 +363,32 @@ switch (m_mouseState) {
 		break;
 
 	case eMouseStateSelect:
-		// If modifiers do not map to power select action, move to idle state
-		if (HasExitedState (msg)) {
-			// If click, move to apply power select state
-			if (HasEnteredTransitionalState (eMouseStateApplySelect, msg))
-				return eMouseStateApplySelect;
-			return eMouseStateIdle;
+		// If the mouse has not moved allow transitions to zoom/pan/rotate
+		// (unless we clicked to enter this state)
+		if (!IsClickState (eMouseStateSelect) && !HasMouseMoved (point)) {
+			if (HasEnteredState (eMouseStateZoom, msg) == eMatchExact)
+				return eMouseStateZoom;
+			if (HasEnteredState (eMouseStatePan, msg) == eMatchExact)
+				return eMouseStatePan;
+			if (HasEnteredState (eMouseStateRotate, msg) == eMatchExact)
+				return eMouseStateRotate;
 			}
+		// If click, move to apply power select state
+		if (HasEnteredTransitionalState (eMouseStateApplySelect, msg))
+			return eMouseStateApplySelect;
+		// If modifiers do not map to power select action, move to idle state
+		if (HasExitedState (msg))
+			if (HasMouseMoved (point))
+				// Mouse has moved so we might have highlights and need to scrub them
+				return eMouseStateCancelSelect;
+			else
+				return eMouseStateIdle;
 		// Else no change
 		break;
 
 	case eMouseStateZoom:
 		// If this is a mouse-up and mouse hasn't moved: move to ZoomIn/ZoomOut state
-		if (HasExitedState (msg) && point == m_lastMousePos) {
+		if (HasExitedState (msg) && !HasMouseMoved (point)) {
 			if (HasEnteredTransitionalState (eMouseStateZoomIn, msg) == eMatchExact)
 				return eMouseStateZoomIn;
 			if (HasEnteredTransitionalState (eMouseStateZoomOut, msg) == eMatchExact)
@@ -387,7 +402,7 @@ switch (m_mouseState) {
 	case eMouseStatePan:
 	case eMouseStateRotate:
 		// If the current state requires a mouse click and that button is down, no change
-		if (!HasExitedState (msg))
+		if (IsClickState (m_mouseState) && !HasExitedState (msg))
 			break;
 		// Else, if input+modifiers map to a move state, switch to it
 		// Check for exact matches first
@@ -549,7 +564,14 @@ return false;
 
 bool CInputHandler::IsClickState (eMouseStates state) const
 {
-	return m_stateConfigs [state].button != 0;
+return m_stateConfigs [state].button != 0;
+}
+
+bool CInputHandler::HasMouseMoved (const CPoint point) const
+{
+if (m_stateStartPos == nullptr)
+	return false;
+return point != *m_stateStartPos;
 }
 
 bool CInputHandler::CheckValidDragTarget (const CPoint point) const
@@ -559,6 +581,7 @@ int v = vertexManager.Index (current->Vertex ());
 if ((abs (point.x - vertexManager[v].m_screen.x) < 5) &&
 	(abs (point.y - vertexManager[v].m_screen.y) < 5))
 	return true;
+return false;
 }
 
 void CInputHandler::ProcessTransitionalStates (CPoint point)
@@ -579,12 +602,17 @@ switch (m_mouseState) {
 	case eMouseStateTagRubberBand:
 	case eMouseStateUnTagRubberBand:
 		m_pMineView->ResetRubberRect ();
-		m_pMineView->TagRubberBandedVertices (*m_clickStartPos, point, m_mouseState == eMouseStateTagRubberBand);
+		m_pMineView->TagRubberBandedVertices (*m_stateStartPos, point, m_mouseState == eMouseStateTagRubberBand);
 		m_mouseState = eMouseStateIdle;
 		break;
 
 	case eMouseStateApplySelect:
 		m_pMineView->SelectCurrentElement (point.x, point.y, false);
+		m_mouseState = eMouseStateIdle;
+		break;
+
+	case eMouseStateCancelSelect:
+		m_pMineView->UpdateSelectHighlights ();
 		m_mouseState = eMouseStateIdle;
 		break;
 
@@ -623,21 +651,14 @@ if (m_mouseState != newState) {
 	ProcessTransitionalStates (point);
 	m_pMineView->SetCursor (m_mouseState);
 
-	// If this is a state that requires a mouse button down, record where it started.
-	// Otherwise, clear the start location if there was one
-	if (IsClickState (m_mouseState)) {
-		if (m_clickStartPos == nullptr)
-			m_clickStartPos = new CPoint (point);
-		else
-			*m_clickStartPos = point;
-		}
-	else if (m_clickStartPos != nullptr) {
-		delete m_clickStartPos;
-		m_clickStartPos = nullptr;
-		}
+	// Record the mouse position where this state started
+	if (m_stateStartPos == nullptr)
+		m_stateStartPos = new CPoint (point);
+	else
+		*m_stateStartPos = point;
 
-	// Some special handling for zoom - we need to track where we started even if it
-	// isn't a click state, because it uses stepping
+	// Some special handling for zoom - we need a separate tracking position
+	// for it, because it uses stepping
 	if (m_mouseState == eMouseStateZoom) {
 		if (m_zoomStartPos == nullptr)
 			m_zoomStartPos = new CPoint (point);
@@ -657,32 +678,32 @@ if (m_mouseState != newState) {
 
 void CInputHandler::UpdateMouseState (UINT msg)
 {
-eMouseStates newState = MapInputToMouseState (msg, m_lastMousePos);
-
-if (m_mouseState != newState) {
-	m_mouseState = newState;
-	ProcessTransitionalStates (m_lastMousePos);
-	m_pMineView->SetCursor (m_mouseState);
-	}
+UpdateMouseState (msg, m_lastMousePos);
 }
 
 void CInputHandler::UpdateModifierStates (UINT msg, UINT nChar, UINT nFlags)
 {
-switch (nChar) {
-	case VK_SHIFT:
-		m_bModifierActive [eModifierShift] = (msg == WM_KEYDOWN);
-		break;
+if (msg == WM_KEYDOWN || msg == WM_KEYUP) {
+	switch (nChar) {
+		case VK_SHIFT:
+			m_bModifierActive [eModifierShift] = (msg == WM_KEYDOWN);
+			break;
 
-	case VK_CONTROL:
-		m_bModifierActive [eModifierCtrl] = (msg == WM_KEYDOWN);
-		break;
+		case VK_CONTROL:
+			m_bModifierActive [eModifierCtrl] = (msg == WM_KEYDOWN);
+			break;
 
-	case VK_MENU:
-		m_bModifierActive[eModifierAlt] = (msg == WM_KEYDOWN);
-		break;
+		case VK_MENU:
+			m_bModifierActive [eModifierAlt] = (msg == WM_KEYDOWN);
+			break;
 
-	default:
-		break;
+		default:
+			break;
+		}
+	}
+else if (msg == WM_MOUSEMOVE) {
+	m_bModifierActive [eModifierShift] = (nFlags & MK_SHIFT) == MK_SHIFT;
+	m_bModifierActive [eModifierCtrl] = (nFlags & MK_CONTROL) == MK_CONTROL;
 	}
 }
 

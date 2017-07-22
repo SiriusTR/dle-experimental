@@ -56,6 +56,7 @@ enum eMouseStates
 	eMouseStateZoomOut,
 	eMouseStateQuickSelect,
 	eMouseStateApplySelect,
+	eMouseStateCancelSelect,
 	eMouseStateApplyDrag,
 	eMouseStateTagRubberBand,
 	eMouseStateUnTagRubberBand,
@@ -178,7 +179,7 @@ class CInputHandler {
 		MouseStateConfig m_stateConfigs [eMouseStateCount];
 		eMovementModes m_movementMode;
 		eMouseStates m_mouseState;
-		CPoint *m_clickStartPos;
+		CPoint *m_stateStartPos;
 		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
 		bool m_bModifierActive [eModifierCount];
@@ -192,6 +193,7 @@ class CInputHandler {
 		eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
 		bool ButtonUpMatchesState (eMouseStates state, UINT msg) const;
 		bool IsClickState (eMouseStates state) const;
+		bool HasMouseMoved (const CPoint point) const;
 		bool CheckValidDragTarget (const CPoint point) const;
 		void ProcessTransitionalStates (CPoint point);
 		// Update mouse state in response to mouse input (e.g. clicks)
@@ -602,6 +604,8 @@ protected:
 	afx_msg void OnSelectNextTab ();
 	afx_msg void OnHScroll (UINT scrollCode, UINT thumbPos, CScrollBar *pScrollBar);
 	afx_msg void OnVScroll (UINT scrollCode, UINT thumbPos, CScrollBar *pScrollBar);
+	afx_msg void OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

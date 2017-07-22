@@ -60,6 +60,8 @@ BEGIN_MESSAGE_MAP(CMineView, CView)
 	ON_WM_MOUSEWHEEL()
 	ON_WM_HSCROLL()
 	ON_WM_VSCROLL()
+	ON_WM_KEYUP()
+	ON_WM_KEYDOWN()
 	//}}AFX_MSG_MAP
 	// Standard printing commands
 	ON_COMMAND(ID_FILE_PRINT, CView::OnFilePrint)
@@ -135,16 +137,24 @@ CMineView::CMineView() :
 	m_inputHandler (this)
 {
 static LPSTR nIdCursors [eMouseStateCount] = {
-	IDC_ARROW,
-	IDC_ARROW,
-	MAKEINTRESOURCE (IDC_CURSOR_PAN),
-	MAKEINTRESOURCE (IDC_CURSOR_ROTATE),
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOM),
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOMIN),
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOMOUT),
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG),
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG),
-	IDC_ARROW
+	IDC_ARROW, // Idle
+	IDC_ARROW, // ButtonDown
+	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // Drag
+	MAKEINTRESOURCE (IDC_CURSOR_XHAIRS), // RubberBand
+	IDC_ARROW, // Select
+	MAKEINTRESOURCE (IDC_CURSOR_PAN), // Pan
+	MAKEINTRESOURCE (IDC_CURSOR_ROTATE), // Rotate
+	MAKEINTRESOURCE (IDC_CURSOR_ZOOM), // Zoom
+	MAKEINTRESOURCE (IDC_CURSOR_ZOOMIN), // ZoomIn
+	MAKEINTRESOURCE (IDC_CURSOR_ZOOMOUT), // ZoomOut
+	IDC_ARROW, // QuickSelect
+	IDC_ARROW, // ApplySelect
+	IDC_ARROW, // CancelSelect
+	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // ApplyDrag
+	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // TagRubberBand
+	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // UnTagRubberBand
+	IDC_ARROW, // QuickTag
+	IDC_ARROW // DoContextMenu
 	};
 
 m_renderers [0] = new CRendererSW (m_renderData);
@@ -1221,6 +1231,20 @@ else if (nPos >= m_yScrollRange)
 SetScrollPos (SB_VERT, nPos, TRUE);
 m_yRenderOffs = nPos - m_yScrollCenter;
 Refresh ();
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+m_inputHandler.OnKeyUp (nChar, nRepCnt, nFlags);
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+m_inputHandler.OnKeyDown (nChar, nRepCnt, nFlags);
 }
 
 //------------------------------------------------------------------------------
