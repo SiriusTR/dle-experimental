@@ -16,6 +16,7 @@ m_bInputLockActive = false;
 m_nMovementCommandsActive = 0;
 ZeroMemory (m_keyBindings, sizeof (m_keyBindings));
 ZeroMemory (m_stateConfigs, sizeof (m_stateConfigs));
+m_movementMode = eMovementModeStepped;
 LoadSettings ();
 }
 
@@ -53,6 +54,11 @@ m_stateConfigs [eMouseStateQuickTag].modifiers [eModifierShift] = true;
 m_stateConfigs [eMouseStateDoContextMenu].button = MK_RBUTTON;
 m_stateConfigs [eMouseStateDoContextMenu].modifiers [eModifierShift] = true;
 
+// Read camera movement settings if specified
+m_movementMode = (eMovementModes)GetPrivateProfileInt ("DLE.Bindings", "MovementMode", 0, DLE.IniFile ());
+m_moveScale = (double)GetPrivateProfileInt ("DLE.Bindings", "MoveSpeed", 50, DLE.IniFile ());
+m_rotateScale = (double)GetPrivateProfileInt ("DLE.Bindings", "TurnSpeed", 1, DLE.IniFile ());
+
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveForward], "MoveForward");
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveBackward], "MoveBackward");
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveLeft], "MoveLeft");
@@ -69,7 +75,7 @@ LoadKeyBinding (m_keyBindings [eKeyCommandZoomIn], "ZoomIn");
 LoadKeyBinding (m_keyBindings [eKeyCommandZoomOut], "ZoomOut");
 LoadKeyBinding (m_keyBindings [eKeyCommandInputLock], "InputLock");
 
-// Idle, CancelSelect and ApplyDrag states don't need configs due to transition rules
+// Idle, LockedRotate, CancelSelect and ApplyDrag states don't need configs due to transition rules
 LoadStateConfig (m_stateConfigs [eMouseStateButtonDown], "ButtonDown");
 LoadStateConfig (m_stateConfigs [eMouseStateSelect], "AdvSelect");
 LoadStateConfig (m_stateConfigs [eMouseStatePan], "Pan");
@@ -93,35 +99,36 @@ memcpy_s (&m_stateConfigs [eMouseStateRubberBand], sizeof (m_stateConfigs [eMous
 
 void CInputHandler::UpdateMovement (double timeElapsed)
 {
-	double scale = 1.0;
 	// MineView/Renderer already apply view move rate
-	double moveAmount = timeElapsed * scale;
+	double moveAmount = timeElapsed * m_moveScale;
+	double rotateAmount = timeElapsed * m_rotateScale;
 	static double zoomAmount = 0;
+	double pspFlip = (m_pMineView->Perspective () ? -1 : 1);
 
 if (m_bKeyCommandActive [eKeyCommandMoveForward])
-	m_pMineView->Pan ('Z', moveAmount);
+	m_pMineView->Pan ('Z', moveAmount * pspFlip);
 if (m_bKeyCommandActive [eKeyCommandMoveBackward])
-	m_pMineView->Pan ('Z', -moveAmount);
+	m_pMineView->Pan ('Z', -moveAmount * pspFlip);
 if (m_bKeyCommandActive [eKeyCommandMoveLeft])
 	m_pMineView->Pan ('X', -moveAmount);
 if (m_bKeyCommandActive [eKeyCommandMoveRight])
 	m_pMineView->Pan ('X', moveAmount);
 if (m_bKeyCommandActive [eKeyCommandMoveUp])
-	m_pMineView->Pan ('Y', moveAmount);
+	m_pMineView->Pan ('Y', -moveAmount * pspFlip);
 if (m_bKeyCommandActive [eKeyCommandMoveDown])
-	m_pMineView->Pan ('Y', -moveAmount);
+	m_pMineView->Pan ('Y', moveAmount * pspFlip);
 if (m_bKeyCommandActive [eKeyCommandRotateUp])
-	m_pMineView->Rotate ('X', moveAmount);
+	m_pMineView->Rotate ('X', rotateAmount * pspFlip);
 if (m_bKeyCommandActive [eKeyCommandRotateDown])
-	m_pMineView->Rotate ('X', -moveAmount);
+	m_pMineView->Rotate ('X', -rotateAmount * pspFlip);
 if (m_bKeyCommandActive [eKeyCommandRotateLeft])
-	m_pMineView->Rotate ('Y', moveAmount);
+	m_pMineView->Rotate ('Y', rotateAmount * pspFlip);
 if (m_bKeyCommandActive [eKeyCommandRotateRight])
-	m_pMineView->Rotate ('Y', -moveAmount);
+	m_pMineView->Rotate ('Y', -rotateAmount * pspFlip);
 if (m_bKeyCommandActive [eKeyCommandRotateBankLeft])
-	m_pMineView->Rotate ('Z', moveAmount);
+	m_pMineView->Rotate ('Z', rotateAmount);
 if (m_bKeyCommandActive [eKeyCommandRotateBankRight])
-	m_pMineView->Rotate ('Z', -moveAmount);
+	m_pMineView->Rotate ('Z', -rotateAmount);
 
 if (m_bKeyCommandActive [eKeyCommandZoomIn])
 	zoomAmount += moveAmount;
@@ -133,7 +140,7 @@ if (fabs (zoomAmount) >= 1) {
 	}
 }
 
-void CInputHandler::OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
+bool CInputHandler::OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 UpdateModifierStates (WM_KEYUP, nChar, nFlags);
 UpdateMouseState (WM_KEYUP);
@@ -141,7 +148,7 @@ UpdateInputLockState (WM_KEYUP, nChar);
 
 eKeyCommands command = MapKeyToCommand (nChar);
 if (!IsMovementCommand (command))
-	return;
+	return false;
 
 switch (m_movementMode) {
 	case eMovementModeStepped:
@@ -154,11 +161,13 @@ switch (m_movementMode) {
 		break;
 	default:
 		// Unknown mode
-		return;
+		return false;
 	}
+
+return true;
 }
 
-void CInputHandler::OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
+bool CInputHandler::OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 UpdateModifierStates (WM_KEYDOWN, nChar, nFlags);
 UpdateMouseState (WM_KEYDOWN);
@@ -166,7 +175,7 @@ UpdateInputLockState (WM_KEYDOWN, nChar);
 
 eKeyCommands command = MapKeyToCommand (nChar);
 if (!IsMovementCommand (command))
-	return;
+	return false;
 
 switch (m_movementMode) {
 	case eMovementModeStepped:
@@ -179,8 +188,10 @@ switch (m_movementMode) {
 		break;
 	default:
 		// Unknown mode
-		return;
+		return false;
 	}
+
+return true;
 }
 
 void CInputHandler::OnMouseMove (UINT nFlags, CPoint point)
@@ -217,10 +228,16 @@ if (change.x || change.y) {
 		case eMouseStateZoom:
 			DoMouseZoom (point);
 			break;
+
+		case eMouseStateLockedRotate:
+			DoMouseRotate (point);
+			m_lastMousePos = m_pMineView->CenterMouse ();
+			break;
 		}
 	}
 
-m_lastMousePos = point;
+if (m_mouseState != eMouseStateLockedRotate)
+	m_lastMousePos = point;
 }
 
 void CInputHandler::OnLButtonUp (UINT nFlags, CPoint point)
@@ -276,6 +293,9 @@ eMouseStates CInputHandler::MapInputToMouseState (UINT msg, const CPoint point) 
 {
 switch (m_mouseState) {
 	case eMouseStateIdle:
+		// Input lock forces the mouse into rotate mode
+		if (HasInputLock ())
+			return eMouseStateLockedRotate;
 		// If modifiers map to power select action, move to power select state
 		if (HasEnteredState (eMouseStateSelect, msg) == eMatchExact)
 			return eMouseStateSelect;
@@ -421,6 +441,12 @@ switch (m_mouseState) {
 			return eMouseStateRotate;
 		// Else move to idle state
 		return eMouseStateIdle;
+
+	case eMouseStateLockedRotate:
+		// Only way to exit rotate state with input lock is to exit input lock
+		if (!HasInputLock ())
+			return eMouseStateIdle;
+		break;
 
 	default:
 		return eMouseStateIdle;
@@ -734,7 +760,8 @@ switch (command) {
 void CInputHandler::UpdateInputLockState (UINT msg, UINT nChar)
 {
 if (KeyMatchesKeyCommand (eKeyCommandInputLock, nChar))
-	m_bInputLockActive = (msg == WM_KEYDOWN);
+	if (msg == WM_KEYUP)
+		m_bInputLockActive = !m_bInputLockActive;
 }
 
 eKeyCommands CInputHandler::MapKeyToCommand (UINT nChar)
@@ -826,14 +853,16 @@ void CInputHandler::DoMouseRotate (const CPoint point)
 {
 	CPoint change = m_lastMousePos - point;
 	double scale = m_pMineView->Perspective () ? 300.0 : 200.0;
+	// RotateAmountX/Y are how much we rotate about either axis,
+	// which is why it looks like we're swapping them here.
 	double rotateAmountX = double(change.y) / scale;
 	double rotateAmountY = -double(change.x) / scale;
 
 if (m_pMineView->Perspective ())
 	rotateAmountX = -rotateAmountX;
-if (m_stateConfigs [eMouseStateRotate].bInvertX)
-	rotateAmountX = -rotateAmountX;
 if (m_stateConfigs [eMouseStateRotate].bInvertY)
+	rotateAmountX = -rotateAmountX;
+if (m_stateConfigs [eMouseStateRotate].bInvertX)
 	rotateAmountY = -rotateAmountY;
 
 m_pMineView->Rotate ('Y', rotateAmountY);
@@ -842,15 +871,17 @@ m_pMineView->Rotate ('X', rotateAmountX);
 
 void CInputHandler::ApplyMovement (eKeyCommands command)
 {
+	double pspFlip = (m_pMineView->Perspective () ? -1 : 1);
+
 if (!IsMovementCommand (command))
 	return;
 
 switch (command) {
 	case eKeyCommandMoveForward:
-		m_pMineView->Pan ('Z', 1);
+		m_pMineView->Pan ('Z', 1 * pspFlip);
 		break;
 	case eKeyCommandMoveBackward:
-		m_pMineView->Pan ('Z', -1);
+		m_pMineView->Pan ('Z', -1 * pspFlip);
 		break;
 	case eKeyCommandMoveLeft:
 		m_pMineView->Pan ('X', -1);
@@ -859,22 +890,22 @@ switch (command) {
 		m_pMineView->Pan ('X', 1);
 		break;
 	case eKeyCommandMoveUp:
-		m_pMineView->Pan ('Y', 1);
+		m_pMineView->Pan ('Y', -1 * pspFlip);
 		break;
 	case eKeyCommandMoveDown:
-		m_pMineView->Pan ('Y', -1);
+		m_pMineView->Pan ('Y', 1 * pspFlip);
 		break;
 	case eKeyCommandRotateUp:
-		m_pMineView->Rotate ('X', 1);
+		m_pMineView->Rotate ('X', 1 * pspFlip);
 		break;
 	case eKeyCommandRotateDown:
-		m_pMineView->Rotate ('X', -1);
+		m_pMineView->Rotate ('X', -1 * pspFlip);
 		break;
 	case eKeyCommandRotateLeft:
-		m_pMineView->Rotate ('Y', 1);
+		m_pMineView->Rotate ('Y', 1 * pspFlip);
 		break;
 	case eKeyCommandRotateRight:
-		m_pMineView->Rotate ('Y', -1);
+		m_pMineView->Rotate ('Y', -1 * pspFlip);
 		break;
 	case eKeyCommandRotateBankLeft:
 		m_pMineView->Rotate ('Z', 1);
@@ -898,6 +929,9 @@ void CInputHandler::StartMovement (eKeyCommands command)
 if (!IsMovementCommand (command))
 	return;
 
+if (m_bKeyCommandActive [command])
+	return;
+
 m_bKeyCommandActive [command] = true;
 m_nMovementCommandsActive++;
 if (m_nMovementCommandsActive == 1)
@@ -907,6 +941,9 @@ if (m_nMovementCommandsActive == 1)
 void CInputHandler::StopMovement (eKeyCommands command)
 {
 if (!IsMovementCommand (command))
+	return;
+
+if (!m_bKeyCommandActive [command])
 	return;
 
 m_bKeyCommandActive [command] = false;
@@ -966,7 +1003,7 @@ if (_tcslen (szButton) > 0)
 	config.button = StringToMK (szButton);
 if (_tcslen (szMods) > 0)
 	LoadModifiers (config.modifiers, szMods);
-config.bToggleModifiers = nToggleModifiers > 0;
+config.bToggleModifiers = nToggleModifiers > 0; // TODO Currently ignored. Need to figure out if it's needed; delete if not
 config.bInvertX = nInvertX > 0;
 config.bInvertY = nInvertY > 0;
 }
@@ -992,7 +1029,7 @@ while (pszNext != NULL) {
 		default:
 			break;
 		}
-	pszNext = _tcstok_s (szMods, delimiters, &context);
+	pszNext = _tcstok_s (NULL, delimiters, &context);
 	}
 }
 

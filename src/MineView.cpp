@@ -140,8 +140,9 @@ static LPSTR nIdCursors [eMouseStateCount] = {
 	IDC_ARROW, // Idle
 	IDC_ARROW, // ButtonDown
 	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // Drag
-	MAKEINTRESOURCE (IDC_CURSOR_XHAIRS), // RubberBand
+	IDC_ARROW, // RubberBand
 	IDC_ARROW, // Select
+	MAKEINTRESOURCE (IDC_CURSOR_XHAIRS), // LockedRotate
 	MAKEINTRESOURCE (IDC_CURSOR_PAN), // Pan
 	MAKEINTRESOURCE (IDC_CURSOR_ROTATE), // Rotate
 	MAKEINTRESOURCE (IDC_CURSOR_ZOOM), // Zoom
@@ -388,6 +389,16 @@ DrawMineCenter ();
 Renderer ().EndRender (true);
 Renderer ().SetDC (pViewDC);
 m_bUpdate = false;
+
+// If the movement timer is active we measure the elapsed time since the last frame
+// and immediately update the camera position
+if (m_bMovementTimerActive) {
+	LARGE_INTEGER newFrameTime = { 0 };
+	QueryPerformanceCounter (&newFrameTime);
+	double timeElapsed = ((double)(newFrameTime.QuadPart - m_lastFrameTime.QuadPart)) / m_qpcFrequency.QuadPart;
+	m_inputHandler.UpdateMovement (timeElapsed);
+	m_lastFrameTime = newFrameTime;
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -405,16 +416,6 @@ if (!GetUpdateRect (rc))
 pDC = BeginPaint (&ps);
 DrawRubberBox ();
 EndPaint (&ps);
-
-// If the movement timer is active we measure the elapsed time since the last frame
-// and immediately update the camera position
-if (m_bMovementTimerActive) {
-	LARGE_INTEGER newFrameTime = { 0 };
-	QueryPerformanceCounter (&newFrameTime);
-	double timeElapsed = ((double)(newFrameTime.QuadPart - m_lastFrameTime.QuadPart)) / m_qpcFrequency.QuadPart;
-	m_inputHandler.UpdateMovement (timeElapsed);
-	m_lastFrameTime = newFrameTime;
-	}
 }
 
 //------------------------------------------------------------------------------
@@ -818,6 +819,18 @@ return TRUE;
 CPoint CMineView::AdjustMousePos (CPoint point)
 {
 return CPoint (point.x, m_nRenderer ? ViewHeight () - point.y : point.y);
+}
+
+//------------------------------------------------------------------------------
+
+CPoint CMineView::CenterMouse ()
+{
+	CRect rcWindow;
+
+GetWindowRect (&rcWindow);
+CPoint ptCenter = rcWindow.CenterPoint ();
+::SetCursorPos (ptCenter.x, ptCenter.y);
+return ptCenter - rcWindow.TopLeft ();
 }
 
 //------------------------------------------------------------------------------
@@ -1231,6 +1244,24 @@ else if (nPos >= m_yScrollRange)
 SetScrollPos (SB_VERT, nPos, TRUE);
 m_yRenderOffs = nPos - m_yScrollCenter;
 Refresh ();
+}
+
+//------------------------------------------------------------------------------
+
+BOOL CMineView::PreTranslateMessage (MSG* pMsg)
+{
+if (m_inputHandler.HasInputLock ())
+	switch (pMsg->message) {
+		case WM_KEYDOWN:
+			return m_inputHandler.OnKeyDown (pMsg->wParam, LOWORD (pMsg->lParam), HIWORD (pMsg->lParam));
+
+		case WM_KEYUP:
+			return m_inputHandler.OnKeyUp (pMsg->wParam, LOWORD (pMsg->lParam), HIWORD (pMsg->lParam));
+
+		default:
+			break;
+		}
+return FALSE;
 }
 
 //------------------------------------------------------------------------------

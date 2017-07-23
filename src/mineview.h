@@ -48,6 +48,7 @@ enum eMouseStates
 	eMouseStateDrag,
 	eMouseStateRubberBand,
 	eMouseStateSelect,
+	eMouseStateLockedRotate,
 	eMouseStatePan,
 	eMouseStateRotate,
 	eMouseStateZoom,
@@ -79,8 +80,8 @@ enum eMouseStateMatchResults
 
 enum eMovementModes
 {
-	eMovementModeStepped,
-	eMovementModeContinuous
+	eMovementModeStepped = 0,
+	eMovementModeContinuous = 1
 };
 
 // -----------------------------------------------------------------------------
@@ -157,8 +158,8 @@ class CInputHandler {
 		void LoadSettings ();
 		void UpdateMovement (double timeElapsed);
 	
-		void OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
-		void OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
+		bool OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
+		bool OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
 		void OnMouseMove (UINT nFlags, CPoint point);
 		void OnLButtonUp (UINT nFlags, CPoint point);
 		void OnLButtonDown (UINT nFlags, CPoint point);
@@ -172,12 +173,15 @@ class CInputHandler {
 
 		eMouseStates MouseState () const { return m_mouseState; }
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
+		bool HasInputLock () const { return m_bInputLockActive; }
 
 	private:
 		CMineView *m_pMineView;
 		KeyboardBinding m_keyBindings [eKeyCommandCount];
 		MouseStateConfig m_stateConfigs [eMouseStateCount];
 		eMovementModes m_movementMode;
+		double m_moveScale;
+		double m_rotateScale;
 		eMouseStates m_mouseState;
 		CPoint *m_stateStartPos;
 		CPoint *m_zoomStartPos;
@@ -315,6 +319,7 @@ public:
 	virtual void OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo);
 	virtual void OnEndPrinting(CDC* pDC, CPrintInfo* pInfo);
 	virtual void OnUpdate(CView* pSender, LPARAM lHint, CGameObject* pHint);
+	virtual BOOL PreTranslateMessage (MSG* pMsg);
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -459,6 +464,7 @@ public:
 	CPoint AdjustMousePos (CPoint point);
 	BOOL SetCursor (eMouseStates state);
 	const CPoint& LastMousePos () { return m_inputHandler.LastMousePos (); }
+	CPoint CenterMouse ();
 
 	inline short Wrap (short v, short delta, short min, short max) {
 		v += delta;
