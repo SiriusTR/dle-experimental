@@ -188,7 +188,7 @@ class CInputHandler {
 		CPoint m_lastMousePos;
 		bool m_bModifierActive [eModifierCount];
 		bool m_bKeyCommandActive [eKeyCommandCount];
-		bool &m_bInputLockActive = m_bKeyCommandActive [eKeyCommandInputLock];
+		bool m_bInputLockActive;
 		int m_nMovementCommandsActive;
 
 		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
@@ -205,7 +205,7 @@ class CInputHandler {
 		// Update mouse state in response to keyboard input
 		void UpdateMouseState (UINT msg);
 		void UpdateModifierStates (UINT msg, UINT nChar, UINT nFlags);
-		void UpdateInputLockState (UINT msg, UINT nChar);
+		bool UpdateInputLockState (UINT msg, UINT nChar);
 		bool IsMovementCommand (eKeyCommands command);
 		eKeyCommands MapKeyToCommand (UINT nChar);
 		bool KeyMatchesKeyCommand (eKeyCommands command, UINT nChar);
@@ -215,6 +215,7 @@ class CInputHandler {
 		void ApplyMovement (eKeyCommands command);
 		void StartMovement (eKeyCommands command);
 		void StopMovement (eKeyCommands command);
+		void StopAllMovement ();
 		void LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName);
 		void LoadStateConfig (MouseStateConfig &config, LPCTSTR bindingName);
 		void LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods);

@@ -95,6 +95,9 @@ memcpy_s (&m_stateConfigs [eMouseStateDrag], sizeof (m_stateConfigs [eMouseState
 	&m_stateConfigs [eMouseStateButtonDown], sizeof (m_stateConfigs [eMouseStateButtonDown]));
 memcpy_s (&m_stateConfigs [eMouseStateRubberBand], sizeof (m_stateConfigs [eMouseStateRubberBand]),
 	&m_stateConfigs [eMouseStateButtonDown], sizeof (m_stateConfigs [eMouseStateButtonDown]));
+// LockedRotate is copied from Rotate
+memcpy_s (&m_stateConfigs [eMouseStateLockedRotate], sizeof (m_stateConfigs [eMouseStateLockedRotate]),
+	&m_stateConfigs [eMouseStateRotate], sizeof (m_stateConfigs [eMouseStateRotate]));
 }
 
 void CInputHandler::UpdateMovement (double timeElapsed)
@@ -142,56 +145,60 @@ if (fabs (zoomAmount) >= 1) {
 
 bool CInputHandler::OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
+	bool bInputHandled = false;
+
 UpdateModifierStates (WM_KEYUP, nChar, nFlags);
 UpdateMouseState (WM_KEYUP);
-UpdateInputLockState (WM_KEYUP, nChar);
+bInputHandled = UpdateInputLockState (WM_KEYUP, nChar);
 
 eKeyCommands command = MapKeyToCommand (nChar);
-if (!IsMovementCommand (command))
-	return false;
-
-switch (m_movementMode) {
-	case eMovementModeStepped:
-		for (unsigned int i = 0; i < nRepCnt; i++) {
-			ApplyMovement (command);
-			}
-		break;
-	case eMovementModeContinuous:
-		StopMovement (command);
-		break;
-	default:
-		// Unknown mode
-		return false;
+if (IsMovementCommand (command)) {
+	switch (m_movementMode) {
+		case eMovementModeStepped:
+			for (unsigned int i = 0; i < nRepCnt; i++) {
+				ApplyMovement (command);
+				}
+			break;
+		case eMovementModeContinuous:
+			StopMovement (command);
+			break;
+		default:
+			// Unknown mode
+			break;
+		}
+	bInputHandled = true;
 	}
 
-return true;
+return bInputHandled;
 }
 
 bool CInputHandler::OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
+	bool bInputHandled = false;
+
 UpdateModifierStates (WM_KEYDOWN, nChar, nFlags);
 UpdateMouseState (WM_KEYDOWN);
-UpdateInputLockState (WM_KEYDOWN, nChar);
+bInputHandled = UpdateInputLockState (WM_KEYDOWN, nChar);
 
 eKeyCommands command = MapKeyToCommand (nChar);
-if (!IsMovementCommand (command))
-	return false;
-
-switch (m_movementMode) {
-	case eMovementModeStepped:
-		for (unsigned int i = 0; i < nRepCnt; i++) {
-			ApplyMovement (command);
-			}
-		break;
-	case eMovementModeContinuous:
-		StartMovement (command);
-		break;
-	default:
-		// Unknown mode
-		return false;
+if (IsMovementCommand (command)) {
+	switch (m_movementMode) {
+		case eMovementModeStepped:
+			for (unsigned int i = 0; i < nRepCnt; i++) {
+				ApplyMovement (command);
+				}
+			break;
+		case eMovementModeContinuous:
+			StartMovement (command);
+			break;
+		default:
+			// Unknown mode
+			break;
+		}
+	bInputHandled = true;
 	}
 
-return true;
+return bInputHandled;
 }
 
 void CInputHandler::OnMouseMove (UINT nFlags, CPoint point)
@@ -757,11 +764,24 @@ switch (command) {
 	}
 }
 
-void CInputHandler::UpdateInputLockState (UINT msg, UINT nChar)
+bool CInputHandler::UpdateInputLockState (UINT msg, UINT nChar)
 {
-if (KeyMatchesKeyCommand (eKeyCommandInputLock, nChar))
-	if (msg == WM_KEYUP)
-		m_bInputLockActive = !m_bInputLockActive;
+// Input lock is a toggle, which means we have to handle it somewhat differently
+if (KeyMatchesKeyCommand (eKeyCommandInputLock, nChar)) {
+	if (msg == WM_KEYDOWN)
+		m_bKeyCommandActive [eKeyCommandInputLock] = true;
+	else if (msg == WM_KEYUP) {
+		if (m_bKeyCommandActive [eKeyCommandInputLock]) {
+			m_bKeyCommandActive [eKeyCommandInputLock] = false;
+			m_bInputLockActive = !m_bInputLockActive;
+			if (!m_bInputLockActive)
+				StopAllMovement ();
+			return true;
+			}
+		}
+	}
+
+return false;
 }
 
 eKeyCommands CInputHandler::MapKeyToCommand (UINT nChar)
@@ -786,13 +806,14 @@ if (binding.bNeedsInputLock && !m_bInputLockActive)
 if (nChar != binding.nChar)
 	return false;
 
-// Check modifiers
-for (int i = 0; i < eModifierCount; i++) {
-	bool bRequired = binding.modifiers [i];
+// Check modifiers (on key down only; we don't want to insist on key up order)
+if (!m_bKeyCommandActive [command])
+	for (int i = 0; i < eModifierCount; i++) {
+		bool bRequired = binding.modifiers [i];
 
-	if (bRequired && !m_bModifierActive [i])
-		return false;
-	}
+		if (bRequired && !m_bModifierActive [i])
+			return false;
+		}
 
 return true;
 }
@@ -952,6 +973,16 @@ if (m_nMovementCommandsActive == 0)
 	m_pMineView->StopMovementTimer ();
 }
 
+void CInputHandler::StopAllMovement ()
+{
+if (m_movementMode != eMovementModeContinuous)
+	return;
+
+for (int command = 0; command < eKeyCommandCount; command++)
+	if (IsMovementCommand ((eKeyCommands)command))
+		StopMovement ((eKeyCommands)command);
+}
+
 void CInputHandler::LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName)
 {
 	TCHAR szSettingNameChar [80] = { 0 };
@@ -1013,6 +1044,9 @@ void CInputHandler::LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR
 	LPCTSTR delimiters = _T (",");
 	LPTSTR context = NULL;
 	LPTSTR pszNext = NULL;
+
+for (unsigned int i = 0; i < eModifierCount; i++)
+	modifierList [i] = false;
 
 pszNext = _tcstok_s (szMods, delimiters, &context);
 while (pszNext != NULL) {
