@@ -182,6 +182,7 @@ class CInputHandler {
 		eMovementModes m_movementMode;
 		double m_moveScale;
 		double m_rotateScale;
+		bool m_bFpInputLock;
 		eMouseStates m_mouseState;
 		CPoint *m_stateStartPos;
 		CPoint *m_zoomStartPos;
@@ -397,6 +398,7 @@ public:
 	// view control functions
 	int FitToView (void);
 	void TogglePerspective (void);
+	void OverridePerspective (bool bEnable, int nPerspective = 1);
 	void Rotate (char direction, double angle);
 	void AlignSide ();
 	void TagVisibleVerts (bool bReset = false);

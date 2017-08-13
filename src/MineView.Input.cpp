@@ -58,6 +58,8 @@ m_stateConfigs [eMouseStateDoContextMenu].modifiers [eModifierShift] = true;
 m_movementMode = (eMovementModes)GetPrivateProfileInt ("DLE.Bindings", "MovementMode", 0, DLE.IniFile ());
 m_moveScale = (double)GetPrivateProfileInt ("DLE.Bindings", "MoveSpeed", 50, DLE.IniFile ());
 m_rotateScale = (double)GetPrivateProfileInt ("DLE.Bindings", "TurnSpeed", 1, DLE.IniFile ());
+UINT nFpInputLock = GetPrivateProfileInt ("DLE.Bindings", "ForceFirstPersonOnInputLock", 1, DLE.IniFile ());
+m_bFpInputLock = nFpInputLock > 0;
 
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveForward], "MoveForward");
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveBackward], "MoveBackward");
@@ -776,6 +778,8 @@ if (KeyMatchesKeyCommand (eKeyCommandInputLock, nChar)) {
 			m_bInputLockActive = !m_bInputLockActive;
 			if (!m_bInputLockActive)
 				StopAllMovement ();
+			if (m_bFpInputLock)
+				m_pMineView->OverridePerspective (1, m_bInputLockActive);
 			return true;
 			}
 		}
@@ -879,8 +883,6 @@ void CInputHandler::DoMouseRotate (const CPoint point)
 	double rotateAmountX = double(change.y) / scale;
 	double rotateAmountY = -double(change.x) / scale;
 
-if (m_pMineView->Perspective ())
-	rotateAmountX = -rotateAmountX;
 if (m_stateConfigs [eMouseStateRotate].bInvertY)
 	rotateAmountX = -rotateAmountX;
 if (m_stateConfigs [eMouseStateRotate].bInvertX)

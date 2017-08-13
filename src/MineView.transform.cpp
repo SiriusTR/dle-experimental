@@ -42,6 +42,16 @@ SetPerspective (!Perspective ());
 
 //------------------------------------------------------------------------------
 
+void CMineView::OverridePerspective (bool bEnable, int nPerspective)
+{
+	int nPerspectiveToSet = bEnable ? nPerspective : appSettings.m_nPerspective;
+
+if (Renderer ().SetPerspective (nPerspectiveToSet, true))
+	Refresh ();
+}
+
+//------------------------------------------------------------------------------
+
 int CMineView::FitToView (void)
 {
 #if 0 //def _DEBUG
