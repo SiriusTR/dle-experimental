@@ -16,8 +16,6 @@ m_bInputLockActive = false;
 m_nMovementCommandsActive = 0;
 ZeroMemory (m_keyBindings, sizeof (m_keyBindings));
 ZeroMemory (m_stateConfigs, sizeof (m_stateConfigs));
-m_movementMode = eMovementModeStepped;
-LoadSettings ();
 }
 
 CInputHandler::~CInputHandler ()
@@ -32,7 +30,7 @@ if (m_zoomStartPos != nullptr) {
 	}
 }
 
-void CInputHandler::LoadSettings()
+void CInputHandler::LoadSettings ()
 {
 // Set default settings where applicable
 m_stateConfigs [eMouseStateButtonDown].button = MK_LBUTTON | MK_RBUTTON;
@@ -55,11 +53,10 @@ m_stateConfigs [eMouseStateDoContextMenu].button = MK_RBUTTON;
 m_stateConfigs [eMouseStateDoContextMenu].modifiers [eModifierShift] = true;
 
 // Read camera movement settings if specified
-m_movementMode = (eMovementModes)GetPrivateProfileInt ("DLE.Bindings", "MovementMode", 0, DLE.IniFile ());
-m_moveScale = (double)GetPrivateProfileInt ("DLE.Bindings", "MoveSpeed", 50, DLE.IniFile ());
-m_rotateScale = (double)GetPrivateProfileInt ("DLE.Bindings", "TurnSpeed", 1, DLE.IniFile ());
-UINT nFpInputLock = GetPrivateProfileInt ("DLE.Bindings", "ForceFirstPersonOnInputLock", 1, DLE.IniFile ());
-m_bFpInputLock = nFpInputLock > 0;
+m_movementMode = (eMovementModes)appSettings.m_movementMode;
+m_moveScale = appSettings.m_kbMoveScale;
+m_rotateScale = appSettings.m_kbRotateScale;
+m_bFpInputLock = appSettings.m_bFpInputLock > 0;
 
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveForward], "MoveForward");
 LoadKeyBinding (m_keyBindings [eKeyCommandMoveBackward], "MoveBackward");
@@ -77,7 +74,8 @@ LoadKeyBinding (m_keyBindings [eKeyCommandZoomIn], "ZoomIn");
 LoadKeyBinding (m_keyBindings [eKeyCommandZoomOut], "ZoomOut");
 LoadKeyBinding (m_keyBindings [eKeyCommandInputLock], "InputLock");
 
-// Idle, LockedRotate, CancelSelect and ApplyDrag states don't need configs due to transition rules
+// Idle, LockedRotate, CancelSelect and ApplyDrag states don't need configs due to transition rules.
+// The rest are listed here
 LoadStateConfig (m_stateConfigs [eMouseStateButtonDown], "ButtonDown");
 LoadStateConfig (m_stateConfigs [eMouseStateSelect], "AdvSelect");
 LoadStateConfig (m_stateConfigs [eMouseStatePan], "Pan");

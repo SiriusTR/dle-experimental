@@ -586,6 +586,7 @@ public:
 		m_renderData.m_moveRate [0] = Clamp (moveRates [0], 0.001, 1000.0), 
 		m_renderData.m_moveRate [1] = Clamp (moveRates [1], 0.001, 1000.0);
 		}
+	inline void SetInputSettings () { m_inputHandler.LoadSettings (); }
 
 	inline CDC* DC (void) { return Renderer ().DC (); }
 

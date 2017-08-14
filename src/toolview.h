@@ -1903,6 +1903,10 @@ class CAppSettings {
 		int				m_iRotateRate;
 		double			m_rotateRates [9];
 		double			m_moveRate [2];
+		int				m_movementMode;
+		double			m_kbMoveScale;
+		double			m_kbRotateScale;
+		int				m_bFpInputLock;
 		int				m_bExpertMode;
 		int				m_bApplyFaceLightSettingsGlobally;
 		int				m_bSortObjects;
