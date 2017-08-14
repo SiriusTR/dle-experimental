@@ -62,6 +62,8 @@ BEGIN_MESSAGE_MAP(CMineView, CView)
 	ON_WM_VSCROLL()
 	ON_WM_KEYUP()
 	ON_WM_KEYDOWN()
+	ON_WM_SYSKEYUP()
+	ON_WM_SYSKEYDOWN()
 	//}}AFX_MSG_MAP
 	// Standard printing commands
 	ON_COMMAND(ID_FILE_PRINT, CView::OnFilePrint)
@@ -1274,6 +1276,20 @@ m_inputHandler.OnKeyUp (nChar, nRepCnt, nFlags);
 //------------------------------------------------------------------------------
 
 void CMineView::OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+m_inputHandler.OnKeyDown (nChar, nRepCnt, nFlags);
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::OnSysKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+m_inputHandler.OnKeyUp (nChar, nRepCnt, nFlags);
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::OnSysKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 m_inputHandler.OnKeyDown (nChar, nRepCnt, nFlags);
 }
