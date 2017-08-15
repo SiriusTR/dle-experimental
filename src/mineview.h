@@ -45,16 +45,183 @@ enum eMouseStates
 {
 	eMouseStateIdle,
 	eMouseStateButtonDown,
+	eMouseStateDrag,
+	eMouseStateRubberBand,
 	eMouseStateSelect,
+	eMouseStateLockedRotate,
 	eMouseStatePan,
 	eMouseStateRotate,
 	eMouseStateZoom,
+	// Transitional states (resets to idle after input applied)
 	eMouseStateZoomIn,
 	eMouseStateZoomOut,
-	eMouseStateInitDrag,
-	eMouseStateDrag,
-	eMouseStateRubberBand,
-	eMouseStateCount	//must always be last tag
+	eMouseStateQuickSelect,
+	eMouseStateApplySelect,
+	eMouseStateCancelSelect,
+	eMouseStateApplyDrag,
+	eMouseStateTagRubberBand,
+	eMouseStateUnTagRubberBand,
+	eMouseStateQuickTag,
+	eMouseStateDoContextMenu,
+	//must always be last tag
+	eMouseStateCount
+};
+
+// -----------------------------------------------------------------------------
+
+enum eMouseStateMatchResults
+{
+	eMatchNone = 0,
+	eMatchPartial = 1,
+	eMatchExact = 2
+};
+
+// -----------------------------------------------------------------------------
+
+enum eMovementModes
+{
+	eMovementModeStepped = 0,
+	eMovementModeContinuous = 1
+};
+
+// -----------------------------------------------------------------------------
+
+enum eModifierKeys
+{
+	eModifierShift,
+	eModifierCtrl,
+	eModifierAlt,
+	// must always be last tag
+	eModifierCount
+};
+
+// -----------------------------------------------------------------------------
+
+struct MouseStateConfig {
+	// Mouse button used for state (if any)
+	UINT button;
+	// List of modifiers (true means the modifier is required for this state)
+	bool modifiers [eModifierCount];
+	// Do the modifier keys act as toggles, rather than needing to be held down?
+	bool bToggleModifiers = false;
+	// Are the mouse X/Y axes inverted for this state?
+	bool bInvertX = false;
+	bool bInvertY = false;
+};
+
+// -----------------------------------------------------------------------------
+
+enum eKeyCommands {
+	eKeyCommandMoveForward,
+	eKeyCommandMoveBackward,
+	eKeyCommandMoveLeft,
+	eKeyCommandMoveRight,
+	eKeyCommandMoveUp,
+	eKeyCommandMoveDown,
+	eKeyCommandRotateUp,
+	eKeyCommandRotateDown,
+	eKeyCommandRotateLeft,
+	eKeyCommandRotateRight,
+	eKeyCommandRotateBankLeft,
+	eKeyCommandRotateBankRight,
+	eKeyCommandZoomIn,
+	eKeyCommandZoomOut,
+	eKeyCommandInputLock,
+	// Must always be last tags; add new commands above this line
+	eKeyCommandCount,
+	eKeyCommandUnknown = -1
+};
+
+// -----------------------------------------------------------------------------
+
+struct KeyboardBinding {
+	// Virtual key code (0 if the command is not bound to a key)
+	UINT nChar;
+	// List of modifiers (true means the modifier is required for this state)
+	bool modifiers [eModifierCount];
+	// Is the binding ignored except under input lock?
+	bool bNeedsInputLock;
+};
+
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+
+// Forward declaration for CInputHandler
+class CMineView;
+
+class CInputHandler {
+	public:
+		CInputHandler (CMineView *pMineView);
+		virtual ~CInputHandler ();
+
+		void LoadSettings ();
+		void UpdateMovement (double timeElapsed);
+	
+		bool OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
+		bool OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
+		void OnMouseMove (UINT nFlags, CPoint point);
+		void OnLButtonUp (UINT nFlags, CPoint point);
+		void OnLButtonDown (UINT nFlags, CPoint point);
+		void OnRButtonUp (UINT nFlags, CPoint point);
+		void OnRButtonDown (UINT nFlags, CPoint point);
+		void OnMButtonUp (UINT nFlags, CPoint point);
+		void OnMButtonDown (UINT nFlags, CPoint point);
+		void OnXButtonUp (UINT nFlags, UINT nButton, CPoint point);
+		void OnXButtonDown (UINT nFlags, UINT nButton, CPoint point);
+		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
+
+		eMouseStates MouseState () const { return m_mouseState; }
+		const CPoint& LastMousePos () const { return m_lastMousePos; }
+		bool HasInputLock () const { return m_bInputLockActive; }
+
+	private:
+		CMineView *m_pMineView;
+		KeyboardBinding m_keyBindings [eKeyCommandCount];
+		MouseStateConfig m_stateConfigs [eMouseStateCount];
+		eMovementModes m_movementMode;
+		double m_moveScale;
+		double m_rotateScale;
+		bool m_bFpInputLock;
+		eMouseStates m_mouseState;
+		CPoint *m_stateStartPos;
+		CPoint *m_zoomStartPos;
+		CPoint m_lastMousePos;
+		bool m_bModifierActive [eModifierCount];
+		bool m_bKeyCommandActive [eKeyCommandCount];
+		bool m_bInputLockActive;
+		int m_nMovementCommandsActive;
+
+		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
+		eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
+		bool HasExitedState (UINT msg) const;
+		eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
+		bool ButtonUpMatchesState (eMouseStates state, UINT msg) const;
+		bool IsClickState (eMouseStates state) const;
+		bool HasMouseMoved (const CPoint point) const;
+		bool CheckValidDragTarget (const CPoint point) const;
+		void ProcessTransitionalStates (CPoint point);
+		// Update mouse state in response to mouse input (e.g. clicks)
+		void UpdateMouseState (UINT msg, CPoint point);
+		// Update mouse state in response to keyboard input
+		void UpdateMouseState (UINT msg);
+		void UpdateModifierStates (UINT msg, UINT nChar, UINT nFlags);
+		bool UpdateInputLockState (UINT msg, UINT nChar);
+		bool IsMovementCommand (eKeyCommands command);
+		eKeyCommands MapKeyToCommand (UINT nChar);
+		bool KeyMatchesKeyCommand (eKeyCommands command, UINT nChar);
+		void DoMousePan (const CPoint point);
+		void DoMouseZoom (const CPoint point);
+		void DoMouseRotate (const CPoint point);
+		void ApplyMovement (eKeyCommands command);
+		void StartMovement (eKeyCommands command);
+		void StopMovement (eKeyCommands command);
+		void StopAllMovement ();
+		void LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName);
+		void LoadStateConfig (MouseStateConfig &config, LPCTSTR bindingName);
+		void LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods);
+		static UINT StringToVK (LPCTSTR pszKey);
+		static UINT StringToMK (LPCTSTR pszButton);
 };
 
 // -----------------------------------------------------------------------------
@@ -88,6 +255,8 @@ protected: // create from serialization only
 	CSplitterWnd*	m_pSplitter;
 
 	CRenderData		m_renderData;
+	CInputHandler	m_inputHandler;
+
 	// member variables
 	bool 				m_bUpdate;
 	bool 				m_bUpdateCursor;
@@ -97,15 +266,8 @@ protected: // create from serialization only
 	uint				m_selectMode;
 	HCURSOR			m_hCursors [eMouseStateCount];
 
-	int 				m_mouseState;
-	int 				m_lastMouseState;
-	CPoint			m_lastMousePos;
-	CPoint			m_clickPos, 
-						m_releasePos,
-						m_lastDragPos,
-						m_highlightPos;
-	UINT				m_clickState,
-						m_releaseState;
+	CPoint			m_lastDragPos;
+	CPoint			m_highlightPos;
 	short				m_lastSegment;
 	CRect				m_rubberRect;
 	UINT_PTR			m_lightTimer;
@@ -137,6 +299,10 @@ protected: // create from serialization only
 
 	CDynamicArray< CPreviewUVL > m_previewUVLs;
 
+	bool m_bMovementTimerActive;
+	LARGE_INTEGER m_lastFrameTime;
+	LARGE_INTEGER m_qpcFrequency;
+
 // Attributes
 public:
 	CDlcDoc* GetDocument();
@@ -155,6 +321,7 @@ public:
 	virtual void OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo);
 	virtual void OnEndPrinting(CDC* pDC, CPrintInfo* pInfo);
 	virtual void OnUpdate(CView* pSender, LPARAM lHint, CGameObject* pHint);
+	virtual BOOL PreTranslateMessage (MSG* pMsg);
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -231,6 +398,7 @@ public:
 	// view control functions
 	int FitToView (void);
 	void TogglePerspective (void);
+	void OverridePerspective (bool bEnable, int nPerspective = 1);
 	void Rotate (char direction, double angle);
 	void AlignSide ();
 	void TagVisibleVerts (bool bReset = false);
@@ -268,6 +436,9 @@ public:
 	void EnableDeltaShading (int bEnable, int nFrameRate, int bShowLightSource);
 	void AdvanceLightTick (void);
 	bool SetLightStatus (void);
+	void StartMovementTimer ();
+	void StopMovementTimer ();
+	void UpdateSelectHighlights ();
 	void Invalidate (BOOL bErase);
 	void InvalidateRect (LPCRECT lpRect, BOOL bErase);
 
@@ -293,11 +464,10 @@ public:
 	inline CPoint& ViewCenter (void) { return m_viewCenter; }
 	inline CPoint& ViewMax (void) { return m_viewMax; }
 
-	void SetMouseState (int newMouseState);
-	inline bool MouseState (int nMouseState) { return m_mouseState == nMouseState; }
-	void RecordMousePos (CPoint& mousePos, CPoint point);
-	BOOL SetCursor (HCURSOR hCursor);
-//	void UpdateCursor (void);
+	CPoint AdjustMousePos (CPoint point);
+	BOOL SetCursor (eMouseStates state);
+	const CPoint& LastMousePos () { return m_inputHandler.LastMousePos (); }
+	CPoint CenterMouse ();
 
 	inline short Wrap (short v, short delta, short min, short max) {
 		v += delta;
@@ -317,14 +487,16 @@ public:
 	void SelectCurrentObject (long xMouse, long yMouse);
 	bool SelectCurrentElement (long xMouse, long yMouse, bool bAddToTagged);
 	void RefreshObject(short old_object, short new_object);
-	void TagRubberBandedVertices (void);
+	void TagRubberBandedVertices (CPoint clickPos, CPoint releasePos, bool bTag);
 	BOOL DrawRubberBox ();
-	void UpdateRubberRect (CPoint pt);
+	void UpdateRubberRect (CPoint clickPos, CPoint pt);
 	void ResetRubberRect ();
+	void DoContextMenu (CPoint point);
 	BOOL UpdateDragPos ();
 	void HighlightDrag (short nVert, long x, long y);
 	BOOL DrawDragPos (void);
-	void FinishDrag (void);
+	void InitDrag ();
+	void FinishDrag (CPoint releasePos);
 
 	void LocateTexture (short nTexture);
 
@@ -414,6 +586,7 @@ public:
 		m_renderData.m_moveRate [0] = Clamp (moveRates [0], 0.001, 1000.0), 
 		m_renderData.m_moveRate [1] = Clamp (moveRates [1], 0.001, 1000.0);
 		}
+	inline void SetInputSettings () { m_inputHandler.LoadSettings (); }
 
 	inline CDC* DC (void) { return Renderer ().DC (); }
 
@@ -441,6 +614,10 @@ protected:
 	afx_msg void OnSelectNextTab ();
 	afx_msg void OnHScroll (UINT scrollCode, UINT thumbPos, CScrollBar *pScrollBar);
 	afx_msg void OnVScroll (UINT scrollCode, UINT thumbPos, CScrollBar *pScrollBar);
+	afx_msg void OnKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnSysKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnSysKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

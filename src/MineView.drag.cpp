@@ -17,33 +17,41 @@
 #include <time.h>
 
 //------------------------------------------------------------------------------
-                        
+
 BOOL CMineView::UpdateDragPos (void)
 {
 if (theMine == null) return FALSE;
 
-if ((m_mouseState != eMouseStateInitDrag) && (m_mouseState != eMouseStateDrag))
+if (m_inputHandler.MouseState () != eMouseStateDrag)
 	return FALSE;
 
 	short nVert = current->Side ()->VertexIdIndex (current->Point ());
 	short i = current->Segment ()->m_info.vertexIds [nVert];
 	CVertex& v = vertexManager [i];
 
-if (m_mouseState == eMouseStateInitDrag) {
-	SetMouseState (eMouseStateDrag);
-// SetCapture ();
-	m_highlightPos.x = v.m_screen.x;
-	m_highlightPos.y = v.m_screen.y;
-	m_lastDragPos = m_highlightPos;
-	}
 HighlightDrag (nVert, v.m_screen.x, v.m_screen.y);
-	
+
 //InvalidateRect (null, TRUE);
 return TRUE;
 }
 
 //------------------------------------------------------------------------------
-                        
+
+void CMineView::InitDrag ()
+{
+	short nVert = current->Side ()->VertexIdIndex (current->Point ());
+	short i = current->Segment ()->m_info.vertexIds [nVert];
+	CVertex& v = vertexManager [i];
+
+m_highlightPos.x = v.m_screen.x;
+m_highlightPos.y = v.m_screen.y;
+m_lastDragPos = m_highlightPos;
+
+HighlightDrag (nVert, v.m_screen.x, v.m_screen.y);
+}
+
+//------------------------------------------------------------------------------
+
 void CMineView::HighlightDrag (short nVert, long x, long y) 
 {
 CHECKMINE;
@@ -59,7 +67,7 @@ for (int i = 0; i < 3; i++) {
 	Renderer ().MoveTo (x, y);
 	short nVert2 = adjacentPointTable [nVert][i];
 	CVertex& v = vertexManager [current->Segment ()->m_info.vertexIds [nVert2]];
-   Renderer ().LineTo (v.m_screen.x, v.m_screen.y);
+	Renderer ().LineTo (v.m_screen.x, v.m_screen.y);
 	if (rc.left > v.m_screen.x)
 		rc.left = v.m_screen.x;
 	if (rc.right < v.m_screen.x)
@@ -78,14 +86,14 @@ UpdateWindow ();
 }
 
 //------------------------------------------------------------------------------
-                        
+
 BOOL CMineView::DrawDragPos (void)
 {
 if (theMine == null) return FALSE;
 
-if (m_mouseState != eMouseStateDrag)
+if (m_inputHandler.MouseState () != eMouseStateDrag)
 	return FALSE;
-if (m_lastMousePos == m_lastDragPos)
+if (LastMousePos () == m_lastDragPos)
 	return FALSE;
 
 int i;
@@ -97,15 +105,15 @@ Renderer ().BeginRender (true);
 if (!m_nRenderer)
 	HighlightDrag (nVert, m_lastDragPos.x, m_lastDragPos.y);
 // highlight the new position
-HighlightDrag (nVert, m_lastMousePos.x, m_lastMousePos.y);
-m_lastDragPos = m_lastMousePos;
+HighlightDrag (nVert, LastMousePos ().x, LastMousePos ().y);
+m_lastDragPos = LastMousePos ();
 
 if (!m_nRenderer)
 	DC ()->SetROP2 (R2_NOT);
 
 for (i = 0; i < vertexManager.Count (); i++) {
 	CVertex& v = vertexManager [i];
-	if ((abs (v.m_screen.x - m_lastMousePos.x) < 5) && (abs (v.m_screen.y - m_lastMousePos.y) < 5)) {
+	if ((abs (v.m_screen.x - LastMousePos ().x) < 5) && (abs (v.m_screen.y - LastMousePos ().y) < 5)) {
 		if ((v.m_screen.x != m_highlightPos.x) || (v.m_screen.y != m_highlightPos.y)) {
 			if (m_highlightPos.x != -1)
 				// erase last point
@@ -133,8 +141,8 @@ return TRUE;
 }
 
 //------------------------------------------------------------------------------
-                        
-void CMineView::FinishDrag (void)
+
+void CMineView::FinishDrag (CPoint releasePos)
 {
 CHECKMINE;
 
@@ -146,8 +154,8 @@ CHECKMINE;
 	short		point2,vert2;
 
 undoManager.Begin (__FUNCTION__, udVertices | udSegments);
-xPos = m_releasePos.x;
-yPos = m_releasePos.y;
+xPos = releasePos.x;
+yPos = releasePos.y;
 point1 = current->Side ()->VertexIdIndex (current->Point ());
 vert1 = segmentManager.Segment (0) [current->SegmentId ()].m_info.vertexIds [point1];
 // find point to merge with
@@ -192,7 +200,7 @@ if (count == 1) {
 			segmentManager.FixChildren ();
 			segmentManager.SetLinesToDraw ();
 			}
-		}	
+		}
 	}
 else {
 	// no vertex found, just drop point along screen axii

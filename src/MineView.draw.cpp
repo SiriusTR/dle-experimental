@@ -1105,7 +1105,7 @@ GetClientRect (viewport);
 double minDist = 1e30;
 short nNearestVertex = -1;
 
-CDoubleVector mousePos (double (m_lastMousePos.x), double (m_lastMousePos.y), 0.0);
+CDoubleVector mousePos (double (LastMousePos ().x), double (LastMousePos ().y), 0.0);
 
 short nVertices = vertexManager.Count ();
 for (short nVertex = 0; nVertex < nVertices; nVertex++) {
@@ -1182,7 +1182,7 @@ if (!SelectMode (eSelectSide))
 CRect viewport;
 GetClientRect (viewport);
 
-if (!segmentManager.GatherSelectableSides (viewport, m_lastMousePos.x, m_lastMousePos.y, ViewFlag (eViewMineSkyBox), false))
+if (!segmentManager.GatherSelectableSides (viewport, LastMousePos ().x, LastMousePos ().y, ViewFlag (eViewMineSkyBox), false))
 	return false;
 
 double minDist = 1e30;
@@ -1193,7 +1193,7 @@ CSide* nearestSide = null;
 for (CSide* pSide = segmentManager.SelectedSides (); pSide; pSide = pSide->GetLink ()) {
 	CSegment* pSegment = segmentManager.Segment (pSide->GetParent ());
 	CVertex& center = pSide->Center ();
-	double dist = sqrt (sqr (m_lastMousePos.x - center.m_screen.x) + sqr (m_lastMousePos.y - center.m_screen.y));
+	double dist = sqrt (sqr (LastMousePos ().x - center.m_screen.x) + sqr (LastMousePos ().y - center.m_screen.y));
 #if 0
 	if (dist > 64.0)
 		continue;
@@ -1310,7 +1310,7 @@ if (!SelectMode (eSelectSegment))
 CRect viewport;
 GetClientRect (viewport);
 
-if (!segmentManager.GatherSelectableSides (viewport, m_lastMousePos.x, m_lastMousePos.y, ViewFlag (eViewMineSkyBox), true))
+if (!segmentManager.GatherSelectableSides (viewport, LastMousePos ().x, LastMousePos ().y, ViewFlag (eViewMineSkyBox), true))
 	return false;
 
 double minDist = 1e30;
@@ -1324,7 +1324,7 @@ for (CSide* pSide = segmentManager.SelectedSides (); pSide; pSide = pSide->GetLi
 		continue;
 	CSegment* pSegment = segmentManager.Segment (nSegment = pSide->GetParent ());
 	CVertex& center = pSegment->Center ();
-	double dist = sqrt (sqr (m_lastMousePos.x - center.m_screen.x) + sqr (m_lastMousePos.y - center.m_screen.y));
+	double dist = sqrt (sqr (LastMousePos ().x - center.m_screen.x) + sqr (LastMousePos ().y - center.m_screen.y));
 #if 0
 	if (dist > 64.0)
 		continue;
@@ -1454,7 +1454,7 @@ nearest->SetSegmentId (-1);
 nearest->SetSideId (-1);
 nearest->SetEdge (-1);
 
-if (m_mouseState == eMouseStateSelect) {
+if (m_inputHandler.MouseState () == eMouseStateSelect) {
 	if (DrawSelectablePoint ())
 		;
 	else if (DrawSelectableEdge ())

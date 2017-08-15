@@ -96,6 +96,44 @@ ViewMatrix ()->Setup (Translation (), Scale (), Rotation ());
 
 //------------------------------------------------------------------------------
 
+void CRendererGL::TranslateCameraPosition (int nNewPerspective)
+{
+	CDoubleVector newTranslation;
+	CDoubleVector newOrigin;
+
+if (nNewPerspective) {
+	// First-person - translation is a camera position
+	newTranslation = -m_viewMatrix.Translation ();
+	newTranslation = m_viewMatrix.Transformation (1) * newTranslation;
+	newTranslation += m_viewMatrix.Origin ();
+
+	// We want to keep the origin in the same place relative to the camera
+	// while in first-person mode. Since the origin isn't actually updated
+	// in that state we "store" it as its transformation in view space so we
+	// can untransform it to a new location when we switch back
+	newOrigin = m_viewMatrix.Origin ();
+	newOrigin -= newTranslation;
+	newOrigin = m_viewMatrix.Transformation (0) * newOrigin;
+	}
+else {
+	// Third-person - translation is the view distance from the origin
+	// First restore the origin vector
+	newOrigin = m_viewMatrix.Origin ();
+	newOrigin = m_viewMatrix.Transformation (1) * newOrigin;
+	newOrigin += m_viewMatrix.Translation ();
+
+	// Now determine the translation versus that vector
+	newTranslation = m_viewMatrix.Translation () - newOrigin;
+	newTranslation = m_viewMatrix.Transformation (0) * newTranslation;
+	newTranslation = -newTranslation;
+	}
+
+ViewMatrix ()->Translation () = Translation () = newTranslation;
+ViewMatrix ()->Origin () = newOrigin;
+}
+
+//------------------------------------------------------------------------------
+
 void CRendererGL::ClearView (void)
 {
 if (RTT ())

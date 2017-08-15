@@ -693,6 +693,9 @@
     <ClCompile Include="..\EffectTool.Fog.cpp">
       <Filter>UI\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\MineView.Input.cpp">
+      <Filter>UI\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\dle-xp.rc">

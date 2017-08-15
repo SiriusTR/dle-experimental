@@ -245,7 +245,7 @@ class CRenderer {
 		virtual void Sprite (const CTexture* pTexture, CVertex center, double width, double height, bool bAlways = false) = 0;
 
 		virtual int Type (void) = 0;
-		virtual bool SetPerspective (int nPerspective) = 0;
+		virtual bool SetPerspective (int nPerspective, bool bKeepPosition = false) = 0;
 		virtual int Perspective (void) = 0;
 		virtual int GetSideKey (int x, int y, short& nSegment, short& nSide) = 0;
 		virtual CFrustum* Frustum (void) { return null; }
@@ -318,7 +318,7 @@ class CRendererSW : public CRenderer {
 		void RenderFace (CFaceListEntry& fle, const CTexture* pTexture, ushort rowOffset, CBGRA* pColor = null);
 
 		virtual int Type (void) { return 0; }
-		virtual bool SetPerspective (int nPerspective) { return false; }
+		virtual bool SetPerspective (int nPerspective, bool bKeepPosition) { return false; }
 		virtual int Perspective (void) { return 0; }
 		virtual int GetSideKey (int x, int y, short& nSegment, short& nSide) { return -1; }
 
@@ -415,14 +415,18 @@ class CRendererGL : public CRenderer {
 
 		virtual int Type (void) { return 1; }
 
-		virtual bool SetPerspective (int nPerspective) { 
+		virtual bool SetPerspective (int nPerspective, bool bKeepCameraPosition) { 
 			if (Perspective () == nPerspective) 
 				return false;
-			m_viewMatrix.SetPerspective (nPerspective); 
-			Reset ();
+			m_viewMatrix.SetPerspective (nPerspective);
+			if (bKeepCameraPosition)
+				TranslateCameraPosition (nPerspective);
+			else
+				Reset ();
 			return true;
 			}
 		virtual int Perspective (void) { return m_viewMatrix.Perspective (); }
+		void TranslateCameraPosition (int nNewPerspective);
 
 		virtual int GetSideKey (int x, int y, short& nSegment, short& nSide);
 

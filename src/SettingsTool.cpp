@@ -248,6 +248,7 @@ if (theMine)
 	theMine->RotateRate () = appSettings.m_rotateRates [appSettings.m_iRotateRate];
 DLE.MineView ()->SetDepthScale (appSettings.m_depthPerception);
 DLE.MineView ()->SetMoveRates (appSettings.m_moveRate);
+DLE.MineView ()->SetInputSettings ();
 DLE.ExpertMode () = appSettings.m_bExpertMode;
 lightManager.ApplyFaceLightSettingsGlobally () = appSettings.m_bApplyFaceLightSettingsGlobally;
 DLE.SplashScreen () = appSettings.m_bSplashScreen;
@@ -359,6 +360,13 @@ if (bInitialize) {
 *descentFolder [1] = '\0';
 #endif
 
+appSettings.m_movementMode = (eMovementModes)GetPrivateProfileInt ("DLE", "MovementMode", 0, DLE.IniFile ());
+char szSpeed [100];
+GetPrivateProfileString ("DLE", "MoveSpeed", "50", szSpeed, sizeof (szSpeed), DLE.IniFile ());
+appSettings.m_kbMoveScale = Clamp ((double) atof (szSpeed), 0.001, 1000.0);
+GetPrivateProfileString ("DLE", "TurnSpeed", "1", szSpeed, sizeof (szSpeed), DLE.IniFile ());
+appSettings.m_kbRotateScale = Clamp ((double) atof (szSpeed), 0.001, 1000.0);
+appSettings.m_bFpInputLock = GetPrivateProfileInt ("DLE", "ForceFirstPersonOnInputLock", 1, DLE.IniFile ());
 appSettings.m_bExpertMode = GetPrivateProfileInt ("DLE", "ExpertMode", 1, DLE.IniFile ());
 appSettings.m_bSplashScreen = GetPrivateProfileInt ("DLE", "SplashScreen", 1, DLE.IniFile ());
 appSettings.m_bBumpObjects = GetPrivateProfileInt ("DLE", "BumpObjects", 1, DLE.IniFile ());
@@ -399,6 +407,10 @@ sprintf_s (szMoveRate, sizeof (szMoveRate), "%1.3f", appSettings.m_moveRate [0])
 WritePrivateProfileDouble ("MoveRate", appSettings.m_moveRate [0]);
 sprintf_s (szMoveRate, sizeof (szMoveRate), "%1.3f", appSettings.m_moveRate [1]);
 WritePrivateProfileDouble ("ViewMoveRate", appSettings.m_moveRate [1]);
+WritePrivateProfileInt ("MovementMode", appSettings.m_movementMode);
+WritePrivateProfileDouble ("MoveSpeed", appSettings.m_kbMoveScale);
+WritePrivateProfileDouble ("TurnSpeed", appSettings.m_kbRotateScale);
+WritePrivateProfileInt ("ForceFirstPersonOnInputLock", appSettings.m_bFpInputLock);
 WritePrivateProfileInt ("ExpertMode", appSettings.m_bExpertMode);
 WritePrivateProfileInt ("SplashScreen", appSettings.m_bSplashScreen);
 WritePrivateProfileInt ("BumpObjects", appSettings.m_bBumpObjects);
