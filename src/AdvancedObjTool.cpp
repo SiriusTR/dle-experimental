@@ -94,6 +94,8 @@ pObject->mType.physInfo.drag = m_drag;
 pObject->mType.physInfo.brakes = m_brakes;
 pObject->mType.physInfo.turnRoll = m_turnRoll;
 pObject->mType.physInfo.flags = m_flags;
+pObject->m_info.size = m_size;
+pObject->m_info.shields = m_shields;
 pObject->mType.physInfo.velocity.x = m_velocity.v.x;
 pObject->mType.physInfo.velocity.y = m_velocity.v.y;
 pObject->mType.physInfo.velocity.z = m_velocity.v.z;
@@ -106,6 +108,26 @@ pObject->mType.physInfo.rotVel.z = m_rotVel.v.z;
 pObject->mType.physInfo.rotThrust.x = m_rotThrust.v.x;
 pObject->mType.physInfo.rotThrust.y = m_rotThrust.v.y;
 pObject->mType.physInfo.rotThrust.z = m_rotThrust.v.z;
+switch (pObject->m_info.renderType) {
+	case RT_MORPH:
+	case RT_POLYOBJ:
+		pObject->rType.polyModelInfo.nModel = m_model;
+		break;
+
+	case RT_WEAPON_VCLIP:
+	case RT_HOSTAGE:
+	case RT_POWERUP:
+	case RT_FIREBALL:
+		pObject->rType.animationInfo.nAnimation = m_model;
+		pObject->rType.animationInfo.nFrameTime = m_frame;
+		pObject->rType.animationInfo.nFrame = m_frameNo;
+		break;
+
+	case RT_LASER:
+	case RT_NONE:
+	default:
+		break;
+	}
 }
 
 								/*--------------------------*/
