@@ -103,10 +103,10 @@ struct MouseStateConfig {
 	// List of modifiers (true means the modifier is required for this state)
 	bool modifiers [eModifierCount];
 	// Do the modifier keys act as toggles, rather than needing to be held down?
-	bool bToggleModifiers = false;
+	bool bToggleModifiers;
 	// Are the mouse X/Y axes inverted for this state?
-	bool bInvertX = false;
-	bool bInvertY = false;
+	bool bInvertX;
+	bool bInvertY;
 };
 
 // -----------------------------------------------------------------------------

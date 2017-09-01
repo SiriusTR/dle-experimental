@@ -190,9 +190,9 @@ return nMinSeg;
 
 bool CMineView::SelectCurrentSide (long xMouse, long yMouse, bool bAddToTagged) 
 {
-if (!m_bEnableQuickSelection && m_inputHandler.MouseState () != eMouseStateSelect)
+if (!m_bEnableQuickSelection && m_inputHandler.MouseState () != eMouseStateApplySelect)
 	return false;
-if ((m_inputHandler.MouseState () == eMouseStateSelect) && (nearest->m_nSegment >= 0) && (nearest->m_nSide >= 0)) {
+if ((m_inputHandler.MouseState () == eMouseStateApplySelect) && (nearest->m_nSegment >= 0) && (nearest->m_nSide >= 0)) {
 	current->SetSegmentId (nearest->m_nSegment);
 	current->SetSideId (nearest->m_nSide);
 	}
@@ -274,12 +274,12 @@ return nNearestEdge;
 
 bool CMineView::SelectCurrentLine (long xMouse, long yMouse, bool bAddToTagged) 
 {
-if (!m_bEnableQuickSelection && m_inputHandler.MouseState () != eMouseStateSelect)
+if (!m_bEnableQuickSelection && m_inputHandler.MouseState () != eMouseStateApplySelect)
 	return false;
 
 short nSegment = -1, nSide = -1, nEdge = -1;
 CSegment *pSegment = null;
-if (m_inputHandler.MouseState () == eMouseStateSelect && nearest->Edge () >= 0) {
+if (m_inputHandler.MouseState () == eMouseStateApplySelect && nearest->Edge () >= 0) {
 	nSegment = nearest->m_nSegment;
 	nSide = nearest->m_nSide;
 	nEdge = nearest->Edge ();
@@ -287,7 +287,7 @@ if (m_inputHandler.MouseState () == eMouseStateSelect && nearest->Edge () >= 0) 
 	}
 else {
 	CSide *pSide = null;
-	nEdge = FindNearestLine (&pSegment, &pSide, m_inputHandler.MouseState () != eMouseStateSelect);
+	nEdge = FindNearestLine (&pSegment, &pSide, m_inputHandler.MouseState () != eMouseStateApplySelect);
 	if (nEdge < 0 || !pSegment || !pSide)
 		return false;
 	nSegment = segmentManager.Index (pSegment);
@@ -350,10 +350,10 @@ return (nVertex < 0) ? -1 : vertexManager.Count () - nVertex;
 
 bool CMineView::SelectCurrentPoint (long xMouse, long yMouse, bool bAddToTagged) 
 {
-if (!m_bEnableQuickSelection && m_inputHandler.MouseState () != eMouseStateSelect)
+if (!m_bEnableQuickSelection && m_inputHandler.MouseState () != eMouseStateApplySelect)
 	return false;
 
-int nVertex = FindNearestVertex (xMouse, yMouse, m_inputHandler.MouseState () != eMouseStateSelect);
+int nVertex = FindNearestVertex (xMouse, yMouse, m_inputHandler.MouseState () != eMouseStateApplySelect);
 if (nVertex >= 0) {
 	if (bAddToTagged)
 		vertexManager [nVertex].Tag ();
