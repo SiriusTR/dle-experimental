@@ -345,7 +345,6 @@ if (!*szFile)
 _strlwr_s (szFile, 256);
 if (pszSubFile)
 	strcpy_s (szSubFile, sizeof (szSubFile), pszSubFile);
-lightManager.CreateLightMap ();
 if (strstr (szFile, ".hog")) {
 	hogManager->Setup (szFile, szSubFile);
 	if (*szSubFile) {

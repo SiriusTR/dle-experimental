@@ -18,7 +18,6 @@ if (fp == null) {
 	if (CreateNewLevel (mf)) 
 		fp = &mf;
 	else {
-		lightManager.CreateLightMap ();
 		CFileManager::SplitPath (IsD1File () ? descentFolder [0] : missionFolder, m_startFolder, null, null);
 		char filename [256];
 		sprintf_s (filename, sizeof (filename), IsD1File () ? "%new.rdl" : "%snew.rl2", m_startFolder);
@@ -184,6 +183,9 @@ m_changesMade = 0;
 if (LoadMineSigAndType (fp))
 	return -1;
 textureManager.Reload (textureManager.Version (), false);
+// If we are loading from .HOG, the light manager will have already been initialized
+if (!bLoadFromHog)
+	lightManager.CreateLightMap ();
 ClearMineData ();
 // read mine data offset
 int mineDataOffset = fp->ReadInt32 ();

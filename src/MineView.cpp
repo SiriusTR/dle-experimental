@@ -839,6 +839,11 @@ return ptCenter - rcWindow.TopLeft ();
 
 void CMineView::OnMouseMove (UINT nFlags, CPoint point)
 {
+// This allows you to use mineview commands (next side, point etc) on mouseover
+// instead of having to click (and potentially select something else).
+if (GetFocus () != this)
+	SetFocus ();
+
 m_inputHandler.OnMouseMove (nFlags, AdjustMousePos (point));
 }
 
