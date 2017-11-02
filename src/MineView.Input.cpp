@@ -43,6 +43,7 @@ m_stateConfigs [eMouseStateZoom].modifiers [eModifierCtrl] = true;
 m_stateConfigs [eMouseStateZoomIn].button = MK_LBUTTON;
 m_stateConfigs [eMouseStateZoomOut].button = MK_RBUTTON;
 m_stateConfigs [eMouseStateQuickSelect].button = MK_LBUTTON;
+m_stateConfigs [eMouseStateQuickSelectObject].button = MK_RBUTTON;
 m_stateConfigs [eMouseStateApplySelect].button = MK_LBUTTON;
 m_stateConfigs [eMouseStateTagRubberBand].button = MK_LBUTTON | MK_RBUTTON;
 m_stateConfigs [eMouseStateUnTagRubberBand].button = MK_LBUTTON | MK_RBUTTON;
@@ -84,6 +85,7 @@ LoadStateConfig (m_stateConfigs [eMouseStateZoom], "Zoom");
 LoadStateConfig (m_stateConfigs [eMouseStateZoomIn], "ZoomIn");
 LoadStateConfig (m_stateConfigs [eMouseStateZoomOut], "ZoomOut");
 LoadStateConfig (m_stateConfigs [eMouseStateQuickSelect], "QuickSelect");
+LoadStateConfig (m_stateConfigs [eMouseStateQuickSelectObject], "QuickSelectObject");
 LoadStateConfig (m_stateConfigs [eMouseStateApplySelect], "ApplyAdvSelect");
 LoadStateConfig (m_stateConfigs [eMouseStateTagRubberBand], "Mark");
 LoadStateConfig (m_stateConfigs [eMouseStateUnTagRubberBand], "Unmark");
@@ -347,6 +349,8 @@ switch (m_mouseState) {
 			// If this is a mouse-up: move to quick select state
 			if (HasEnteredTransitionalState (eMouseStateQuickSelect, msg) == eMatchExact)
 				return eMouseStateQuickSelect;
+			if (HasEnteredTransitionalState (eMouseStateQuickSelectObject, msg) == eMatchExact)
+				return eMouseStateQuickSelectObject;
 			if (HasEnteredTransitionalState (eMouseStateQuickTag, msg) == eMatchExact)
 				return eMouseStateQuickTag;
 			if (HasEnteredTransitionalState (eMouseStateDoContextMenu, msg) == eMatchExact)
@@ -354,6 +358,8 @@ switch (m_mouseState) {
 
 			if (HasEnteredTransitionalState (eMouseStateQuickSelect, msg))
 				return eMouseStateQuickSelect;
+			if (HasEnteredTransitionalState (eMouseStateQuickSelectObject, msg))
+				return eMouseStateQuickSelectObject;
 			if (HasEnteredTransitionalState (eMouseStateQuickTag, msg))
 				return eMouseStateQuickTag;
 			if (HasEnteredTransitionalState (eMouseStateDoContextMenu, msg))
@@ -624,6 +630,11 @@ void CInputHandler::ProcessTransitionalStates (CPoint point)
 switch (m_mouseState) {
 	case eMouseStateQuickSelect:
 		m_pMineView->SelectCurrentElement (point.x, point.y, false);
+		m_mouseState = eMouseStateIdle;
+		break;
+
+	case eMouseStateQuickSelectObject:
+		m_pMineView->SelectCurrentObject (point.x, point.y);
 		m_mouseState = eMouseStateIdle;
 		break;
 

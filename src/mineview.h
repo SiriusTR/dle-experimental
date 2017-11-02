@@ -56,6 +56,7 @@ enum eMouseStates
 	eMouseStateZoomIn,
 	eMouseStateZoomOut,
 	eMouseStateQuickSelect,
+	eMouseStateQuickSelectObject,
 	eMouseStateApplySelect,
 	eMouseStateCancelSelect,
 	eMouseStateApplyDrag,
@@ -173,6 +174,7 @@ class CInputHandler {
 
 		eMouseStates MouseState () const { return m_mouseState; }
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
+		bool HasMouseMovedInCurrentState () const { return HasMouseMoved (LastMousePos ()); }
 		bool HasInputLock () const { return m_bInputLockActive; }
 
 	private:

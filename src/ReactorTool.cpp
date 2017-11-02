@@ -11,6 +11,16 @@
 #include "dle-xp.h"
 #include "toolview.h"
 
+// D1/2 use an algorithm to determine the "shield count" of a reactor that starts at
+// 200 for the first level in a mission, increasing by 50 each level. (Secret levels
+// appear to start from 350, adding 150 for successive secret levels.)
+// BASE_REACTOR_STRENGTH is meant to be used to show that default value when the user
+// unchecks "default" to give them an idea what a "normal" value is; ideally it would
+// show whatever the default value for the current level is but that would require
+// calculating the level number, which is going to be more complicated than it's
+// really worth for a mere guideline. So I'm just using the base value for level 1.
+#define BASE_REACTOR_STRENGTH 200
+
 //------------------------------------------------------------------------------
 
 BEGIN_MESSAGE_MAP (CReactorTool, CToolDlg)
@@ -18,10 +28,13 @@ BEGIN_MESSAGE_MAP (CReactorTool, CToolDlg)
 	ON_BN_CLICKED (IDC_REACTOR_DELTGT, OnDeleteTarget)
 	ON_BN_CLICKED (IDC_REACTOR_ADDWALLTGT, OnAddWallTarget)
 	ON_BN_CLICKED (IDC_REACTOR_DELWALLTGT, OnDeleteWallTarget)
+	ON_BN_CLICKED (IDC_REACTOR_STRENGTHDEFAULT, OnStrengthDefault)
 	ON_EN_KILLFOCUS (IDC_REACTOR_COUNTDOWN, OnCountDown)
 	ON_EN_KILLFOCUS (IDC_REACTOR_SECRETRETURN, OnSecretReturn)
+	ON_EN_KILLFOCUS (IDC_REACTOR_STRENGTH, OnStrength)
 	ON_EN_UPDATE (IDC_REACTOR_COUNTDOWN, OnCountDown)
 	ON_EN_UPDATE (IDC_REACTOR_SECRETRETURN, OnSecretReturn)
+	ON_EN_UPDATE (IDC_REACTOR_STRENGTH, OnStrength)
 	ON_LBN_SELCHANGE (IDC_REACTOR_TARGETLIST, OnSetTarget)
 	ON_LBN_DBLCLK (IDC_REACTOR_TARGETLIST, OnSetTarget)
 END_MESSAGE_MAP ()
@@ -47,6 +60,8 @@ m_nTrigger = 0;
 m_targets = 0;
 m_iTarget = -1;
 *m_szTarget = '\0';
+m_nStrength = BASE_REACTOR_STRENGTH;
+m_bDefaultStrength = true;
 }
 
 //------------------------------------------------------------------------------
@@ -69,6 +84,14 @@ if (!HaveData (pDX))
 DDX_Text (pDX, IDC_REACTOR_COUNTDOWN, m_nCountDown);
 DDX_Text (pDX, IDC_REACTOR_SECRETRETURN, m_nSecretReturn);
 DDX_Text (pDX, IDC_REACTOR_TARGET, m_szTarget, sizeof (m_szTarget));
+// Checking m_bDefaultStrength before updating it because, if it's being set,
+// the reactor strength text field won't be appropriately set yet
+if (!m_bDefaultStrength)
+	DDX_Text (pDX, IDC_REACTOR_STRENGTH, m_nStrength);
+else if (!pDX->m_bSaveAndValidate)
+	// Default strength: clear the text box value, it's meaningless
+	DDX_Text (pDX, IDC_REACTOR_STRENGTH, CString (""));
+DDX_Check (pDX, IDC_REACTOR_STRENGTHDEFAULT, m_bDefaultStrength);
 }
 
 								/*--------------------------*/
@@ -83,7 +106,7 @@ return CToolDlg::OnSetActive ();
 
 void CReactorTool::EnableControls (BOOL bEnable)
 {
-CToolDlg::EnableControls (IDC_REACTOR_COUNTDOWN, IDC_REACTOR_SECRETRETURN, bEnable);
+CToolDlg::EnableControls (IDC_REACTOR_COUNTDOWN, IDC_REACTOR_STRENGTHDEFAULT, bEnable);
 //int i;
 //for (i = IDC_TRIGGER_TRIGGER_NO; i <= IDC_TRIGGER_PASTE; i++)
 //	GetDlgItem (i)->EnableWindow (bEnable);
@@ -124,6 +147,10 @@ if (!(m_bInited && theMine))
 EnableControls (DLE.IsD2File ());
 m_pTrigger = triggerManager.ReactorTrigger (m_nTrigger);
 m_nCountDown = triggerManager.ReactorTime ();
+m_nStrength = triggerManager.ReactorStrength ();
+m_bDefaultStrength = (m_nStrength == -1);
+if (DLE.IsD2File () && m_bDefaultStrength)
+	GetDlgItem (IDC_REACTOR_STRENGTH)->EnableWindow (FALSE);
 m_nSecretReturn = objectManager.SecretSegment ();
 InitLBTargets ();
 OnSetTarget ();
@@ -160,6 +187,44 @@ UpdateData (TRUE);
 undoManager.Begin (__FUNCTION__, udObjects);
 objectManager.SecretSegment () = m_nSecretReturn;
 undoManager.End (__FUNCTION__);
+}
+
+//------------------------------------------------------------------------------
+
+void CReactorTool::OnStrength ()
+{
+char szVal [5];
+::GetWindowText (GetDlgItem (IDC_REACTOR_STRENGTH)->m_hWnd, szVal, sizeof (szVal));
+if (!*szVal)
+	return;
+UpdateData (TRUE);
+
+// Clamp reactor strength - 16-bit value and we reserve negative values for default (-1)
+// Hopefully nobody actually wants negative reactor strength.
+if (m_nStrength < 0)
+	m_nStrength = 0;
+else if (m_nStrength >= 0x8000)
+	m_nStrength = 0x7fff;
+
+undoManager.Begin (__FUNCTION__, udTriggers);
+triggerManager.ReactorStrength () = m_bDefaultStrength ? -1 : m_nStrength;
+undoManager.End (__FUNCTION__);
+}
+
+//------------------------------------------------------------------------------
+
+void CReactorTool::OnStrengthDefault ()
+{
+UpdateData (TRUE);
+
+if (m_nStrength == -1)
+	m_nStrength = BASE_REACTOR_STRENGTH;
+
+undoManager.Begin (__FUNCTION__, udTriggers);
+triggerManager.ReactorStrength () = m_bDefaultStrength ? -1 : m_nStrength;
+undoManager.End (__FUNCTION__);
+
+Refresh ();
 }
 
 //------------------------------------------------------------------------

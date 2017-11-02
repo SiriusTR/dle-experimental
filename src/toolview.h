@@ -486,6 +486,8 @@ class CReactorTool : public CToolDlg
 		int			m_iTarget;
 		int			m_nCountDown;
 		int			m_nSecretReturn;
+		int			m_nStrength;
+		int			m_bDefaultStrength;
 		char			m_szTarget [40];
 		CReactorTrigger	*m_pTrigger;
 
@@ -505,6 +507,8 @@ class CReactorTool : public CToolDlg
 		afx_msg void OnDeleteWallTarget ();
 		afx_msg void OnCountDown ();
 		afx_msg void OnSecretReturn ();
+		afx_msg void OnStrength ();
+		afx_msg void OnStrengthDefault ();
 		afx_msg void OnSetTarget ();
 		inline CListBox *LBTargets ()
 			{ return LBCtrl (IDC_REACTOR_TARGETLIST); }
