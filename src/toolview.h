@@ -729,6 +729,14 @@ class CAdvancedObjTool : public CObjectTabDlg
 		void Reset ();
 		virtual bool Refresh (void);
 		afx_msg void OnAccept ();
+		template < int _id >
+		afx_msg void OnField () {
+			char szVal [5];
+			::GetWindowText (GetDlgItem (_id)->m_hWnd, szVal, sizeof (szVal));
+			if (!*szVal)
+				return;
+			OnAccept ();
+			}
 
 		DECLARE_MESSAGE_MAP ()
 };
