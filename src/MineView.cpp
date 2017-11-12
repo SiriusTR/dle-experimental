@@ -972,6 +972,7 @@ for (int i = 0, j = vertexManager.Count (); i < j; i++) {
 	CVertex& v = vertexManager [i];
 	if (BETWEEN (clickPos.x, v.m_screen.x, releasePos.x) &&
 		 BETWEEN (clickPos.y, v.m_screen.y, releasePos.y) &&
+		 v.m_view.v.z > 0 && // in front of camera
 		 VertexVisible (i)) {
 		if (bTag)
 			vertexManager [i].Tag ();
