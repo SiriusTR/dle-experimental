@@ -737,7 +737,7 @@ if (objectManager.Create (OBJ_ROBOT)) {
 
 void CDlcDoc::OnInsertObjectWeapon ()
 {
-if (objectManager.Create (OBJ_WEAPON)) {
+if (objectManager.Create (OBJ_POWERUP)) {
 	current->Object ()->Id () = 3; // laser
 	current->Object ()->Setup (current->Object ()->Type ());
 	}
