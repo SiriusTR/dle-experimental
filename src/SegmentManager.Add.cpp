@@ -68,7 +68,7 @@ if (nDelSeg < Count ()) {
 
 void CSegmentManager::AddSegments (void)
 {
-if (segmentManager.TaggedSideCount () > 50) {
+if (theMine->SelectMode () == BLOCK_MODE && segmentManager.TaggedSideCount () > 50) {
 	if (Query2Msg ("You are about to insert a large number of cubes.\n"
 		"Are you sure you want to do this?", MB_YESNO) != IDYES)
 		return;
@@ -81,12 +81,15 @@ if (nSegment < 0) {
 	return;
 	}
 current->SetSegmentId (nSegment);
-CSegment* pSegment = Segment (0);
-for (short nSegment = 0, nSegments = Count (); nSegment < nSegments; nSegment++, pSegment++) 
-	for (short nSide = 0; nSide < 6; nSide++)
-		if (pSegment->IsTagged (nSide) && !pSegment->HasChild (nSide)) 
-			if (0 > Create (CSideKey (nSegment, nSide)))
-				break;
+// In block mode, also insert cubes from all marked sides
+if (theMine->SelectMode () == BLOCK_MODE) {
+	CSegment* pSegment = Segment (0);
+	for (short nSegment = 0, nSegments = Count (); nSegment < nSegments; nSegment++, pSegment++) 
+		for (short nSide = 0; nSide < 6; nSide++)
+			if (pSegment->IsTagged (nSide) && !pSegment->HasChild (nSide)) 
+				if (0 > Create (CSideKey (nSegment, nSide)))
+					break;
+	}
 undoManager.End (__FUNCTION__); 
 }
 
