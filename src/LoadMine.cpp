@@ -243,6 +243,7 @@ if (!(bLoadFromHog || bCreate)) {
 			fp->Close ();
 			}
 		robotManager.ReadHAM (null);
+		robotManager.ClearHXMData ();
 		if (IsD2File ()) {
 			char szHogFile [256], szHamFile [256], *p;
 			long nSize, nOffset;

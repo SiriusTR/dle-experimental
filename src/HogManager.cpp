@@ -518,7 +518,7 @@ if (!theMine->LoadMineSigAndType (&fSrc)) {
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".pog")))
 		textureManager.ReadPog (fSrc, size);
 	modelManager.Reset ();
-	robotManager.Reset ();
+	robotManager.ClearHXMData ();
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".hxm"))) {
 		robotManager.ReadHXM (fSrc, size);
 		int nCustom = 0;

@@ -345,6 +345,16 @@ return (m_hxmExtraDataSize > 0);
 }
 
 //------------------------------------------------------------------------------
+
+void CRobotManager::ClearHXMData ()
+{
+for (int i = 0; i < (int) m_nRobotTypes; i++) {
+	*RobotInfo (i) = *DefRobotInfo (i);
+	}
+Reset ();
+}
+
+//------------------------------------------------------------------------------
 //eof RobotManager.cpp
 
 

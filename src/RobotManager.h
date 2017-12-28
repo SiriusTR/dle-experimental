@@ -59,6 +59,8 @@ class CRobotManager {
 
 		int CRobotManager::ReadHXM (const char* filename, char *szSubFile = null, bool bCustom = true);
 
+		void ClearHXMData ();
+
 	};
 
 extern CRobotManager robotManager;

@@ -239,9 +239,9 @@ if (bCustom) {
 	memcpy (m_textureIndex [1], m_textureIndex [0], sizeof (m_textureIndex [1]));
 	memcpy (m_modelTextureIndex [1], m_modelTextureIndex [0], sizeof (m_modelTextureIndex [1]));
 	}
-n = mf.ReadUInt32 ();                         
-mf.Seek (n * (sizeof (int) + sizeof (JOINTPOS)), SEEK_CUR);     
-n = mf.ReadUInt32 ();                         
+n = mf.ReadUInt32 ();
+mf.Seek (n * (sizeof (int) + sizeof (JOINTPOS)), SEEK_CUR);
+n = mf.ReadUInt32 ();
 for (j = 0; j < n; j++) {
 	i = mf.ReadUInt32 ();
 #ifdef _DEBUG
@@ -256,12 +256,12 @@ for (j = 0; j < n; j++) {
 	mf.Seek (2 * sizeof (int), SEEK_CUR);
 	}
 if (bCustom) {
-	n = mf.ReadUInt32 ();                         
+	n = mf.ReadUInt32 ();
 	for (j = 0; j < n; j++) {
 		i = mf.ReadInt32 ();
 		m_textureIndex [1][i] = mf.ReadUInt16 ();
 		}
-	n = mf.ReadUInt32 ();                         
+	n = mf.ReadUInt32 ();
 	for (j = 0; j < n; j++) {
 		i = mf.ReadInt32 ();
 		m_modelTextureIndex [1][i] = mf.ReadUInt16 ();
