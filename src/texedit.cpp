@@ -531,18 +531,21 @@ if (m_texture [0].Format () == TGA) {
 	ErrorMsg ("Cannot edit TGA images.");
 	}
 else if (PtInRect (rcEdit, point)) {
-	int x, y;
+	int x, y, nPixel;
 	m_bModified = TRUE;  // mark this as m_bModified
 //	x = ((point.x - rcEdit.left) >> 2) & 63;
 //	y = ((point.y - rcEdit.top) >> 2) & 63;
 	x = (int) ((double) (point.x - rcEdit.left) * (double (m_nWidth) / rcEdit.Width ()));
 	y = (int) ((double) (point.y - rcEdit.top) * (double (m_nHeight) / rcEdit.Height ()));
+	nPixel = m_nWidth * (m_nHeight - 1 - y) + x;
 	if (nFlags & MK_CONTROL) {
-		color = m_texture [0][m_nWidth * (m_nHeight - 1 - y) + x].ColorRef ();
+		color = paletteManager.ClosestColor (m_texture [0][nPixel]);
 		DrawLayers ();
 		}
 	else if (BeginPaint (&m_textureWnd)) {
-		m_texture [0][m_nWidth * (m_nHeight - 1 - y) + x] = *paletteManager.Current (color);
+		m_texture [0][nPixel] = *paletteManager.Current (color);
+		if (color >= 254)
+			m_texture [0][nPixel].a = 0;
 		SetTexturePixel (x, y);
 		EndPaint ();
 		}
