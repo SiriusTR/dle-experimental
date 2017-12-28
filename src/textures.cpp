@@ -974,13 +974,15 @@ if (i != int (paletteSize)) {
 					 "the Descent textures to a file and use it as a starting point.\n"
 					 "If you plan to use transparencies, then you may want to start\n"
 					 "with the texture called 'empty'.");
-		for (i = 0; i < int (paletteSize); i++) {
+	bool bAllowTransparent = Query2Msg ("Do you want to allow transparency for this texture?", MB_YESNO) == IDYES;
+	for (i = 0; i < int (paletteSize); i++) {
 		uint closestIndex = i;
 		if ((palette [i].rgbRed != sysPal [i].peRed) ||
 			 (palette [i].rgbGreen != sysPal [i].peGreen) ||
-			 (palette [i].rgbBlue != sysPal [i].peBlue)) {
+			 (palette [i].rgbBlue != sysPal [i].peBlue) ||
+			 (i >= 254 && !bAllowTransparent)) {
 			uint closestDelta = 0x7fffffff;
-			for (int j = 0; j < 255; j++) {
+			for (int j = 0; j < (bAllowTransparent ? 256 : 254); j++) {
 				uint delta = ColorDelta (palette + i, sysPal, j);
 				if (delta < closestDelta) {
 					closestIndex = j;
