@@ -335,11 +335,14 @@ public:
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
-	inline void SetViewDist (int nViewDist) {
+	inline void SetViewDistIndex (int nViewDist) {
 		if (m_nViewDist != nViewDist) {
 			m_nViewDist = nViewDist;
 			Refresh ();
 			}
+		}
+	inline int ViewDistIndex () {
+		return m_nViewDist;
 		}
 	inline int ViewDist (void) {
 		return (m_nViewDist <= 10) ? m_nViewDist : 

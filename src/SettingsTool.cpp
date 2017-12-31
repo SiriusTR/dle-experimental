@@ -232,7 +232,7 @@ else if (bUpdate < 0) {
 	DLE.MineView ()->SetRenderer (appSettings.m_nRenderer);
 	appSettings.m_nRenderer = abs (appSettings.m_nRenderer);
 	DLE.MineView ()->SetPerspective (appSettings.m_nPerspective);
-	DLE.MineView ()->SetViewDist (appSettings.m_nViewDist);
+	DLE.MineView ()->SetViewDistIndex (appSettings.m_nViewDist);
 	DLE.MineView ()->SetDepthTest (appSettings.m_bDepthTest != 0);
 	DLE.MineView ()->SetViewMineFlags (appSettings.m_mineViewFlags);
 	DLE.MineView ()->SetViewObjectFlags (appSettings.m_objViewFlags);
@@ -311,7 +311,7 @@ if (theMine) {
 	appSettings.m_iRotateRate = i;
 	}
 DLE.MineView ()->GetMoveRates (appSettings.m_moveRate);
-appSettings.m_nViewDist = DLE.MineView ()->ViewDist ();
+appSettings.m_nViewDist = DLE.MineView ()->ViewDistIndex ();
 appSettings.m_bApplyFaceLightSettingsGlobally = lightManager.ApplyFaceLightSettingsGlobally ();
 appSettings.m_bSortObjects = objectManager.SortObjects ();
 appSettings.m_bExpertMode = DLE.ExpertMode ();

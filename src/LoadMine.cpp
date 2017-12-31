@@ -73,7 +73,7 @@ short CMine::Load (CFileManager* fp, bool bLoadFromHog)
 {
 	bool bCreate = false;
 
-DLE.MineView ()->SetViewDist (0);
+DLE.MineView ()->SetViewDistIndex (0);
 DLE.ToolView ()->Refresh ();
 undoManager.Reset ();
 tunnelMaker.Destroy ();
