@@ -448,20 +448,19 @@ GetWindowRect (rc);
 CSize desiredSize = DLE.MainFrame ()->ToolPaneSize ();
 CSize currentSize = CSize (rc.Width (), rc.Height ());
 if (m_bHScroll)
-	currentSize.cx -= GetSystemMetrics (SM_CXVSCROLL);
+	currentSize.cy -= GetSystemMetrics (SM_CYHSCROLL);
 if (m_bVScroll)
-	currentSize.cy -= GetSystemMetrics (SM_CYVSCROLL);
+	currentSize.cx -= GetSystemMetrics (SM_CXVSCROLL);
 
 if (currentSize.cx >= desiredSize.cx) {
 	ShowScrollBar (SB_HORZ, FALSE);
 	rc.left = 0;
 	if (m_bHScroll) {
 		m_bHScroll = FALSE;
+		currentSize.cy += GetSystemMetrics (SM_CYHSCROLL);
 		}
 	}
 else {
-	if (!m_bHScroll)
-		currentSize.cx -= GetSystemMetrics (SM_CXVSCROLL);
 	m_scrollRange [0] = desiredSize.cx - currentSize.cx;
 	m_scrollPage [0] = (m_scrollRange [0] < desiredSize.cx) ? m_scrollRange [0] : desiredSize.cx;
 	SetScrollRange (SB_HORZ, 0, m_scrollRange [0], TRUE);
@@ -469,18 +468,18 @@ else {
 	rc.left = -GetScrollPos (SB_HORZ);
 	if (!m_bHScroll) {
 		m_bHScroll = TRUE;
+		currentSize.cy -= GetSystemMetrics (SM_CYHSCROLL);
 		}
 	}
-if (rc.Height () >= desiredSize.cy /*- 11*/) {
+if (currentSize.cy >= desiredSize.cy) {
 	ShowScrollBar (SB_VERT, FALSE);
 	rc.top = 0;
 	if (m_bVScroll) {
 		m_bVScroll = FALSE;
+		currentSize.cx += GetSystemMetrics (SM_CXVSCROLL);
 		}
 	}
 else {
-	if (!m_bVScroll)
-		currentSize.cy -= GetSystemMetrics (SM_CYVSCROLL);
 	m_scrollRange [1] = desiredSize.cy - currentSize.cy;
 	m_scrollPage [1] = (m_scrollRange [1] < desiredSize.cy) ? m_scrollRange [1] : desiredSize.cy;
 	SetScrollRange (SB_VERT, 0, m_scrollRange [1], TRUE);
@@ -488,10 +487,11 @@ else {
 	rc.top = -GetScrollPos (SB_VERT);
 	if (!m_bVScroll) {
 		m_bVScroll = TRUE;
+		currentSize.cx -= GetSystemMetrics (SM_CXVSCROLL);
 		}
 	}
-rc.right = (/*(rc.Width () > desiredSize.cx) ? desiredSize.cx :*/ rc.left + rc.Width ());
-rc.bottom = (/*(rc.Height () > desiredSize.cy) ? desiredSize.cy :*/ rc.top + rc.Height ());
+rc.right = rc.left + max (currentSize.cx, desiredSize.cx);
+rc.bottom = rc.top + max (currentSize.cy, desiredSize.cy);
 m_pTools->MoveWindow (rc);
 m_bRecalcLayout = FALSE;
 }
