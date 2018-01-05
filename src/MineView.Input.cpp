@@ -409,6 +409,9 @@ switch (m_mouseState) {
 		// If click, move to apply power select state
 		if (HasEnteredTransitionalState (eMouseStateApplySelect, msg))
 			return eMouseStateApplySelect;
+		// It's also possible to enter the context menu state from here
+		if (HasEnteredTransitionalState (eMouseStateDoContextMenu, msg))
+			return eMouseStateDoContextMenu;
 		// If modifiers do not map to power select action, move to idle state
 		if (HasExitedState (msg))
 			if (HasMouseMoved (point))
@@ -677,6 +680,8 @@ switch (m_mouseState) {
 
 	case eMouseStateDoContextMenu:
 		m_pMineView->DoContextMenu (point);
+		// In case we came from Select
+		m_pMineView->UpdateSelectHighlights ();
 		m_mouseState = eMouseStateIdle;
 		break;
 
