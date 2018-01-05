@@ -230,46 +230,8 @@ for (i = 0, h = segmentManager.Count (); i < h; i++, pSegment++) {
 
 void CMineView::CenterOnMine (void)
 {
-CHECKMINE;
-
-//	CDlcDoc* pDoc = GetDocument();
-//	ASSERT_VALID(pDoc);
-
-	CVertex*		pVertex;
-	CVertex		vMin (0x7fffffff, 0x7fffffff, 0x7fffffff), vMax (-0x7fffffff, -0x7fffffff, -0x7fffffff);
-
-TagVisibleVerts ();
-pVertex = vertexManager.Vertex (0);
-for (int i = 0, h = vertexManager.Count (); i < h; i++, pVertex++) {
-	if (vertexManager.Status (i)) {
-		vMin = Min (vMin, *pVertex);
-		vMax = Max (vMax, *pVertex);
-		}
-	}
-Rotation ().Set (M_PI / 4.0, M_PI / 4.0, 0.0);
-CDoubleVector v = vMax - vMin;
-int maxVal = int (max (max (v.v.x, v.v.y), v.v.z) / 20);
-double factor;
-if (maxVal < 2)      
-	factor = 14;
-else if (maxVal < 4) 
-	factor = 10;
-else if (maxVal < 8) 
-	factor = 8;
-else if (maxVal < 12) 
-	factor = 5;
-else if (maxVal < 16) 
-	factor = 3;
-else if (maxVal < 32) 
-	factor = 2;
-else 
-	factor = 1;
-factor = 0.1 * pow (zoomScales [0], (double) factor);
-Scale ().Set (factor, factor, factor);
-ViewMatrix ()->Setup (Translation (), Scale (), Rotation ());
-TagVisibleVerts (true);
-SetCenter (CDoubleVector (Average (vMin, vMax)), 0);
-Refresh (false);
+// FitToView basically does the same thing this function used to, but better (no weird scale bugs).
+FitToView ();
 }
 
 //------------------------------------------------------------------------------
