@@ -96,6 +96,7 @@ class CDlgHelpers {
 		void SelectItemData (CComboBox *pcb, int nItemData);
 		void CBUpdateListWidth (CComboBox *pcb);
 		void EnableControls (int nIdFirst, int nIdLast, BOOL bEnable);
+		BOOL OnToolTipNotify (UINT id, NMHDR *pNMHDR, LRESULT *pResult);
 
 		BOOL SelectColor (BYTE& red, BYTE& green, BYTE& blue);
 		void CreateColorCtrl (CColorControl *pWnd, int nIdC);
@@ -138,9 +139,13 @@ class CTabDlg : public CDialog, public CDlgHelpers {
 
 		inline BOOL Valid (void) { return m_bValid; }
 
-		CTabDlg (UINT nId, CWnd* pParent = null) : m_bInited (0), m_bValid (0), m_bHaveData (0), CDialog (nId, pParent), CDlgHelpers (this) {}
+		CTabDlg (UINT nId, CWnd* pParent = null);
 
 		//virtual BOOL PreTranslateMessage (MSG* pMsg);
+
+		BOOL OnToolTipNotify (UINT id, NMHDR *pNMHDR, LRESULT *pResult);
+
+		DECLARE_MESSAGE_MAP ()
 	};
 
 //------------------------------------------------------------------------------

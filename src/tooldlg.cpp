@@ -34,8 +34,8 @@ BEGIN_MESSAGE_MAP(CToolDlg, CPropertyPage)
 	ON_WM_SETFOCUS ()
 	ON_COMMAND(ID_SEL_PREV_TAB, OnSelectPrevTab)
 	ON_COMMAND(ID_SEL_NEXT_TAB, OnSelectNextTab)
-   ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipNotify)
-   ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipNotify)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipNotify)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipNotify)
 END_MESSAGE_MAP()
 
 //------------------------------------------------------------------------------
@@ -69,29 +69,7 @@ return 1;
 
 BOOL CToolDlg::OnToolTipNotify (UINT id, NMHDR *pNMHDR, LRESULT *pResult)
 {
-   // need to handle both ANSI and UNICODE versions of the message
-TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNMHDR;
-TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNMHDR;
-//CString strTipText;
-char strTipText [100], *psz;
-UINT nID = UINT (pNMHDR->idFrom);
-if (pNMHDR->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
-    pNMHDR->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND)) {
-   // idFrom is actually the HWND of the tool
-   nID = int (::GetDlgCtrlID (HWND (UINT_PTR (nID))));
-}
-if (nID != 0) // will be zero on a separator
-	if (!LoadString (AfxGetApp()->m_hInstance, nID, strTipText, sizeof (strTipText)))
-		*strTipText = '\0';
-	else if (psz = strchr (strTipText, '\n'))
-		*psz = '\0';
-//   strTipText.Format ("Control ID = %d", nID);
-if (pNMHDR->code == TTN_NEEDTEXTA)
-   lstrcpyn(pTTTA->szText, strTipText, sizeof (pTTTA->szText));
-else
-   _mbstowcsz(pTTTW->szText, strTipText, sizeof (pTTTW->szText));
-*pResult = 0;
-return TRUE;    // message was handled
+return CDlgHelpers::OnToolTipNotify (id, pNMHDR, pResult);
 }
 
 //------------------------------------------------------------------------------

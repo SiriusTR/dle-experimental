@@ -311,6 +311,35 @@ if (pWnd->GetSafeHwnd ()) {
 }
 
 //------------------------------------------------------------------------------
+
+BOOL CDlgHelpers::OnToolTipNotify (UINT id, NMHDR *pNMHDR, LRESULT *pResult)
+{
+// need to handle both ANSI and UNICODE versions of the message
+TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNMHDR;
+TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNMHDR;
+//CString strTipText;
+char strTipText [100], *psz;
+UINT nID = UINT (pNMHDR->idFrom);
+if (pNMHDR->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
+	 pNMHDR->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND)) {
+	// idFrom is actually the HWND of the tool
+	nID = int (::GetDlgCtrlID (HWND (UINT_PTR (nID))));
+}
+if (nID != 0) // will be zero on a separator
+	if (!LoadString (AfxGetApp()->m_hInstance, nID, strTipText, sizeof (strTipText)))
+		*strTipText = '\0';
+	else if (psz = strchr (strTipText, '\n'))
+		*psz = '\0';
+//	strTipText.Format ("Control ID = %d", nID);
+if (pNMHDR->code == TTN_NEEDTEXTA)
+	lstrcpyn(pTTTA->szText, strTipText, sizeof (pTTTA->szText));
+else
+	_mbstowcsz(pTTTW->szText, strTipText, sizeof (pTTTW->szText));
+*pResult = 0;
+return TRUE;    // message was handled
+}
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //eof DlgHelpers.cpp

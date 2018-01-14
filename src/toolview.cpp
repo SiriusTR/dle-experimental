@@ -584,6 +584,29 @@ DLE.MainFrame ()->ShowTools ();
 NextTab ();
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// CTabDlg
+
+BEGIN_MESSAGE_MAP(CTabDlg, CDialog)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipNotify)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipNotify)
+END_MESSAGE_MAP()
+
+//------------------------------------------------------------------------------
+
+CTabDlg::CTabDlg (UINT nId, CWnd *pParent)
+	: m_bInited (0), m_bValid (0), m_bHaveData (0), CDialog (nId, pParent), CDlgHelpers (this)
+{
+EnableToolTips (true);
+}
+
+//------------------------------------------------------------------------------
+
+BOOL CTabDlg::OnToolTipNotify (UINT id, NMHDR *pNMHDR, LRESULT *pResult)
+{
+return CDlgHelpers::OnToolTipNotify (id, pNMHDR, pResult);
+}
+
 //------------------------------------------------------------------------------
 
 #if 0
