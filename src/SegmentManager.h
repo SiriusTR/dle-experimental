@@ -272,7 +272,7 @@ class CSegmentManager {
 
 		bool IsLineOfSide (CSegment *pSegment, int nSide, int nLine);
 
-		void JoinSegments (int automatic = 0);
+		void JoinSegments ();
 
 		bool SeparateSegments (int solidify = 0, int nSide = -1, bool bVerbose = true);
 

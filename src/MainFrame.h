@@ -326,6 +326,7 @@ public:
 	afx_msg void OnJoinLines ();
 	afx_msg void OnJoinSides ();
 	afx_msg void OnJoinCurrentSide ();
+	afx_msg void OnJoinSegments ();
 	afx_msg void OnSplitPoints ();
 	afx_msg void OnSplitLines ();
 	afx_msg void OnSplitSides ();

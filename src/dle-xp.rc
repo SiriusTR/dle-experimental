@@ -7180,6 +7180,7 @@ BEGIN
     END
     POPUP "&Join/Separate"
     BEGIN
+        MENUITEM "Cubes\tCtrl+Alt+C",           ID_JOIN_SEGMENTS
         MENUITEM "Current Side\tCtrl+C",        ID_JOIN_CURRENTSIDE
         MENUITEM "Sides\tCtrl+S",               ID_JOIN_SIDES
         MENUITEM "Lines\tCtrl+L",               ID_JOIN_LINES
@@ -7269,6 +7270,7 @@ BEGIN
     "C",            ID_JOIN_CURRENTSIDE,    VIRTKEY, CONTROL, NOINVERT
     "C",            ID_SEL_PREV_SEGMENT,    VIRTKEY, SHIFT, NOINVERT
     "C",            ID_SPLIT_CURRENTSIDE,   VIRTKEY, SHIFT, CONTROL, NOINVERT
+    "C",            ID_JOIN_SEGMENTS,       VIRTKEY, ALT, CONTROL, NOINVERT
     "E",            ID_VIEW_ROTATE_CLOCKWISE, VIRTKEY, NOINVERT
     "E",            ID_VIEW_COLLAPSE_EDGE,  VIRTKEY, ALT, NOINVERT
     "G",            ID_TOOLS_CURVEGENERATOR, VIRTKEY, NOINVERT
