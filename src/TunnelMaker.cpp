@@ -431,6 +431,30 @@ if (m_nSteps != path.Steps ()) { // allocate sufficient memory for required segm
 		}
 	}
 
+// Pre-calculate morph vectors if necessary since we'll need to use them a lot
+CDynamicArray <CDoubleVector> vMorph;
+CDynamicArray <ushort> nVertexMap;
+if (path.m_bMorph) {
+	ushort nSideVertices = path.m_base [0].Side ()->VertexCount ();
+	if (!vMorph.Create (nSideVertices) || !nVertexMap.Create (nVertices))
+		return false;
+	for (ushort nVertex = 0; nVertex < nSideVertices; nVertex++) {
+		CVertex vStart = *path.m_base [0].Vertex (nVertex);
+		vStart -= path.m_base [0].m_point; // un-translate (make relative to tunnel start)
+		vStart = path.m_base [0].m_rotation * vStart; // un-rotate
+		CVertex vEnd = *path.m_base [1].Vertex (nSideVertices + 1 - nVertex);
+		vEnd -= path.m_base [1].m_point; // un-translate (make relative to tunnel end)
+		vEnd = path.m_base [1].m_rotation * vEnd; // un-rotate
+		vMorph [nVertex] = vEnd - vStart;
+
+		for (ushort nStartVertex = 0; nStartVertex < nVertices; nStartVertex++)
+			if (vertexManager.Index (path.m_base [0].Vertex (nVertex)) == path.m_nStartVertices [nStartVertex]) {
+				nVertexMap [nStartVertex] = nVertex;
+				break;
+				}
+		}
+	}
+
 // Compute all tunnel vertices by rotating the base vertices using each path node's orientation (== rotation matrix)
 // The rotation is relative to the base coordinate system (identity matrix), but the vertices are relative to the 
 // start point and start rotation, so each vertex has to be un-translated and un-rotated before rotating and translating
@@ -445,6 +469,10 @@ for (int nSegment = 0; nSegment <= m_nSteps; nSegment++) {
 		CVertex v = vertexManager [path.m_nStartVertices [nVertex]];
 		v -= path.m_base [0].m_point; // un-translate (make relative to tunnel start)
 		v = path.m_base [0].m_rotation * v; // un-rotate
+		if (path.m_bMorph) {
+			double amount = (double)nSegment / (double)m_nSteps;
+			v += vMorph [nVertexMap [nVertex]] * amount;
+			}
 		v = rotation * v; // rotate (
 		CDoubleVector a = rotation.Angles ();
 		v += translation;
@@ -762,6 +790,8 @@ else if (length > MAX_TUNNEL_LENGTH)
 if (bStartSides) {
 	if (!GatherStartSides ())
 		return false;
+	m_bMorph = (m_startSides.Length () == 1) && !current->Side ()->IsTagged () &&
+		(m_base [0].Side ()->Shape () == m_base [1].Side ()->Shape ());
 	}
 
 if (bStartSides || bPath) {
