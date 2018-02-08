@@ -84,6 +84,9 @@ class CDynamicArray : public CQuickSort < _T > {
 			Init (); 
 			Create (nLength);
 			}
+
+		template <size_t _N>
+		CDynamicArray (_T const (&source) [_N]) : CDynamicArray (_N) { operator= ((_T*)source); }
 		
 		~CDynamicArray() { Destroy (); }
 		

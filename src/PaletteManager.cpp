@@ -305,23 +305,24 @@ return closestIndex;
 
 //------------------------------------------------------------------------------
 
-int CPaletteManager::NumAvailablePalettes (void)
+int CPaletteManager::NumAvailablePalettes (int nVersion)
 {
 	// Hard coding for now but in future we might allow custom palettes
-	return 6;
+	return (nVersion > 0) ? 6 : 1;
 }
 
 //------------------------------------------------------------------------------
 
-const char* CPaletteManager::AvailablePaletteName (int nPalette)
+const char* CPaletteManager::AvailablePaletteName (int nPalette, int nVersion)
 {
-	static char* paletteNames [] = {
-		"GroupA", "Water", "Fire", "Ice", "Alien1", "Alien2"
-		};
+	static CDynamicArray <const char*> paletteNames [] = {
+		{{ "Descent" }},
+		{{ "GroupA", "Water", "Fire", "Ice", "Alien1", "Alien2" }}
+	};
 
-if (nPalette < 0 || nPalette >= (sizeof (paletteNames) / sizeof (paletteNames [0])))
+if (nPalette < 0 || nPalette >= paletteNames [nVersion].Length ())
 	return null;
-return paletteNames [nPalette];
+return paletteNames [nVersion][nPalette];
 }
 
 //------------------------------------------------------------------------------

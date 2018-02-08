@@ -81,12 +81,13 @@ if (m_bPreselectTexture)
 	SetFocusedTexture (GetTextureListIndexFromId (textureManager.Index (m_uiPreselectedTexture)));
 
 const char *pszCurrentPalette = null;
-for (int i = 0; i < paletteManager.NumAvailablePalettes (); i++) {
+int nVersion = textureManager.Version ();
+for (int i = 0; i < paletteManager.NumAvailablePalettes (nVersion); i++) {
 	char szPaletteFileName [15];
-	PaletteList ()->AddString (paletteManager.AvailablePaletteName (i));
-	sprintf_s (szPaletteFileName, sizeof (szPaletteFileName), "%s.pig", paletteManager.AvailablePaletteName (i));
+	PaletteList ()->AddString (paletteManager.AvailablePaletteName (i, nVersion));
+	sprintf_s (szPaletteFileName, sizeof (szPaletteFileName), "%s.pig", paletteManager.AvailablePaletteName (i, nVersion));
 	if (_stricmp (szPaletteFileName, paletteManager.Name ()) == 0)
-		pszCurrentPalette = paletteManager.AvailablePaletteName (i);
+		pszCurrentPalette = paletteManager.AvailablePaletteName (i, nVersion);
 	}
 PaletteList ()->SelectString (-1, pszCurrentPalette);
 UpdateData (FALSE);
@@ -837,7 +838,7 @@ if (textureManager.HasCustomTextures () && (m_bPaletteQueryDone ||
 	            "They will be re-indexed but some color detail is likely to be lost.\n\n"
 	            "Are you sure you want to do this?") != IDYES))) {
 	// Revert selection
-	for (int i = 0; i < paletteManager.NumAvailablePalettes (); i++) {
+	for (int i = 0; i < paletteManager.NumAvailablePalettes (textureManager.Version ()); i++) {
 		PaletteList ()->GetLBText (i, pigFileName);
 		pigFileName.Append (".pig");
 		if (_stricmp (pigFileName.GetBuffer (), paletteManager.Name ()) == 0)

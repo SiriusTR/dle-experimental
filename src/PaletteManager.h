@@ -90,9 +90,9 @@ class CPaletteManager {
 
 		inline void ResetCLUT (void) { memset (m_clutValid, 0, sizeof (m_clutValid)); }
 
-		int NumAvailablePalettes (void);
+		int NumAvailablePalettes (int nVersion);
 
-		const char* AvailablePaletteName (int nPalette);
+		const char* AvailablePaletteName (int nPalette, int nVersion);
 
 	private:
 		const char* SelectResource (char* pszName);
