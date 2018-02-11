@@ -476,6 +476,11 @@ bool CHogManager::LoadLevel (LPSTR pszFile, LPSTR pszSubFile)
 	CLevelHeader	lh;
 	long				size, offset;
 	int				index = -1;
+	char				szPreviousPalette [256];
+	char				szPreviousPigPath [256];
+
+strcpy_s (szPreviousPalette, ARRAYSIZE (szPreviousPalette), paletteManager.Name ());
+strcpy_s (szPreviousPigPath, ARRAYSIZE (szPreviousPigPath), descentFolder [1]);
 
 if (!pszFile)
 	pszFile = m_szFile;
@@ -514,7 +519,15 @@ if (!theMine->LoadMineSigAndType (&fSrc)) {
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".clr")))
 		lightManager.ReadColorMap (fSrc);
 	paletteManager.Reload (paletteManager.Name ());
-	textureManager.LoadTextures ();
+	if (!textureManager.LoadTextures ()) {
+		ErrorMsg ("Unable to load palette - may be missing or corrupt.");
+		// Let's try reverting to the previous palette;
+		// at least we might be able to open the level
+		paletteManager.SetName (szPreviousPalette);
+		strcpy_s (descentFolder [1], sizeof (descentFolder [1]), szPreviousPigPath);
+		paletteManager.Reload (paletteManager.Name ());
+		textureManager.LoadTextures ();
+		}
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".pog")))
 		textureManager.ReadPog (fSrc, size);
 	modelManager.Reset ();

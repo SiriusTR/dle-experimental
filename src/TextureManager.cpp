@@ -775,7 +775,8 @@ if (nVersion < 0) {
 	nVersion = Version ();
 	strcpy_s (m_pigFiles [nVersion], sizeof (m_pigFiles [nVersion]), descentFolder [nVersion]);
 	strcpy_s (m_paletteName [nVersion], sizeof (m_paletteName [nVersion]), paletteManager.Name ());
-	LoadInfo (nVersion);
+	if (!LoadInfo (nVersion))
+		return false;
 	}
 if (!m_textures [nVersion].Buffer ()) {
 	m_textures [nVersion].Create (m_header [nVersion].nTextures);
