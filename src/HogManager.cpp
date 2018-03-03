@@ -520,7 +520,8 @@ if (!theMine->LoadMineSigAndType (&fSrc)) {
 		lightManager.ReadColorMap (fSrc);
 	paletteManager.Reload (paletteManager.Name ());
 	if (!textureManager.LoadTextures ()) {
-		ErrorMsg ("Unable to load palette - may be missing or corrupt.");
+		sprintf_s (message, sizeof (message), "Unable to load palette \"%s\" - may be missing or corrupt.", paletteManager.Name ());
+		ErrorMsg (message);
 		// Let's try reverting to the previous palette;
 		// at least we might be able to open the level
 		paletteManager.SetName (szPreviousPalette);
