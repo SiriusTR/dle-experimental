@@ -930,7 +930,10 @@ if (!(bRefreshing || m_nDelayRefresh)) {
 	bRefreshing = true;
 	InvalidateRect (null, TRUE);
 //	SetFocus ();
-	if (bAll && (m_inputHandler.MouseState () == eMouseStateIdle)) {
+	// Don't update the UI panels if we're moving the mouse because this
+	// results in repaints every frame which is slow
+	if (bAll && (m_inputHandler.MouseState () == eMouseStateIdle ||
+			m_inputHandler.IsMouseStateTransitional ())) {
 		DLE.ToolView ()->Refresh ();
 		DLE.TextureView ()->Refresh ();
 //		UpdateWindow ();

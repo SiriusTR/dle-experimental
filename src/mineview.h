@@ -176,6 +176,9 @@ class CInputHandler {
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
 		bool HasMouseMovedInCurrentState () const { return HasMouseMoved (LastMousePos ()); }
 		bool HasInputLock () const { return m_bInputLockActive; }
+		bool IsMouseStateTransitional () const {
+			return (m_mouseState >= eMouseStateZoomIn) && (m_mouseState < eMouseStateCount);
+			}
 
 	private:
 		CMineView *m_pMineView;
