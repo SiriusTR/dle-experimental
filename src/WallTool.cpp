@@ -391,7 +391,7 @@ pSide [1] = segmentManager.BackSide (keys [0], keys [1]);
 if (pSide [1] != null) 
 	pSegment [1] = segmentManager.Segment (keys [1].m_nSegment);
 
-for (BOOL bSide = FALSE; bSide <= m_bBothSides; bSide++)
+for (BOOL bSide = FALSE; (bSide <= m_bBothSides) && pSide [bSide] != null; bSide++)
 	if (pSide [bSide]->Info ().nWall < wallManager.WallCount ())
 		ErrorMsg ("There is already a wall at that side of the current segment.");
 	else if (wallManager.WallCount () >= MAX_WALLS)
