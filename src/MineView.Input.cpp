@@ -33,21 +33,19 @@ if (m_zoomStartPos != nullptr) {
 void CInputHandler::LoadSettings ()
 {
 // Set default settings where applicable
-m_stateConfigs [eMouseStateButtonDown].button = MK_LBUTTON | MK_RBUTTON;
 m_stateConfigs [eMouseStateSelect].modifiers [eModifierShift] = true;
 m_stateConfigs [eMouseStatePan].modifiers [eModifierCtrl] = true;
 m_stateConfigs [eMouseStateRotate].modifiers [eModifierShift] = true;
 m_stateConfigs [eMouseStateRotate].modifiers [eModifierCtrl] = true;
-m_stateConfigs [eMouseStateZoom].button = MK_LBUTTON | MK_RBUTTON;
-m_stateConfigs [eMouseStateZoom].modifiers [eModifierCtrl] = true;
 m_stateConfigs [eMouseStateZoomIn].button = MK_LBUTTON;
+m_stateConfigs [eMouseStateZoomIn].modifiers [eModifierCtrl] = true;
 m_stateConfigs [eMouseStateZoomOut].button = MK_RBUTTON;
+m_stateConfigs [eMouseStateZoomOut].modifiers [eModifierCtrl] = true;
 m_stateConfigs [eMouseStateQuickSelect].button = MK_LBUTTON;
 m_stateConfigs [eMouseStateQuickSelectObject].button = MK_RBUTTON;
-m_stateConfigs [eMouseStateApplySelect].button = MK_LBUTTON;
-m_stateConfigs [eMouseStateTagRubberBand].button = MK_LBUTTON | MK_RBUTTON;
-m_stateConfigs [eMouseStateUnTagRubberBand].button = MK_LBUTTON | MK_RBUTTON;
-m_stateConfigs [eMouseStateUnTagRubberBand].modifiers [eModifierShift] = true;
+m_stateConfigs [eMouseStateRubberBandTag].button = MK_LBUTTON | MK_RBUTTON;
+m_stateConfigs [eMouseStateRubberBandUnTag].button = MK_LBUTTON | MK_RBUTTON;
+m_stateConfigs [eMouseStateRubberBandUnTag].modifiers [eModifierShift] = true;
 m_stateConfigs [eMouseStateQuickTag].button = MK_LBUTTON;
 m_stateConfigs [eMouseStateQuickTag].modifiers [eModifierShift] = true;
 m_stateConfigs [eMouseStateDoContextMenu].button = MK_RBUTTON;
@@ -210,7 +208,7 @@ UpdateMouseState (WM_MOUSEMOVE, point);
 
 CPoint change = m_lastMousePos - point;
 if (change.x || change.y) {
-	switch (m_mouseState) {
+	switch (MouseState ()) {
 		case eMouseStateIdle:
 			break;
 
@@ -218,7 +216,8 @@ if (change.x || change.y) {
 			m_pMineView->UpdateDragPos ();
 			break;
 
-		case eMouseStateRubberBand:
+		case eMouseStateRubberBandTag:
+		case eMouseStateRubberBandUnTag:
 			m_pMineView->UpdateRubberRect (*m_stateStartPos, point);
 			break;
 
@@ -234,7 +233,8 @@ if (change.x || change.y) {
 			DoMouseRotate (point);
 			break;
 
-		case eMouseStateZoom:
+		case eMouseStateZoomIn:
+		case eMouseStateZoomOut:
 			DoMouseZoom (point);
 			break;
 
@@ -245,7 +245,7 @@ if (change.x || change.y) {
 		}
 	}
 
-if (m_mouseState != eMouseStateLockedRotate)
+if (MouseState () != eMouseStateLockedRotate)
 	m_lastMousePos = point;
 }
 
@@ -300,6 +300,41 @@ void CInputHandler::OnMouseWheel (UINT nFlags, short zDelta, CPoint pt)
 
 eMouseStates CInputHandler::MapInputToMouseState (UINT msg, const CPoint point) const
 {
+if (!m_pMouseState->HasMaybeExited (msg))
+	return m_pMouseState->GetValue ();
+
+// Check states in three passes - first look for an exact match, then look for
+// any partial match that this message was the last remaining condition for.
+// The existing state is otherwise preferred, except when it has exited.
+for (eMouseStates state = eMouseStateIdle + 1; state < eMouseStateCount; state++) {
+	if (state == m_pMouseState->GetValue ())
+		continue;
+	if (GetMouseState (state)->HasEntered (msg) == eMatchExact)
+		if (m_pMouseState->ValidateTransition (state))
+			return state;
+	}
+
+for (eMouseStates state = eMouseStateIdle + 1; state < eMouseStateCount; state++) {
+	if (state == m_pMouseState->GetValue ())
+		continue;
+	if (GetMouseState (state)->HasEntered (msg) == eMatchPartialCompleted)
+		if (m_pMouseState->ValidateTransition (state))
+			return state;
+	}
+
+if (!m_pMouseState->HasExited (msg))
+	return m_pMouseState->GetValue ();
+for (eMouseStates state = eMouseStateIdle + 1; state < eMouseStateCount; state++) {
+	if (state == m_pMouseState->GetValue ())
+		continue;
+	if (GetMouseState (state)->HasEntered (msg) == eMatchPartial)
+		if (m_pMouseState->ValidateTransition (state))
+			return state;
+	}
+
+// If all else fails, go back to idle.
+return eMouseStateIdle;
+
 switch (m_mouseState) {
 	case eMouseStateIdle:
 		// Input lock forces the mouse into rotate mode
@@ -695,10 +730,10 @@ void CInputHandler::UpdateMouseState (UINT msg, CPoint point)
 {
 eMouseStates newState = MapInputToMouseState (msg, point);
 
-if (m_mouseState != newState) {
-	m_mouseState = newState;
+if (MouseState () != newState) {
+	m_pMouseState = GetMouseState (newState);
 	ProcessTransitionalStates (point);
-	m_pMineView->SetCursor (m_mouseState);
+	m_pMineView->SetCursor (MouseState ());
 
 	// Record the mouse position where this state started
 	if (m_stateStartPos == nullptr)
@@ -708,7 +743,8 @@ if (m_mouseState != newState) {
 
 	// Some special handling for zoom - we need a separate tracking position
 	// for it, because it uses stepping
-	if (m_mouseState == eMouseStateZoom) {
+	if (MouseState () == eMouseStateZoomIn ||
+		MouseState () == eMouseStateZoomOut) {
 		if (m_zoomStartPos == nullptr)
 			m_zoomStartPos = new CPoint (point);
 		else
@@ -719,7 +755,7 @@ if (m_mouseState != newState) {
 		m_zoomStartPos = nullptr;
 		}
 
-	if (m_mouseState == eMouseStateDrag) {
+	if (MouseState () == eMouseStateDrag) {
 		m_pMineView->InitDrag ();
 		}
 	}

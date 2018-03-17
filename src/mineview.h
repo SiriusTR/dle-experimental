@@ -44,26 +44,19 @@ enum eSelectModes {
 enum eMouseStates
 {
 	eMouseStateIdle,
-	eMouseStateButtonDown,
+	eMouseStateQuickSelect,
+	eMouseStateQuickSelectObject,
 	eMouseStateDrag,
-	eMouseStateRubberBand,
+	eMouseStateRubberBandTag,
+	eMouseStateRubberBandUnTag,
+	eMouseStateQuickTag,
+	eMouseStateDoContextMenu,
 	eMouseStateSelect,
 	eMouseStateLockedRotate,
 	eMouseStatePan,
 	eMouseStateRotate,
-	eMouseStateZoom,
-	// Transitional states (resets to idle after input applied)
 	eMouseStateZoomIn,
 	eMouseStateZoomOut,
-	eMouseStateQuickSelect,
-	eMouseStateQuickSelectObject,
-	eMouseStateApplySelect,
-	eMouseStateCancelSelect,
-	eMouseStateApplyDrag,
-	eMouseStateTagRubberBand,
-	eMouseStateUnTagRubberBand,
-	eMouseStateQuickTag,
-	eMouseStateDoContextMenu,
 	//must always be last tag
 	eMouseStateCount
 };
@@ -74,7 +67,8 @@ enum eMouseStateMatchResults
 {
 	eMatchNone = 0,
 	eMatchPartial = 1,
-	eMatchExact = 2
+	eMatchPartialCompleted = 2,
+	eMatchExact = 3
 };
 
 // -----------------------------------------------------------------------------
@@ -151,6 +145,34 @@ struct KeyboardBinding {
 // Forward declaration for CInputHandler
 class CMineView;
 
+class IMouseInputState {
+	public:
+		virtual eMouseStates GetValue () const = 0;
+
+		// Called when the state is entered
+		// msg indicates the event that caused the enter
+		virtual void OnEntered (UINT msg) = 0;
+		// Called after the state has changed and should apply any resulting actions
+		// msg indicates the event that caused the completion
+		virtual void OnCompleted (UINT msg) = 0;
+		// Called after the state has changed and should not apply any actions
+		// msg indicates the event that caused the cancellation
+		virtual void OnCancelled (UINT msg) = 0;
+
+		// Checks whether the state will be entered with the event specified
+		virtual eMouseStateMatchResults HasEntered (UINT msg) const = 0;
+		// Checks whether the state could potentially exit with the event specified
+		// (i.e. it is possible another state could be entered instead)
+		virtual bool HasMaybeExited (UINT msg) const = 0;
+		// Checks whether the state will exit with the event specified
+		virtual bool HasExited (UINT msg) const = 0;
+		// Checks whether the requested new state can be reached from this state
+		virtual bool ValidateTransition (eMouseStates newState) const = 0;
+		// Determines the transition type (cancelled or completed) that would result
+		// from a transition to the specified state
+		virtual eTransitionType GetTransitionType (eMouseStates newState) const = 0;
+};
+
 class CInputHandler {
 	public:
 		CInputHandler (CMineView *pMineView);
@@ -172,13 +194,13 @@ class CInputHandler {
 		void OnXButtonDown (UINT nFlags, UINT nButton, CPoint point);
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
-		eMouseStates MouseState () const { return m_mouseState; }
+		eMouseStates MouseState () const { return m_pMouseState->GetValue (); }
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
 		bool HasMouseMovedInCurrentState () const { return HasMouseMoved (LastMousePos ()); }
 		bool HasInputLock () const { return m_bInputLockActive; }
-		bool IsMouseStateTransitional () const {
-			return (m_mouseState >= eMouseStateZoomIn) && (m_mouseState < eMouseStateCount);
-			}
+		/*bool IsMouseStateTransitional () const {
+			return (MouseState () >= eMouseStateZoomIn) && (MouseState () < eMouseStateCount);
+			}*/
 
 	private:
 		CMineView *m_pMineView;
@@ -188,7 +210,7 @@ class CInputHandler {
 		double m_moveScale;
 		double m_rotateScale;
 		bool m_bFpInputLock;
-		eMouseStates m_mouseState;
+		IMouseInputState *m_pMouseState;
 		CPoint *m_stateStartPos;
 		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
@@ -197,6 +219,7 @@ class CInputHandler {
 		bool m_bInputLockActive;
 		int m_nMovementCommandsActive;
 
+		IMouseInputState *GetMouseState (eMouseStates state) const;
 		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
 		eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
 		bool HasExitedState (UINT msg) const;
