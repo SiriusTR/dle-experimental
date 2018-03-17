@@ -148,29 +148,24 @@ class CMineView;
 class IMouseInputState {
 	public:
 		virtual eMouseStates GetValue () const = 0;
+		virtual const MouseStateConfig& GetConfig () const = 0;
 
-		// Called when the state is entered
-		// msg indicates the event that caused the enter
+		// Called after the state has been entered
+		// msg indicates the event that caused the entry
 		virtual void OnEntered (UINT msg) = 0;
-		// Called after the state has changed and should apply any resulting actions
-		// msg indicates the event that caused the completion
-		virtual void OnCompleted (UINT msg) = 0;
-		// Called after the state has changed and should not apply any actions
-		// msg indicates the event that caused the cancellation
-		virtual void OnCancelled (UINT msg) = 0;
+		// Called after the state has been exited
+		// msg indicates the event that caused the exit
+		virtual void OnExited (UINT msg) = 0;
 
 		// Checks whether the state will be entered with the event specified
 		virtual eMouseStateMatchResults HasEntered (UINT msg) const = 0;
 		// Checks whether the state could potentially exit with the event specified
 		// (i.e. it is possible another state could be entered instead)
-		virtual bool HasMaybeExited (UINT msg) const = 0;
+		//virtual bool HasMaybeExited (UINT msg) const = 0;
 		// Checks whether the state will exit with the event specified
 		virtual bool HasExited (UINT msg) const = 0;
 		// Checks whether the requested new state can be reached from this state
 		virtual bool ValidateTransition (eMouseStates newState) const = 0;
-		// Determines the transition type (cancelled or completed) that would result
-		// from a transition to the specified state
-		virtual eTransitionType GetTransitionType (eMouseStates newState) const = 0;
 };
 
 class CInputHandler {
@@ -205,7 +200,6 @@ class CInputHandler {
 	private:
 		CMineView *m_pMineView;
 		KeyboardBinding m_keyBindings [eKeyCommandCount];
-		MouseStateConfig m_stateConfigs [eMouseStateCount];
 		eMovementModes m_movementMode;
 		double m_moveScale;
 		double m_rotateScale;
@@ -221,14 +215,12 @@ class CInputHandler {
 
 		IMouseInputState *GetMouseState (eMouseStates state) const;
 		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
-		eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
-		bool HasExitedState (UINT msg) const;
-		eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
-		bool ButtonUpMatchesState (eMouseStates state, UINT msg) const;
-		bool IsClickState (eMouseStates state) const;
+		//eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
+		//bool HasExitedState (UINT msg) const;
+		//eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
 		bool HasMouseMoved (const CPoint point) const;
 		bool CheckValidDragTarget (const CPoint point) const;
-		void ProcessTransitionalStates (CPoint point);
+		//void ProcessTransitionalStates (CPoint point);
 		// Update mouse state in response to mouse input (e.g. clicks)
 		void UpdateMouseState (UINT msg, CPoint point);
 		// Update mouse state in response to keyboard input
@@ -250,6 +242,8 @@ class CInputHandler {
 		void LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods);
 		static UINT StringToVK (LPCTSTR pszKey);
 		static UINT StringToMK (LPCTSTR pszButton);
+
+		friend class CMouseStateIdle;
 };
 
 // -----------------------------------------------------------------------------
