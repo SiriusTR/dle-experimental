@@ -61,7 +61,7 @@ if (theMine == null)
 	return 1;
 if (!Renderer ().CanFitToView ()) {
 	if (segmentManager.Count () == 1)
-		DLE.MineView ()->Pan ('Z', 10.0);
+		DLE.MineView ()->Zoom (-10, 2);
 	return 1;
 	}
 //if (m_glRendering)
@@ -175,7 +175,7 @@ else
 		dx = (crc.Width () - rc.Width ()) / 2;
 		}
 if (segmentManager.Count () == 1)
-	DLE.MineView ()->Pan ('Z', -80.0);
+	DLE.MineView ()->Zoom (-80, 2);
 Renderer ().FitToView ();
 SetMoveRates (moveRates);
 TagVisibleVerts (true);

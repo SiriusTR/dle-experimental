@@ -507,15 +507,11 @@ else {
 		return;
 #if 1
 	double d = ViewMoveRate () * ((i == 1) ? offset : -offset);
-	if (i == 2)
-		Translation () [i] += d;
-	else {
-		CVertex o = m_viewMatrix.Origin ();
-		o.m_view = m_viewMatrix.Transformation () * o;
-		o.m_view [i] -= d;
-		o = m_viewMatrix.Transformation (1) * o.m_view;
-		m_viewMatrix.Origin () = o;
-		}
+	CVertex o = m_viewMatrix.Origin ();
+	o.m_view = m_viewMatrix.Transformation () * o;
+	o.m_view [i] -= d;
+	o = m_viewMatrix.Transformation (1) * o.m_view;
+	m_viewMatrix.Origin () = o;
 #else
 m_viewMatrix.MoveViewer (i, ViewMoveRate () * ((i == 1) ? offset : -offset));
 #endif
