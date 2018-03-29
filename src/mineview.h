@@ -55,8 +55,7 @@ enum eMouseStates
 	eMouseStateLockedRotate,
 	eMouseStatePan,
 	eMouseStateRotate,
-	eMouseStateZoomIn,
-	eMouseStateZoomOut,
+	eMouseStateZoom,
 	//must always be last tag
 	eMouseStateCount
 };
@@ -149,21 +148,22 @@ class IMouseInputState {
 	public:
 		virtual eMouseStates GetValue () const = 0;
 		virtual const MouseStateConfig& GetConfig () const = 0;
+		virtual const CPoint* GetStartPos () const = 0;
 
 		// Called after the state has been entered
-		// msg indicates the event that caused the entry
-		virtual void OnEntered (UINT msg) = 0;
+		// msg indicates the event that caused the entry; point indicates the mouse location
+		virtual void OnEntered (UINT msg, const CPoint& point) = 0;
 		// Called after the state has been exited
-		// msg indicates the event that caused the exit
-		virtual void OnExited (UINT msg) = 0;
+		// msg indicates the event that caused the exit; point indicates the mouse location
+		virtual void OnExited (UINT msg, const CPoint& point) = 0;
 
 		// Checks whether the state will be entered with the event specified
-		virtual eMouseStateMatchResults HasEntered (UINT msg) const = 0;
+		virtual eMouseStateMatchResults HasEntered (UINT msg, const CPoint& point) const = 0;
 		// Checks whether the state could potentially exit with the event specified
 		// (i.e. it is possible another state could be entered instead)
-		//virtual bool HasMaybeExited (UINT msg) const = 0;
+		virtual bool IsExitAllowed (UINT msg, const CPoint& point) const = 0;
 		// Checks whether the state will exit with the event specified
-		virtual bool HasExited (UINT msg) const = 0;
+		virtual bool HasExited (UINT msg, const CPoint& point) const = 0;
 		// Checks whether the requested new state can be reached from this state
 		virtual bool ValidateTransition (eMouseStates newState) const = 0;
 };
@@ -205,7 +205,6 @@ class CInputHandler {
 		double m_rotateScale;
 		bool m_bFpInputLock;
 		IMouseInputState *m_pMouseState;
-		CPoint *m_stateStartPos;
 		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
 		bool m_bModifierActive [eModifierCount];
@@ -219,7 +218,7 @@ class CInputHandler {
 		//bool HasExitedState (UINT msg) const;
 		//eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
 		bool HasMouseMoved (const CPoint point) const;
-		bool CheckValidDragTarget (const CPoint point) const;
+		bool CheckValidDragTarget () const;
 		//void ProcessTransitionalStates (CPoint point);
 		// Update mouse state in response to mouse input (e.g. clicks)
 		void UpdateMouseState (UINT msg, CPoint point);
@@ -244,6 +243,18 @@ class CInputHandler {
 		static UINT StringToMK (LPCTSTR pszButton);
 
 		friend class CMouseStateIdle;
+		friend class CMouseStateQuickSelect;
+		friend class CMouseStateQuickSelectObject;
+		friend class CMouseStateDrag;
+		friend class CMouseStateRubberBandTag;
+		friend class CMouseStateRubberBandUnTag;
+		friend class CMouseStateQuickTag;
+		friend class CMouseStateDoContextMenu;
+		friend class CMouseStateSelect;
+		friend class CMouseStateLockedRotate;
+		friend class CMouseStatePan;
+		friend class CMouseStateRotate;
+		friend class CMouseStateZoom;
 };
 
 // -----------------------------------------------------------------------------
