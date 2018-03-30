@@ -191,7 +191,7 @@ class CInputHandler {
 		void OnXButtonDown (UINT nFlags, UINT nButton, CPoint point);
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
-		eMouseStates MouseState () const { return m_pMouseState->GetValue (); }
+		eMouseStates MouseState () const { return m_pCurrentMouseState->GetValue (); }
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
 		bool HasMouseMovedInCurrentState () const { return HasMouseMoved (LastMousePos ()); }
 		bool HasInputLock () const { return m_bInputLockActive; }
@@ -206,7 +206,9 @@ class CInputHandler {
 		double m_moveScale;
 		double m_rotateScale;
 		bool m_bFpInputLock;
-		IMouseInputState *m_pMouseState;
+		CMouseStateIdle m_idleState;
+		IMouseInputState *m_pMouseStates [eMouseStateCount];
+		IMouseInputState *m_pCurrentMouseState;
 		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
 		bool m_bModifierActive [eModifierCount];
@@ -216,12 +218,7 @@ class CInputHandler {
 
 		IMouseInputState *GetMouseState (eMouseStates state) const;
 		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
-		//eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
-		//bool HasExitedState (UINT msg) const;
-		//eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
 		bool HasMouseMoved (const CPoint point) const;
-		//bool CheckValidDragTarget () const;
-		//void ProcessTransitionalStates (CPoint point);
 		// Update mouse state in response to mouse input (e.g. clicks)
 		void UpdateMouseState (UINT msg, CPoint point);
 		// Update mouse state in response to keyboard input
@@ -238,9 +235,9 @@ class CInputHandler {
 		void StartMovement (eKeyCommands command);
 		void StopMovement (eKeyCommands command);
 		void StopAllMovement ();
-		void LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName);
-		void LoadStateConfig (MouseStateConfig &config, LPCTSTR bindingName);
-		void LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods);
+		static void LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName);
+		static void LoadStateConfig (MouseStateConfig &config, LPCTSTR bindingName);
+		static void LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods);
 		static UINT StringToVK (LPCTSTR pszKey);
 		static UINT StringToMK (LPCTSTR pszButton);
 
