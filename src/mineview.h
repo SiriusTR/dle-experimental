@@ -156,6 +156,8 @@ class IMouseInputState {
 		// Called after the state has been exited
 		// msg indicates the event that caused the exit; point indicates the mouse location
 		virtual void OnExited (UINT msg, const CPoint& point) = 0;
+		// Called whenever the mouse has moved
+		virtual void OnMouseMove (const CPoint& point) = 0;
 
 		// Checks whether the state will be entered with the event specified
 		virtual eMouseStateMatchResults HasEntered (UINT msg, const CPoint& point) const = 0;
@@ -218,7 +220,7 @@ class CInputHandler {
 		//bool HasExitedState (UINT msg) const;
 		//eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
 		bool HasMouseMoved (const CPoint point) const;
-		bool CheckValidDragTarget () const;
+		//bool CheckValidDragTarget () const;
 		//void ProcessTransitionalStates (CPoint point);
 		// Update mouse state in response to mouse input (e.g. clicks)
 		void UpdateMouseState (UINT msg, CPoint point);

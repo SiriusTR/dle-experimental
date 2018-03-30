@@ -201,44 +201,12 @@ UpdateModifierStates (WM_MOUSEMOVE, 0, nFlags);
 UpdateMouseState (WM_MOUSEMOVE, point);
 
 CPoint change = m_lastMousePos - point;
-if (change.x || change.y) {
-	switch (MouseState ()) {
-		case eMouseStateIdle:
-			break;
+if (change.x || change.y)
+	m_pMouseState->OnMouseMove (point);
 
-		case eMouseStateDrag:
-			m_pMineView->UpdateDragPos ();
-			break;
-
-		case eMouseStateRubberBandTag:
-		case eMouseStateRubberBandUnTag:
-			m_pMineView->UpdateRubberRect (*m_pMouseState->GetStartPos (), point);
-			break;
-
-		case eMouseStateSelect:
-			m_pMineView->UpdateSelectHighlights ();
-			break;
-
-		case eMouseStatePan:
-			DoMousePan (point);
-			break;
-
-		case eMouseStateRotate:
-			DoMouseRotate (point);
-			break;
-
-		case eMouseStateZoom:
-			DoMouseZoom (point);
-			break;
-
-		case eMouseStateLockedRotate:
-			DoMouseRotate (point);
-			m_lastMousePos = m_pMineView->CenterMouse ();
-			break;
-		}
-	}
-
-if (MouseState () != eMouseStateLockedRotate)
+if (MouseState () == eMouseStateLockedRotate)
+	m_lastMousePos = m_pMineView->CenterMouse ();
+else
 	m_lastMousePos = point;
 }
 
@@ -341,20 +309,6 @@ bool CInputHandler::HasMouseMoved (const CPoint point) const
 if (pStartPos == nullptr)
 	return false;
 return point != *pStartPos;
-}
-
-bool CInputHandler::CheckValidDragTarget () const
-{
-	const CPoint *pStartPos = m_pMouseState->GetStartPos ();
-
-if (pStartPos == nullptr)
-	return false;
-// Only counts as a drag if it hits a vertex
-int v = vertexManager.Index (current->Vertex ());
-if ((abs (pStartPos->x - vertexManager [v].m_screen.x) < 5) &&
-	(abs (pStartPos->y - vertexManager [v].m_screen.y) < 5))
-	return true;
-return false;
 }
 
 void CInputHandler::UpdateMouseState (UINT msg, CPoint point)
@@ -879,9 +833,10 @@ class CMouseInputStateBase : public IMouseInputState {
 			return &m_startPos;
 			}
 
-		virtual void OnEntered (UINT msg, const CPoint& point) {
+		void OnEntered (UINT msg, const CPoint& point) {
 			m_bActive = true;
 			m_startPos = point;
+			T::OnEntered (msg, point);
 			}
 
 		// Called after the state has changed and should apply any resulting actions
@@ -1029,6 +984,7 @@ class CMouseStateIdle : public CMouseInputStateBase < eMouseStateIdle > {
 
 		void OnCompleted (UINT, const CPoint&) {}
 		void OnCancelled (UINT, const CPoint&) {}
+		void OnMouseMove (const CPoint&) {}
 		eMouseStateMatchResults HasEntered (UINT, const CPoint&) const { return eMatchPartial; }
 		bool IsExitAllowed (UINT msg, const CPoint& point) const { return true; }
 		bool HasExited (UINT) const { return false; }
@@ -1052,7 +1008,6 @@ class CMouseStateQuickSelectObject : public CMouseInputStateBase < eMouseStateQu
 class CMouseStateDrag : public CMouseInputStateBase < eMouseStateDrag > {
 	public:
 		void OnEntered (UINT msg, const CPoint& point) {
-			CMouseInputStateBase::OnEntered (msg, point);
 			m_pInputHandler->m_pMineView->InitDrag ();
 		}
 
@@ -1060,11 +1015,15 @@ class CMouseStateDrag : public CMouseInputStateBase < eMouseStateDrag > {
 			m_pInputHandler->m_pMineView->FinishDrag (point);
 			}
 
+		void OnMouseMove (const CPoint& point) {
+			m_pInputHandler->m_pMineView->UpdateDragPos ();
+			}
+
 		eMouseStateMatchResults HasEntered (UINT msg, const CPoint& point) {
 			eMouseStateMatchResults result = CMouseInputStateBase::HasEntered (msg, point);
 			if (result &&
 				(!m_pInputHandler->HasMouseMoved (point) ||
-				!m_pInputHandler->CheckValidDragTarget ()))
+				!CheckValidDragTarget ()))
 				result = eMatchNone;
 			return result;
 			}
@@ -1073,6 +1032,19 @@ class CMouseStateDrag : public CMouseInputStateBase < eMouseStateDrag > {
 			// Ban cancellations, they would leave us in a bad state
 			return HasExited (msg, point);
 			}
+
+	private:
+		bool CheckValidDragTarget () const {
+			const CPoint *pStartPos = m_pInputHandler->m_pMouseState->GetStartPos ();
+			if (pStartPos == nullptr)
+				return false;
+			// Only counts as a drag if it hits a vertex
+			int v = vertexManager.Index (current->Vertex ());
+			if ((abs (pStartPos->x - vertexManager [v].m_screen.x) < 5) &&
+				(abs (pStartPos->y - vertexManager [v].m_screen.y) < 5))
+				return true;
+			return false;
+			}
 };
 
 class CMouseStateRubberBandTag : public CMouseInputStateBase < eMouseStateRubberBandTag > {
@@ -1080,6 +1052,10 @@ class CMouseStateRubberBandTag : public CMouseInputStateBase < eMouseStateRubber
 		void OnCompleted (UINT msg, const CPoint& point) {
 			m_pInputHandler->m_pMineView->ResetRubberRect ();
 			m_pInputHandler->m_pMineView->TagRubberBandedVertices (*GetStartPos (), point, true);
+			}
+
+		void OnMouseMove (const CPoint& point) {
+			m_pInputHandler->m_pMineView->UpdateRubberRect (*GetStartPos (), point);
 			}
 
 		eMouseStateMatchResults HasEntered (UINT msg, const CPoint& point) {
@@ -1095,6 +1071,10 @@ class CMouseStateRubberBandUnTag : public CMouseInputStateBase < eMouseStateRubb
 		void OnCompleted (UINT msg, const CPoint& point) {
 			m_pInputHandler->m_pMineView->ResetRubberRect ();
 			m_pInputHandler->m_pMineView->TagRubberBandedVertices (*GetStartPos (), point, false);
+			}
+
+		void OnMouseMove (const CPoint& point) {
+			m_pInputHandler->m_pMineView->UpdateRubberRect (*GetStartPos (), point);
 			}
 
 		eMouseStateMatchResults HasEntered (UINT msg, const CPoint& point) {
@@ -1129,6 +1109,10 @@ class CMouseStateSelect : public CMouseInputStateBase < eMouseStateSelect > {
 			m_pInputHandler->m_pMineView->UpdateSelectHighlights ();
 			}
 
+		void OnMouseMove (const CPoint& point) {
+			m_pInputHandler->m_pMineView->UpdateSelectHighlights ();
+			}
+
 		bool ValidateTransition (eMouseStates newState) const {
 			switch (newState) {
 				case eMouseStatePan:
@@ -1148,15 +1132,17 @@ class CMouseStateSelect : public CMouseInputStateBase < eMouseStateSelect > {
 
 class CMouseStateLockedRotate : public CMouseInputStateBase < eMouseStateLockedRotate > {
 	public:
+		void OnMouseMove (const CPoint& point) { m_pInputHandler->DoMouseRotate (point); }
+
 		bool ValidateTransition (eMouseStates) const { return !m_pInputHandler->HasInputLock (); }
 };
 
 class CMouseStatePan : public CMouseInputStateBase < eMouseStatePan > {
-
+	void OnMouseMove (const CPoint& point) { m_pInputHandler->DoMousePan (point); }
 };
 
 class CMouseStateRotate : public CMouseInputStateBase < eMouseStateRotate > {
-
+	void OnMouseMove (const CPoint& point) { m_pInputHandler->DoMouseRotate (point); }
 };
 
 class CMouseStateZoom : public CMouseInputStateBase < eMouseStateZoom > {
@@ -1169,6 +1155,8 @@ class CMouseStateZoom : public CMouseInputStateBase < eMouseStateZoom > {
 					m_pMineView->ZoomOut (1, true);
 				}
 			}
+
+		void OnMouseMove (const CPoint& point) { m_pInputHandler->DoMouseZoom (point); }
 
 		bool ValidateTransition (eMouseStates newState) const {
 			// If the current state requires a mouse click and that button is down, no change
