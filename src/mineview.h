@@ -192,9 +192,7 @@ class CInputHandler {
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
 		bool HasMouseMovedInCurrentState () const { return HasMouseMoved (LastMousePos ()); }
 		bool HasInputLock () const { return m_bInputLockActive; }
-		/*bool IsMouseStateTransitional () const {
-			return (MouseState () >= eMouseStateZoomIn) && (MouseState () < eMouseStateCount);
-			}*/
+		bool IsStateExiting () const { return m_bIsStateExiting; }
 
 	private:
 		CMineView *m_pMineView;
@@ -205,6 +203,7 @@ class CInputHandler {
 		bool m_bFpInputLock;
 		IMouseInputState *m_pMouseStates [eMouseStateCount];
 		IMouseInputState *m_pCurrentMouseState;
+		bool m_bIsStateExiting;
 		CPoint m_lastMousePos;
 		UINT m_mouseButtonStates;
 		bool m_bModifierActive [eModifierCount];
@@ -234,6 +233,7 @@ class CInputHandler {
 		static UINT StringToVK (LPCTSTR pszKey);
 		static UINT StringToMK (LPCTSTR pszButton);
 
+		template < eMouseStates T > friend class CMouseInputStateBase;
 		friend class CMouseStateIdle;
 		friend class CMouseStateQuickSelect;
 		friend class CMouseStateQuickSelectObject;
