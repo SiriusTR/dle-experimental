@@ -55,7 +55,8 @@ enum eMouseStates
 	eMouseStateLockedRotate,
 	eMouseStatePan,
 	eMouseStateRotate,
-	eMouseStateZoom,
+	eMouseStateZoomIn,
+	eMouseStateZoomOut,
 	//must always be last tag
 	eMouseStateCount
 };
@@ -202,10 +203,8 @@ class CInputHandler {
 		double m_moveScale;
 		double m_rotateScale;
 		bool m_bFpInputLock;
-		CMouseStateIdle m_idleState;
 		IMouseInputState *m_pMouseStates [eMouseStateCount];
 		IMouseInputState *m_pCurrentMouseState;
-		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
 		UINT m_mouseButtonStates;
 		bool m_bModifierActive [eModifierCount];
@@ -247,7 +246,8 @@ class CInputHandler {
 		friend class CMouseStateLockedRotate;
 		friend class CMouseStatePan;
 		friend class CMouseStateRotate;
-		friend class CMouseStateZoom;
+		friend class CMouseStateZoomIn;
+		friend class CMouseStateZoomOut;
 };
 
 // -----------------------------------------------------------------------------
