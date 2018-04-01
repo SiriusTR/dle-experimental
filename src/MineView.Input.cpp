@@ -16,6 +16,7 @@ m_nMovementCommandsActive = 0;
 // Initialize idle early since it is the initial mouse state
 m_idleState = CMouseStateIdle (this);
 m_pCurrentMouseState = &m_idleState;
+m_mouseButtonStates = 0;
 ZeroMemory (m_pMouseStates, sizeof (m_pMouseStates));
 ZeroMemory (m_keyBindings, sizeof (m_keyBindings));
 }
@@ -41,10 +42,10 @@ m_pMouseStates [eMouseStateRubberBandUnTag] = new CMouseStateRubberBandUnTag (th
 m_pMouseStates [eMouseStateQuickTag] = new CMouseStateQuickTag (this);
 m_pMouseStates [eMouseStateDoContextMenu] = new CMouseStateDoContextMenu (this);
 m_pMouseStates [eMouseStateSelect] = new CMouseStateSelect (this);
-m_pMouseStates [eMouseStateLockedRotate] = new CMouseStateLockedRotate (this);
 m_pMouseStates [eMouseStatePan] = new CMouseStatePan (this);
 m_pMouseStates [eMouseStateRotate] = new CMouseStateRotate (this);
 m_pMouseStates [eMouseStateZoom] = new CMouseStateZoom (this);
+m_pMouseStates [eMouseStateLockedRotate] = new CMouseStateLockedRotate (this, &m_pMouseStates [eMouseStateRotate]);
 
 // Read camera movement settings if specified
 m_movementMode = (eMovementModes)appSettings.m_movementMode;
@@ -187,36 +188,43 @@ else
 
 void CInputHandler::OnLButtonUp (UINT nFlags, CPoint point)
 {
+UpdateModifierStates (WM_LBUTTONUP, 0, nFlags);
 UpdateMouseState (WM_LBUTTONUP, point);
 }
 
 void CInputHandler::OnLButtonDown (UINT nFlags, CPoint point)
 {
+UpdateModifierStates (WM_LBUTTONDOWN, 0, nFlags);
 UpdateMouseState (WM_LBUTTONDOWN, point);
 }
 
 void CInputHandler::OnRButtonUp (UINT nFlags, CPoint point)
 {
+UpdateModifierStates (WM_RBUTTONUP, 0, nFlags);
 UpdateMouseState (WM_RBUTTONUP, point);
 }
 
 void CInputHandler::OnRButtonDown (UINT nFlags, CPoint point)
 {
+UpdateModifierStates (WM_RBUTTONDOWN, 0, nFlags);
 UpdateMouseState (WM_RBUTTONDOWN, point);
 }
 
 void CInputHandler::OnMButtonUp (UINT nFlags, CPoint point)
 {
+UpdateModifierStates (WM_MBUTTONUP, 0, nFlags);
 UpdateMouseState (WM_MBUTTONUP, point);
 }
 
 void CInputHandler::OnMButtonDown (UINT nFlags, CPoint point)
 {
+UpdateModifierStates (WM_MBUTTONDOWN, 0, nFlags);
 UpdateMouseState (WM_MBUTTONDOWN, point);
 }
 
 void CInputHandler::OnXButtonUp (UINT nFlags, UINT nButton, CPoint point)
 {
+UpdateModifierStates (WM_XBUTTONUP, 0, nFlags);
 // this is a bit weird but testing nFlags would be unreliable -
 // if both xbuttons are pressed it'll just see the one it checks first
 UpdateMouseState ((nButton << 16) | WM_XBUTTONUP, point);
@@ -224,6 +232,7 @@ UpdateMouseState ((nButton << 16) | WM_XBUTTONUP, point);
 
 void CInputHandler::OnXButtonDown (UINT nFlags, UINT nButton, CPoint point)
 {
+UpdateModifierStates (WM_XBUTTONDOWN, 0, nFlags);
 UpdateMouseState ((nButton << 16) | WM_XBUTTONDOWN, point);
 }
 
@@ -236,41 +245,37 @@ void CInputHandler::OnMouseWheel (UINT nFlags, short zDelta, CPoint pt)
 
 eMouseStates CInputHandler::MapInputToMouseState (UINT msg, const CPoint point) const
 {
-if (HasInputLock ())
-	return eMouseStateLockedRotate;
 if (!m_pCurrentMouseState->IsExitAllowed (msg, point))
-	return m_pCurrentMouseState->GetValue ();
+	return MouseState ();
 
 // Check states in three passes - first look for an exact match, then look for
 // any partial match that this message was the last remaining condition for.
 // The existing state is otherwise preferred, except when it has exited.
 for (int i = eMouseStateIdle + 1; i < eMouseStateCount; i++) {
 	eMouseStates state = (eMouseStates)i;
-	if (state == m_pCurrentMouseState->GetValue ())
+	if (state == MouseState ())
 		continue;
 	if (GetMouseState (state)->HasEntered (msg, point) == eMatchExact)
-		if (m_pCurrentMouseState->ValidateTransition (state))
-			return state;
+		return state;
 	}
 
 for (int i = eMouseStateIdle + 1; i < eMouseStateCount; i++) {
 	eMouseStates state = (eMouseStates)i;
-	if (state == m_pCurrentMouseState->GetValue ())
+	if (state == MouseState ())
 		continue;
 	if (GetMouseState (state)->HasEntered (msg, point) == eMatchPartialCompleted)
-		if (m_pCurrentMouseState->ValidateTransition (state))
-			return state;
+		return state;
 	}
 
 if (!m_pCurrentMouseState->HasExited (msg, point))
 	return m_pCurrentMouseState->GetValue ();
+
 for (int i = eMouseStateIdle + 1; i < eMouseStateCount; i++) {
 	eMouseStates state = (eMouseStates)i;
-	if (state == m_pCurrentMouseState->GetValue ())
+	if (state == MouseState ())
 		continue;
 	if (GetMouseState (state)->HasEntered (msg, point) == eMatchPartial)
-		if (m_pCurrentMouseState->ValidateTransition (state))
-			return state;
+		return state;
 	}
 
 // If all else fails, go back to idle.
@@ -319,27 +324,47 @@ UpdateMouseState (msg, m_lastMousePos);
 
 void CInputHandler::UpdateModifierStates (UINT msg, UINT nChar, UINT nFlags)
 {
-if (msg == WM_KEYDOWN || msg == WM_KEYUP) {
-	switch (nChar) {
-		case VK_SHIFT:
-			m_bModifierActive [eModifierShift] = (msg == WM_KEYDOWN);
-			break;
+switch (msg) {
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+		switch (nChar) {
+			case VK_SHIFT:
+				m_bModifierActive [eModifierShift] = (msg == WM_KEYDOWN);
+				break;
 
-		case VK_CONTROL:
-			m_bModifierActive [eModifierCtrl] = (msg == WM_KEYDOWN);
-			break;
+			case VK_CONTROL:
+				m_bModifierActive [eModifierCtrl] = (msg == WM_KEYDOWN);
+				break;
 
-		case VK_MENU:
-			m_bModifierActive [eModifierAlt] = (msg == WM_KEYDOWN);
-			break;
+			case VK_MENU:
+				m_bModifierActive [eModifierAlt] = (msg == WM_KEYDOWN);
+				break;
 
-		default:
-			break;
-		}
-	}
-else if (msg == WM_MOUSEMOVE) {
-	m_bModifierActive [eModifierShift] = (nFlags & MK_SHIFT) == MK_SHIFT;
-	m_bModifierActive [eModifierCtrl] = (nFlags & MK_CONTROL) == MK_CONTROL;
+			default:
+				break;
+			}
+		break;
+
+	case WM_MOUSEMOVE:
+	case WM_LBUTTONUP:
+	case WM_LBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_RBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_MBUTTONDOWN:
+	case WM_XBUTTONUP:
+	case WM_XBUTTONDOWN:
+		m_bModifierActive [eModifierShift] = (nFlags & MK_SHIFT) == MK_SHIFT;
+		m_bModifierActive [eModifierCtrl] = (nFlags & MK_CONTROL) == MK_CONTROL;
+		m_mouseButtonStates = nFlags & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON | MK_XBUTTON1 | MK_XBUTTON2);
+		break;
+
+	case WM_SETFOCUS:
+		//m_bModifierActive [eModifierAlt] = GetKeyState (VK_MENU) > 0;
+		break;
+
+	default:
+		break;
 	}
 }
 
@@ -421,76 +446,6 @@ if (!m_bKeyCommandActive [command])
 		}
 
 return true;
-}
-
-void CInputHandler::DoMousePan (const CPoint point)
-{
-	CPoint change = m_lastMousePos - point;
-	double scale = 0.5;
-	double panAmountX = double(change.x) * scale;
-	double panAmountY = -double(change.y) * scale;
-
-if (m_pMineView->Perspective ())
-	panAmountX = -panAmountX;
-if (GetMouseState (eMouseStatePan)->GetConfig ().bInvertX)
-	panAmountX = -panAmountX;
-if (GetMouseState (eMouseStatePan)->GetConfig ().bInvertY)
-	panAmountY = -panAmountY;
-
-if (panAmountX != 0.0)
-	m_pMineView->Pan ('X', panAmountX);
-if (panAmountY != 0.0)
-	m_pMineView->Pan ('Y', panAmountY);
-}
-
-void CInputHandler::DoMouseZoom (const CPoint point)
-{
-	CPoint zoomOffset = m_pMineView->Perspective () ?
-		m_lastMousePos - point :
-		point - *m_zoomStartPos;
-
-if (GetMouseState (eMouseStateZoom)->GetConfig ().bInvertX)
-	zoomOffset.x = -zoomOffset.x;
-if (GetMouseState (eMouseStateZoom)->GetConfig ().bInvertY)
-	zoomOffset.y = -zoomOffset.y;
-
-if (m_pMineView->Perspective ()) {
-	if ((zoomOffset.x > 0) || ((zoomOffset.x == 0) && (zoomOffset.y > 0))) {
-		m_pMineView->ZoomOut (1, true);
-		}
-	else if ((zoomOffset.x < 0) || ((zoomOffset.x == 0) && (zoomOffset.y < 0))) {
-		m_pMineView->ZoomIn (1, true);
-		}
-	}
-else {
-	int nChange = zoomOffset.x + zoomOffset.y;
-	if (nChange > 30) {
-		*m_zoomStartPos = point;
-		m_pMineView->ZoomIn (1, true);
-		}
-	else if (nChange < -30) {
-		*m_zoomStartPos = point;
-		m_pMineView->ZoomOut (1, true);
-		}
-	}
-}
-
-void CInputHandler::DoMouseRotate (const CPoint point)
-{
-	CPoint change = m_lastMousePos - point;
-	double scale = m_pMineView->Perspective () ? 300.0 : 200.0;
-	// RotateAmountX/Y are how much we rotate about either axis,
-	// which is why it looks like we're swapping them here.
-	double rotateAmountX = double(change.y) / scale;
-	double rotateAmountY = -double(change.x) / scale;
-
-if (GetMouseState (eMouseStateRotate)->GetConfig ().bInvertY)
-	rotateAmountX = -rotateAmountX;
-if (GetMouseState (eMouseStateRotate)->GetConfig ().bInvertX)
-	rotateAmountY = -rotateAmountY;
-
-m_pMineView->Rotate ('Y', rotateAmountY);
-m_pMineView->Rotate ('X', rotateAmountX);
 }
 
 void CInputHandler::ApplyMovement (eKeyCommands command)
@@ -848,48 +803,77 @@ class CMouseInputStateBase : public IMouseInputState {
 				}
 
 			if (result != eMatchNone) {
-				// Check mouse button
-				// Using bitwise comparisons to allow states to have multiple buttons mapping to them
+				// Check mouse buttons
+				// States can have multiple buttons mapping to them so we only need one match
+				bool bFound = false;
+				if (m_pInputHandler->m_mouseButtonStates & MK_LBUTTON) {
+					if (m_stateConfig.button & MK_LBUTTON)
+						bFound = true;
+					else
+						result = eMatchPartial;
+					}
+				if (m_pInputHandler->m_mouseButtonStates & MK_MBUTTON) {
+					if (m_stateConfig.button & MK_MBUTTON)
+						bFound = true;
+					else
+						result = eMatchPartial;
+					}
+				if (m_pInputHandler->m_mouseButtonStates & MK_RBUTTON) {
+					if (m_stateConfig.button & MK_RBUTTON)
+						bFound = true;
+					else
+						result = eMatchPartial;
+					}
+				if (m_pInputHandler->m_mouseButtonStates & MK_XBUTTON1) {
+					if (m_stateConfig.button & MK_XBUTTON1)
+						bFound = true;
+					else
+						result = eMatchPartial;
+					}
+				if (m_pInputHandler->m_mouseButtonStates & MK_XBUTTON2) {
+					if (m_stateConfig.button & MK_XBUTTON2)
+						bFound = true;
+					else
+						result = eMatchPartial;
+					}
+				if (!bFound)
+					result = eMatchNone;
+				}
+
+			// Check if the message we received was the last one necessary for a partial match
+			if (result == eMatchPartial) {
 				switch (msg) {
 					case WM_LBUTTONDOWN:
-						if (!(m_stateConfig.button & MK_LBUTTON))
-							result = eMatchNone;
+						if (m_stateConfig.button & MK_LBUTTON)
+							result = eMatchPartialCompleted;
 						break;
 
 					case WM_MBUTTONDOWN:
-						if (!(m_stateConfig.button & MK_MBUTTON))
-							result = eMatchNone;
+						if (m_stateConfig.button & MK_MBUTTON)
+							result = eMatchPartialCompleted;
 						break;
 
 					case WM_RBUTTONDOWN:
-						if (!(m_stateConfig.button & MK_RBUTTON))
-							result = eMatchNone;
+						if (m_stateConfig.button & MK_RBUTTON)
+							result = eMatchPartialCompleted;
 						break;
 
 					case (0x10000 | WM_XBUTTONDOWN):
-						if (!(m_stateConfig.button & MK_XBUTTON1))
-							result = eMatchNone;
+						if (m_stateConfig.button & MK_XBUTTON1)
+							result = eMatchPartialCompleted;
 						break;
 
 					case (0x20000 | WM_XBUTTONDOWN):
-						if (!(m_stateConfig.button & MK_XBUTTON2))
-							result = eMatchNone;
+						if (m_stateConfig.button & MK_XBUTTON2)
+							result = eMatchPartialCompleted;
 						break;
 
 					default:
-						if (IsClickState ())
-							result = eMatchNone;
 						break;
 					}
 				}
 
 			return result;
-			}
-
-		virtual bool IsExitAllowed (UINT msg, const CPoint& point) const {
-			if (IsClickState ())
-				return HasExited (msg, point);
-			return true;
 			}
 
 		virtual bool HasExited (UINT msg, const CPoint& point) const {
@@ -902,7 +886,14 @@ class CMouseInputStateBase : public IMouseInputState {
 				}
 
 			// Check mouse button
-			return m_pInputHandler->ButtonUpMatchesState (T, msg);
+			return IsMessageMatchingButtonUp (msg);
+			}
+
+		virtual bool IsExitAllowed (UINT msg, const CPoint& point) const {
+			if (IsClickState ())
+				return HasExited (msg, point);
+			else
+				return true;
 			}
 
 	protected:
@@ -970,9 +961,8 @@ class CMouseStateIdle : public CMouseInputStateBase < eMouseStateIdle > {
 		void OnCancelled (UINT, const CPoint&) {}
 		void OnMouseMove (const CPoint&) {}
 		eMouseStateMatchResults HasEntered (UINT, const CPoint&) const { return eMatchPartial; }
-		bool IsExitAllowed (UINT msg, const CPoint& point) const { return true; }
 		bool HasExited (UINT) const { return false; }
-		bool ValidateTransition (eMouseStates) const { return true; }
+		bool IsExitAllowed (UINT msg, const CPoint& point) const { return true; }
 
 	protected:
 		// Has no config
@@ -1051,7 +1041,7 @@ class CMouseStateDrag : public CMouseInputStateBase < eMouseStateDrag > {
 
 	private:
 		bool CheckValidDragTarget () const {
-			const CPoint *pStartPos = m_pInputHandler->m_pMouseState->GetStartPos ();
+			const CPoint *pStartPos = m_pInputHandler->m_pCurrentMouseState->GetStartPos ();
 			if (pStartPos == nullptr)
 				return false;
 			// Only counts as a drag if it hits a vertex
@@ -1172,7 +1162,7 @@ class CMouseStateSelect : public CMouseInputStateBase < eMouseStateSelect > {
 			m_pInputHandler->m_pMineView->UpdateSelectHighlights ();
 			}
 
-		bool ValidateTransition (eMouseStates newState) const {
+		bool IsExitAllowed (UINT msg, const CPoint& point) const {
 			switch (newState) {
 				case eMouseStatePan:
 				case eMouseStateRotate:
@@ -1194,31 +1184,30 @@ class CMouseStateSelect : public CMouseInputStateBase < eMouseStateSelect > {
 			}
 };
 
-class CMouseStateLockedRotate : public CMouseInputStateBase < eMouseStateLockedRotate > {
-	public:
-		CMouseStateLockedRotate (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "LockedRotate")
-		{}
-
-		void OnMouseMove (const CPoint& point) { m_pInputHandler->DoMouseRotate (point); }
-
-		bool ValidateTransition (eMouseStates) const { return !m_pInputHandler->HasInputLock (); }
-
-	protected:
-		// Copied from Rotate
-		void SetConfigDefaults () {}
-		void LoadConfig (LPCTSTR) {
-			m_stateConfig = m_pInputHandler->GetMouseState (eMouseStateRotate)->GetConfig ();
-			}
-};
-
 class CMouseStatePan : public CMouseInputStateBase < eMouseStatePan > {
 	public:
 		CMouseStatePan (CInputHandler *pInputHandler) :
 			CMouseInputStateBase (pInputHandler, "Pan")
 		{}
 
-		void OnMouseMove (const CPoint& point) { m_pInputHandler->DoMousePan (point); }
+		void OnMouseMove (const CPoint& point) {
+			CPoint change = m_pInputHandler->LastMousePos () - point;
+			double scale = 0.5;
+			double panAmountX = double(change.x) * scale;
+			double panAmountY = -double(change.y) * scale;
+
+			if (m_pInputHandler->m_pMineView->Perspective ())
+				panAmountX = -panAmountX;
+			if (m_stateConfig.bInvertX)
+				panAmountX = -panAmountX;
+			if (m_stateConfig.bInvertY)
+				panAmountY = -panAmountY;
+
+			if (panAmountX != 0.0)
+				m_pInputHandler->m_pMineView->Pan ('X', panAmountX);
+			if (panAmountY != 0.0)
+				m_pInputHandler->m_pMineView->Pan ('Y', panAmountY);
+			}
 
 	protected:
 		void SetConfigDefaults () {
@@ -1232,7 +1221,22 @@ class CMouseStateRotate : public CMouseInputStateBase < eMouseStateRotate > {
 			CMouseInputStateBase (pInputHandler, "Rotate")
 		{}
 
-		void OnMouseMove (const CPoint& point) { m_pInputHandler->DoMouseRotate (point); }
+		void OnMouseMove (const CPoint& point) {
+			CPoint change = m_pInputHandler->LastMousePos () - point;
+			double scale = m_pInputHandler->m_pMineView->Perspective () ? 300.0 : 200.0;
+			// RotateAmountX/Y are how much we rotate about either axis,
+			// which is why it looks like we're swapping them here.
+			double rotateAmountX = double (change.y) / scale;
+			double rotateAmountY = -double (change.x) / scale;
+
+			if (m_stateConfig.bInvertY)
+				rotateAmountX = -rotateAmountX;
+			if (m_stateConfig.bInvertX)
+				rotateAmountY = -rotateAmountY;
+
+			m_pInputHandler->m_pMineView->Rotate ('Y', rotateAmountY);
+			m_pInputHandler->m_pMineView->Rotate ('X', rotateAmountX);
+			}
 
 	protected:
 		void SetConfigDefaults () {
@@ -1256,9 +1260,38 @@ class CMouseStateZoom : public CMouseInputStateBase < eMouseStateZoom > {
 				}
 			}
 
-		void OnMouseMove (const CPoint& point) { m_pInputHandler->DoMouseZoom (point); }
+		void OnMouseMove (const CPoint& point) {
+			CPoint zoomOffset = m_pInputHandler->m_pMineView->Perspective () ?
+				m_pInputHandler->LastMousePos () - point :
+				point - *m_zoomStartPos;
 
-		bool ValidateTransition (eMouseStates newState) const {
+			if (m_stateConfig.bInvertX)
+				zoomOffset.x = -zoomOffset.x;
+			if (m_stateConfig.bInvertY)
+				zoomOffset.y = -zoomOffset.y;
+
+			if (m_pInputHandler->m_pMineView->Perspective ()) {
+				if ((zoomOffset.x > 0) || ((zoomOffset.x == 0) && (zoomOffset.y > 0))) {
+					m_pInputHandler->m_pMineView->ZoomOut (1, true);
+					}
+				else if ((zoomOffset.x < 0) || ((zoomOffset.x == 0) && (zoomOffset.y < 0))) {
+					m_pInputHandler->m_pMineView->ZoomIn (1, true);
+					}
+				}
+			else {
+				int nChange = zoomOffset.x + zoomOffset.y;
+				if (nChange > 30) {
+					*m_zoomStartPos = point;
+					m_pInputHandler->m_pMineView->ZoomIn (1, true);
+					}
+				else if (nChange < -30) {
+					*m_zoomStartPos = point;
+					m_pInputHandler->m_pMineView->ZoomOut (1, true);
+					}
+				}
+			}
+
+		bool IsExitAllowed (UINT msg, const CPoint& point) const {
 			// If the current state requires a mouse click and that button is down, no change
 			if (IsClickState (m_mouseState) && !HasExitedState (msg))
 				break;
@@ -1273,4 +1306,30 @@ class CMouseStateZoom : public CMouseInputStateBase < eMouseStateZoom > {
 			LoadStateConfig (m_stateConfigIn, "ZoomIn");
 			LoadStateConfig (m_stateConfigOut, "ZoomOut");
 			}
+};
+
+class CMouseStateLockedRotate : public CMouseInputStateBase < eMouseStateLockedRotate > {
+	public:
+		CMouseStateLockedRotate (CInputHandler *pInputHandler, CMouseStateRotate *pRotateMouseState) :
+			CMouseInputStateBase (pInputHandler, "LockedRotate"),
+			m_pRotateMouseState (pRotateMouseState)
+		{}
+
+		void OnMouseMove (const CPoint& point) {
+			m_pRotateMouseState->OnMouseMove (point);
+			}
+
+		bool IsExitAllowed (UINT, const CPoint&) const {
+			return !m_pInputHandler->HasInputLock ();
+			}
+
+	protected:
+		// Copied from Rotate
+		void SetConfigDefaults () {}
+		void LoadConfig (LPCTSTR) {
+			m_stateConfig = m_pRotateMouseState->GetConfig ();
+			}
+
+	private:
+		CMouseStateRotate *m_pRotateMouseState;
 };

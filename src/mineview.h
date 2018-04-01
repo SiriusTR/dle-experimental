@@ -147,7 +147,6 @@ class CMineView;
 class IMouseInputState {
 	public:
 		virtual eMouseStates GetValue () const = 0;
-		virtual const MouseStateConfig& GetConfig () const = 0;
 		virtual const CPoint* GetStartPos () const = 0;
 
 		// Called after the state has been entered
@@ -161,13 +160,10 @@ class IMouseInputState {
 
 		// Checks whether the state will be entered with the event specified
 		virtual eMouseStateMatchResults HasEntered (UINT msg, const CPoint& point) const = 0;
-		// Checks whether the state could potentially exit with the event specified
-		// (i.e. it is possible another state could be entered instead)
-		virtual bool IsExitAllowed (UINT msg, const CPoint& point) const = 0;
 		// Checks whether the state will exit with the event specified
 		virtual bool HasExited (UINT msg, const CPoint& point) const = 0;
-		// Checks whether the requested new state can be reached from this state
-		virtual bool ValidateTransition (eMouseStates newState) const = 0;
+		// Checks whether a transition to another state is permissible with the event specified
+		virtual bool IsExitAllowed (UINT msg, const CPoint& point) const = 0;
 };
 
 class CInputHandler {
@@ -211,6 +207,7 @@ class CInputHandler {
 		IMouseInputState *m_pCurrentMouseState;
 		CPoint *m_zoomStartPos;
 		CPoint m_lastMousePos;
+		UINT m_mouseButtonStates;
 		bool m_bModifierActive [eModifierCount];
 		bool m_bKeyCommandActive [eKeyCommandCount];
 		bool m_bInputLockActive;
@@ -228,9 +225,6 @@ class CInputHandler {
 		bool IsMovementCommand (eKeyCommands command);
 		eKeyCommands MapKeyToCommand (UINT nChar);
 		bool KeyMatchesKeyCommand (eKeyCommands command, UINT nChar);
-		void DoMousePan (const CPoint point);
-		void DoMouseZoom (const CPoint point);
-		void DoMouseRotate (const CPoint point);
 		void ApplyMovement (eKeyCommands command);
 		void StartMovement (eKeyCommands command);
 		void StopMovement (eKeyCommands command);
