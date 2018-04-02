@@ -52,11 +52,11 @@ enum eMouseStates
 	eMouseStateQuickTag,
 	eMouseStateDoContextMenu,
 	eMouseStateSelect,
-	eMouseStateLockedRotate,
 	eMouseStatePan,
 	eMouseStateRotate,
 	eMouseStateZoomIn,
 	eMouseStateZoomOut,
+	eMouseStateLockedRotate,
 	//must always be last tag
 	eMouseStateCount
 };
@@ -149,6 +149,7 @@ class IMouseInputState {
 	public:
 		virtual eMouseStates GetValue () const = 0;
 		virtual const CPoint* GetStartPos () const = 0;
+		virtual void LoadConfig () = 0;
 
 		// Called after the state has been entered
 		// msg indicates the event that caused the entry; point indicates the mouse location

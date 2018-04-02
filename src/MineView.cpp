@@ -148,11 +148,11 @@ static LPSTR nIdCursors [eMouseStateCount] = {
 	IDC_ARROW, // QuickTag
 	IDC_ARROW, // DoContextMenu
 	IDC_ARROW, // Select
-	MAKEINTRESOURCE (IDC_CURSOR_XHAIRS), // LockedRotate
 	MAKEINTRESOURCE (IDC_CURSOR_PAN), // Pan
 	MAKEINTRESOURCE (IDC_CURSOR_ROTATE), // Rotate
 	MAKEINTRESOURCE (IDC_CURSOR_ZOOMIN), // ZoomIn
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOMOUT) // ZoomOut
+	MAKEINTRESOURCE (IDC_CURSOR_ZOOMOUT), // ZoomOut
+	MAKEINTRESOURCE (IDC_CURSOR_XHAIRS) // LockedRotate
 	};
 
 m_renderers [0] = new CRendererSW (m_renderData);
