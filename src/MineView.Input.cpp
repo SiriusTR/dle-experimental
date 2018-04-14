@@ -100,37 +100,8 @@ class CMouseInputStateBase : public IMouseInputState {
 				}
 
 			// Check if the message we received was the last one necessary for a partial match
-			if (result == eMatchPartial) {
-				switch (msg) {
-					case WM_LBUTTONDOWN:
-						if (m_stateConfig.button & MK_LBUTTON)
-							result = eMatchPartialCompleted;
-						break;
-
-					case WM_MBUTTONDOWN:
-						if (m_stateConfig.button & MK_MBUTTON)
-							result = eMatchPartialCompleted;
-						break;
-
-					case WM_RBUTTONDOWN:
-						if (m_stateConfig.button & MK_RBUTTON)
-							result = eMatchPartialCompleted;
-						break;
-
-					case (0x10000 | WM_XBUTTONDOWN):
-						if (m_stateConfig.button & MK_XBUTTON1)
-							result = eMatchPartialCompleted;
-						break;
-
-					case (0x20000 | WM_XBUTTONDOWN):
-						if (m_stateConfig.button & MK_XBUTTON2)
-							result = eMatchPartialCompleted;
-						break;
-
-					default:
-						break;
-					}
-				}
+			if (result == eMatchPartial && IsMessageMatchingButtonDown (msg))
+				result = eMatchPartialCompleted;
 
 			return result;
 			}
@@ -158,6 +129,11 @@ class CMouseInputStateBase : public IMouseInputState {
 				return HasExited (msg, point);
 			else
 				return true;
+			}
+
+		virtual bool IsTransitionValid (eMouseStates /*newState*/, UINT msg, const CPoint& point) const {
+			// Normally the target state doesn't matter
+			return IsExitAllowed (msg, point);
 			}
 
 	protected:
@@ -192,6 +168,40 @@ class CMouseInputStateBase : public IMouseInputState {
 					break;
 
 				case (0x20000 | WM_XBUTTONUP):
+					if (m_stateConfig.button & MK_XBUTTON2)
+						return true;
+					break;
+
+				default:
+					break;
+				}
+
+			return false;
+			}
+
+		bool IsMessageMatchingButtonDown (UINT msg) const {
+			switch (msg) {
+				case WM_LBUTTONDOWN:
+					if (m_stateConfig.button & MK_LBUTTON)
+						return true;
+					break;
+
+				case WM_MBUTTONDOWN:
+					if (m_stateConfig.button & MK_MBUTTON)
+						return true;
+					break;
+
+				case WM_RBUTTONDOWN:
+					if (m_stateConfig.button & MK_RBUTTON)
+						return true;
+					break;
+
+				case (0x10000 | WM_XBUTTONDOWN):
+					if (m_stateConfig.button & MK_XBUTTON1)
+						return true;
+					break;
+
+				case (0x20000 | WM_XBUTTONDOWN):
 					if (m_stateConfig.button & MK_XBUTTON2)
 						return true;
 					break;
@@ -453,6 +463,34 @@ class CMouseStateSelect : public CMouseInputStateBase < eMouseStateSelect > {
 			m_pMineView->UpdateSelectHighlights ();
 			}
 
+		void OnCancelled (UINT msg, const CPoint& point) {
+			m_pMineView->UpdateSelectHighlights ();
+			}
+
+		void OnMouseMove (const CPoint& point) {
+			m_pMineView->UpdateSelectHighlights ();
+			}
+
+		bool IsTransitionValid (eMouseStates newState, UINT msg, const CPoint& point) const {
+			// Always prefer apply select state if that is a valid outcome
+			IMouseInputState *pApplySelectState = m_pInputHandler->GetMouseState (eMouseStateApplySelect);
+			if (pApplySelectState->HasEntered (msg, point))
+				return newState == eMouseStateApplySelect;
+			return CMouseInputStateBase::IsTransitionValid (newState, msg, point);
+			}
+
+	private:
+		void SetConfigDefaults () {
+			m_stateConfig.modifiers [eModifierShift] = true;
+			}
+};
+
+class CMouseStateApplySelect : public CMouseInputStateBase < eMouseStateApplySelect > {
+	public:
+		CMouseStateApplySelect (CInputHandler *pInputHandler) :
+			CMouseInputStateBase (pInputHandler, "ApplyAdvSelect")
+		{}
+
 		void OnCompleted (UINT msg, const CPoint& point) {
 			m_pMineView->SelectCurrentElement (point.x, point.y, false);
 			}
@@ -465,8 +503,15 @@ class CMouseStateSelect : public CMouseInputStateBase < eMouseStateSelect > {
 			m_pMineView->UpdateSelectHighlights ();
 			}
 
+		bool IsExitAllowed (UINT msg, const CPoint& point) const {
+			if (m_pInputHandler->HasMouseMoved (point))
+				return true;
+			return CMouseInputStateBase::IsExitAllowed (msg, point);
+			}
+
 	private:
 		void SetConfigDefaults () {
+			m_stateConfig.button = MK_LBUTTON | MK_RBUTTON;
 			m_stateConfig.modifiers [eModifierShift] = true;
 			}
 };
@@ -618,18 +663,17 @@ class CMouseStateZoomOut : public CMouseStateZoom < eMouseStateZoomOut > {
 
 class CMouseStateLockedRotate : public CMouseInputStateBase < eMouseStateLockedRotate > {
 	public:
-		CMouseStateLockedRotate (CInputHandler *pInputHandler, CMouseStateRotate *pRotateMouseState) :
-			CMouseInputStateBase (pInputHandler, "LockedRotate"),
-			m_pRotateMouseState (pRotateMouseState)
+		CMouseStateLockedRotate (CInputHandler *pInputHandler) :
+			CMouseInputStateBase (pInputHandler, "LockedRotate")
 		{}
 
-		void LoadConfig (LPCTSTR) {
-			m_stateConfig.bInvertX = m_pRotateMouseState->GetConfig ().bInvertX;
-			m_stateConfig.bInvertY = m_pRotateMouseState->GetConfig ().bInvertY;
-			}
+		// No config, delegates to Rotate
+		void LoadConfig (LPCTSTR) {}
 
 		void OnMouseMove (const CPoint& point) {
-			m_pRotateMouseState->OnMouseMove (point);
+			CMouseStateRotate *pMouseStateRotate = dynamic_cast <CMouseStateRotate*> (m_pInputHandler->m_pMouseStates [eMouseStateRotate]);
+			if (pMouseStateRotate != nullptr)
+				pMouseStateRotate->OnMouseMove (point);
 			}
 
 		eMouseStateMatchResults HasEntered (UINT, const CPoint&) const {
@@ -645,10 +689,7 @@ class CMouseStateLockedRotate : public CMouseInputStateBase < eMouseStateLockedR
 			}
 
 	private:
-		// Copied from Rotate
 		void SetConfigDefaults () {}
-
-		CMouseStateRotate *m_pRotateMouseState;
 };
 
 CInputHandler::CInputHandler (CMineView *pMineView)
@@ -688,12 +729,12 @@ m_pMouseStates [eMouseStateRubberBandUnTag] = new CMouseStateRubberBandUnTag (th
 m_pMouseStates [eMouseStateQuickTag] = new CMouseStateQuickTag (this);
 m_pMouseStates [eMouseStateDoContextMenu] = new CMouseStateDoContextMenu (this);
 m_pMouseStates [eMouseStateSelect] = new CMouseStateSelect (this);
+m_pMouseStates [eMouseStateApplySelect] = new CMouseStateApplySelect (this);
 m_pMouseStates [eMouseStatePan] = new CMouseStatePan (this);
 m_pMouseStates [eMouseStateRotate] = new CMouseStateRotate (this);
 m_pMouseStates [eMouseStateZoomIn] = new CMouseStateZoomIn (this);
 m_pMouseStates [eMouseStateZoomOut] = new CMouseStateZoomOut (this);
-m_pMouseStates [eMouseStateLockedRotate] = new CMouseStateLockedRotate (this,
-	dynamic_cast <CMouseStateRotate*> (m_pMouseStates [eMouseStateRotate]));
+m_pMouseStates [eMouseStateLockedRotate] = new CMouseStateLockedRotate (this);
 for (int i = eMouseStateIdle; i < eMouseStateCount; i++)
 	m_pMouseStates [i]->LoadConfig ();
 
@@ -910,7 +951,8 @@ for (int i = eMouseStateIdle + 1; i < eMouseStateCount; i++) {
 	eMouseStates state = (eMouseStates)i;
 	if (state == MouseState ())
 		continue;
-	if (GetMouseState (state)->HasEntered (msg, point) == eMatchExact)
+	if (GetMouseState (state)->HasEntered (msg, point) == eMatchExact &&
+		m_pCurrentMouseState->IsTransitionValid (state, msg, point))
 		return state;
 	}
 
@@ -918,7 +960,8 @@ for (int i = eMouseStateIdle + 1; i < eMouseStateCount; i++) {
 	eMouseStates state = (eMouseStates)i;
 	if (state == MouseState ())
 		continue;
-	if (GetMouseState (state)->HasEntered (msg, point) == eMatchPartialCompleted)
+	if (GetMouseState (state)->HasEntered (msg, point) == eMatchPartialCompleted &&
+		m_pCurrentMouseState->IsTransitionValid (state, msg, point))
 		return state;
 	}
 
@@ -929,7 +972,8 @@ for (int i = eMouseStateIdle + 1; i < eMouseStateCount; i++) {
 	eMouseStates state = (eMouseStates)i;
 	if (state == MouseState ())
 		continue;
-	if (GetMouseState (state)->HasEntered (msg, point) == eMatchPartial)
+	if (GetMouseState (state)->HasEntered (msg, point) == eMatchPartial &&
+		m_pCurrentMouseState->IsTransitionValid (state, msg, point))
 		return state;
 	}
 

@@ -52,6 +52,7 @@ enum eMouseStates
 	eMouseStateQuickTag,
 	eMouseStateDoContextMenu,
 	eMouseStateSelect,
+	eMouseStateApplySelect,
 	eMouseStatePan,
 	eMouseStateRotate,
 	eMouseStateZoomIn,
@@ -166,6 +167,8 @@ class IMouseInputState {
 		virtual bool HasExited (UINT msg, const CPoint& point) const = 0;
 		// Checks whether a transition to another state is permissible with the event specified
 		virtual bool IsExitAllowed (UINT msg, const CPoint& point) const = 0;
+		// Checks whether a specific transition is permissible with the event specified
+		virtual bool IsTransitionValid (eMouseStates newState, UINT msg, const CPoint& point) const = 0;
 };
 
 class CInputHandler {
@@ -244,6 +247,7 @@ class CInputHandler {
 		friend class CMouseStateQuickTag;
 		friend class CMouseStateDoContextMenu;
 		friend class CMouseStateSelect;
+		friend class CMouseStateApplySelect;
 		friend class CMouseStateLockedRotate;
 		friend class CMouseStatePan;
 		friend class CMouseStateRotate;
