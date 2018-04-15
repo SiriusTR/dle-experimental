@@ -150,6 +150,7 @@ class IMouseInputState {
 	public:
 		virtual eMouseStates GetValue () const = 0;
 		virtual const CPoint* GetStartPos () const = 0;
+		virtual HCURSOR GetCursor () const = 0;
 		virtual void LoadConfig () = 0;
 
 		// Called after the state has been entered
@@ -193,6 +194,7 @@ class CInputHandler {
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
 		eMouseStates MouseState () const { return m_pCurrentMouseState->GetValue (); }
+		HCURSOR GetCurrentCursor () const { return m_pCurrentMouseState->GetCursor (); }
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
 		bool HasMouseMovedInCurrentState () const { return HasMouseMoved (LastMousePos ()); }
 		bool HasInputLock () const { return m_bInputLockActive; }
@@ -295,7 +297,6 @@ protected: // create from serialization only
 	int 				m_nDelayRefresh;
 	uint				m_viewOption;
 	uint				m_selectMode;
-	HCURSOR			m_hCursors [eMouseStateCount];
 
 	CPoint			m_lastDragPos;
 	CPoint			m_highlightPos;
@@ -499,7 +500,7 @@ public:
 	inline CPoint& ViewMax (void) { return m_viewMax; }
 
 	CPoint AdjustMousePos (CPoint point);
-	BOOL SetCursor (eMouseStates state);
+	BOOL UpdateCursor ();
 	const CPoint& LastMousePos () { return m_inputHandler.LastMousePos (); }
 	CPoint CenterMouse ();
 

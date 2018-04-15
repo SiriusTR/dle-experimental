@@ -138,31 +138,11 @@ for (int nWeight = 0; nWeight < 2; nWeight++)
 CMineView::CMineView() :
 	m_inputHandler (this)
 {
-static LPSTR nIdCursors [eMouseStateCount] = {
-	IDC_ARROW, // Idle
-	IDC_ARROW, // QuickSelect
-	IDC_ARROW, // QuickSelectObject
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // Drag
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // RubberBandTag
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // RubberBandUnTag
-	IDC_ARROW, // QuickTag
-	IDC_ARROW, // DoContextMenu
-	IDC_ARROW, // Select
-	IDC_ARROW, // ApplySelect
-	MAKEINTRESOURCE (IDC_CURSOR_PAN), // Pan
-	MAKEINTRESOURCE (IDC_CURSOR_ROTATE), // Rotate
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOMIN), // ZoomIn
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOMOUT), // ZoomOut
-	MAKEINTRESOURCE (IDC_CURSOR_XHAIRS) // LockedRotate
-	};
-
 m_renderers [0] = new CRendererSW (m_renderData);
 m_renderers [1] = new CRendererGL (m_renderData);
 m_nRenderer = 0;
 SetRenderer (1);
 
-for (int i = eMouseStateIdle; i < eMouseStateCount; i++)
-	m_hCursors [i] = LoadCursor ((nIdCursors [i] == IDC_ARROW) ? null: DLE.m_hInstance, nIdCursors [i]);
 ViewObjectFlags () = eViewObjectsAll;
 ViewMineFlags () = eViewMineLights | eViewMineWalls | eViewMineSpecial;
 m_viewOption = eViewTextured;
@@ -801,9 +781,9 @@ return CView::OnSetCursor (pWnd, nHitTest, message);
 
 //------------------------------------------------------------------------------
 
-BOOL CMineView::SetCursor (eMouseStates state)
+BOOL CMineView::UpdateCursor ()
 {
-	HCURSOR hCursor = m_hCursors [state];
+	HCURSOR hCursor = m_inputHandler.GetCurrentCursor ();
 
 if (hCursor == NULL)
 	return FALSE;

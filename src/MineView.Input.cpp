@@ -4,13 +4,17 @@
 template < eMouseStates T >
 class CMouseInputStateBase : public IMouseInputState {
 	public:
-		CMouseInputStateBase (CInputHandler *pInputHandler, LPCTSTR bindingName) :
+		CMouseInputStateBase (CInputHandler *pInputHandler, LPCTSTR bindingName, LPCTSTR nIdCursor) :
 			m_pInputHandler (pInputHandler),
 			m_pMineView (pInputHandler->m_pMineView),
 			m_bindingName (bindingName),
 			m_bActive (false)
 		{
 			ZeroMemory (&m_stateConfig, sizeof (m_stateConfig));
+			if (nIdCursor == IDC_ARROW)
+				m_hCursor = LoadCursor (null, IDC_ARROW);
+			else
+				m_hCursor = LoadCursor (DLE.m_hInstance, nIdCursor);
 		}
 
 		eMouseStates GetValue () const { return T; }
@@ -27,6 +31,8 @@ class CMouseInputStateBase : public IMouseInputState {
 				return nullptr;
 			return &m_startPos;
 			}
+
+		HCURSOR GetCursor () const { return m_hCursor; }
 
 		void OnEntered (UINT msg, const CPoint& point) {
 			m_bActive = true;
@@ -215,6 +221,7 @@ class CMouseInputStateBase : public IMouseInputState {
 
 	private:
 		LPCTSTR m_bindingName;
+		HCURSOR m_hCursor;
 		bool m_bActive;
 		CPoint m_startPos;
 
@@ -233,7 +240,7 @@ class CMouseInputStateBase : public IMouseInputState {
 class CMouseStateIdle : public CMouseInputStateBase < eMouseStateIdle > {
 	public:
 		CMouseStateIdle (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "Idle")
+			CMouseInputStateBase (pInputHandler, "Idle", IDC_ARROW)
 		{}
 
 		// Has no config
@@ -250,7 +257,7 @@ class CMouseStateIdle : public CMouseInputStateBase < eMouseStateIdle > {
 class CMouseStateQuickSelect : public CMouseInputStateBase < eMouseStateQuickSelect > {
 	public:
 		CMouseStateQuickSelect (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "QuickSelect")
+			CMouseInputStateBase (pInputHandler, "QuickSelect", IDC_ARROW)
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -273,7 +280,7 @@ class CMouseStateQuickSelect : public CMouseInputStateBase < eMouseStateQuickSel
 class CMouseStateQuickSelectObject : public CMouseInputStateBase < eMouseStateQuickSelectObject > {
 	public:
 		CMouseStateQuickSelectObject (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "QuickSelectObject")
+			CMouseInputStateBase (pInputHandler, "QuickSelectObject", IDC_ARROW)
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -295,7 +302,7 @@ class CMouseStateQuickSelectObject : public CMouseInputStateBase < eMouseStateQu
 class CMouseStateDrag : public CMouseInputStateBase < eMouseStateDrag > {
 	public:
 		CMouseStateDrag (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "Drag")
+			CMouseInputStateBase (pInputHandler, "Drag", MAKEINTRESOURCE (IDC_CURSOR_DRAG))
 		{}
 
 		void OnEnteredImpl (UINT msg, const CPoint& point) {
@@ -345,7 +352,7 @@ class CMouseStateDrag : public CMouseInputStateBase < eMouseStateDrag > {
 class CMouseStateRubberBandTag : public CMouseInputStateBase < eMouseStateRubberBandTag > {
 	public:
 		CMouseStateRubberBandTag (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "Mark")
+			CMouseInputStateBase (pInputHandler, "Mark", MAKEINTRESOURCE (IDC_CURSOR_DRAG))
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -377,7 +384,7 @@ class CMouseStateRubberBandTag : public CMouseInputStateBase < eMouseStateRubber
 class CMouseStateRubberBandUnTag : public CMouseInputStateBase < eMouseStateRubberBandUnTag > {
 	public:
 		CMouseStateRubberBandUnTag (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "Unmark")
+			CMouseInputStateBase (pInputHandler, "Unmark", MAKEINTRESOURCE (IDC_CURSOR_DRAG))
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -410,7 +417,7 @@ class CMouseStateRubberBandUnTag : public CMouseInputStateBase < eMouseStateRubb
 class CMouseStateQuickTag : public CMouseInputStateBase < eMouseStateQuickTag > {
 	public:
 		CMouseStateQuickTag (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "QuickMark")
+			CMouseInputStateBase (pInputHandler, "QuickMark", IDC_ARROW)
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -433,7 +440,7 @@ class CMouseStateQuickTag : public CMouseInputStateBase < eMouseStateQuickTag > 
 class CMouseStateDoContextMenu : public CMouseInputStateBase < eMouseStateDoContextMenu > {
 	public:
 		CMouseStateDoContextMenu (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "ContextMenu")
+			CMouseInputStateBase (pInputHandler, "ContextMenu", IDC_ARROW)
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -456,7 +463,7 @@ class CMouseStateDoContextMenu : public CMouseInputStateBase < eMouseStateDoCont
 class CMouseStateSelect : public CMouseInputStateBase < eMouseStateSelect > {
 	public:
 		CMouseStateSelect (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "AdvSelect")
+			CMouseInputStateBase (pInputHandler, "AdvSelect", IDC_ARROW)
 		{}
 
 		void OnEnteredImpl (UINT msg, const CPoint& point) {
@@ -488,7 +495,7 @@ class CMouseStateSelect : public CMouseInputStateBase < eMouseStateSelect > {
 class CMouseStateApplySelect : public CMouseInputStateBase < eMouseStateApplySelect > {
 	public:
 		CMouseStateApplySelect (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "ApplyAdvSelect")
+			CMouseInputStateBase (pInputHandler, "ApplyAdvSelect", IDC_ARROW)
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -519,7 +526,7 @@ class CMouseStateApplySelect : public CMouseInputStateBase < eMouseStateApplySel
 class CMouseStatePan : public CMouseInputStateBase < eMouseStatePan > {
 	public:
 		CMouseStatePan (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "Pan")
+			CMouseInputStateBase (pInputHandler, "Pan", MAKEINTRESOURCE (IDC_CURSOR_PAN))
 		{}
 
 		void OnMouseMove (const CPoint& point) {
@@ -550,7 +557,7 @@ class CMouseStatePan : public CMouseInputStateBase < eMouseStatePan > {
 class CMouseStateRotate : public CMouseInputStateBase < eMouseStateRotate > {
 	public:
 		CMouseStateRotate (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "Rotate")
+			CMouseInputStateBase (pInputHandler, "Rotate", MAKEINTRESOURCE (IDC_CURSOR_ROTATE))
 		{}
 
 		void OnMouseMove (const CPoint& point) {
@@ -580,8 +587,8 @@ class CMouseStateRotate : public CMouseInputStateBase < eMouseStateRotate > {
 template < eMouseStates T >
 class CMouseStateZoom : public CMouseInputStateBase < T > {
 	public:
-		CMouseStateZoom (CInputHandler *pInputHandler, LPCTSTR bindingName) :
-			CMouseInputStateBase (pInputHandler, bindingName)
+		CMouseStateZoom (CInputHandler *pInputHandler, LPCTSTR bindingName, LPCTSTR nIdCursor) :
+			CMouseInputStateBase (pInputHandler, bindingName, nIdCursor)
 		{}
 
 		void OnEnteredImpl (UINT msg, const CPoint& point) {
@@ -628,7 +635,7 @@ class CMouseStateZoom : public CMouseInputStateBase < T > {
 class CMouseStateZoomIn : public CMouseStateZoom < eMouseStateZoomIn > {
 	public:
 		CMouseStateZoomIn (CInputHandler *pInputHandler) :
-			CMouseStateZoom (pInputHandler, "ZoomIn")
+			CMouseStateZoom (pInputHandler, "ZoomIn", MAKEINTRESOURCE (IDC_CURSOR_ZOOMIN))
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -646,7 +653,7 @@ class CMouseStateZoomIn : public CMouseStateZoom < eMouseStateZoomIn > {
 class CMouseStateZoomOut : public CMouseStateZoom < eMouseStateZoomOut > {
 	public:
 		CMouseStateZoomOut (CInputHandler *pInputHandler) :
-			CMouseStateZoom (pInputHandler, "ZoomOut")
+			CMouseStateZoom (pInputHandler, "ZoomOut", MAKEINTRESOURCE (IDC_CURSOR_ZOOMOUT))
 		{}
 
 		void OnCompleted (UINT msg, const CPoint& point) {
@@ -664,7 +671,7 @@ class CMouseStateZoomOut : public CMouseStateZoom < eMouseStateZoomOut > {
 class CMouseStateLockedRotate : public CMouseInputStateBase < eMouseStateLockedRotate > {
 	public:
 		CMouseStateLockedRotate (CInputHandler *pInputHandler) :
-			CMouseInputStateBase (pInputHandler, "LockedRotate")
+			CMouseInputStateBase (pInputHandler, "LockedRotate", MAKEINTRESOURCE (IDC_CURSOR_XHAIRS))
 		{}
 
 		// No config, delegates to Rotate
@@ -1000,7 +1007,7 @@ if (MouseState () != newState) {
 	m_bIsStateExiting = false;
 	m_pCurrentMouseState = GetMouseState (newState);
 	m_pCurrentMouseState->OnEntered (msg, point);
-	m_pMineView->SetCursor (MouseState ());
+	m_pMineView->UpdateCursor ();
 	}
 }
 
@@ -1046,8 +1053,12 @@ switch (msg) {
 		m_mouseButtonStates = nFlags & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON | MK_XBUTTON1 | MK_XBUTTON2);
 		break;
 
+		// WM_SETFOCUS currently isn't sent to the input handler, but if we continue to have problems with
+		// modifier keys (particularly Alt) getting out of sync we might need to plumb it through
 	case WM_SETFOCUS:
-		//m_bModifierActive [eModifierAlt] = GetKeyState (VK_MENU) > 0;
+		m_bModifierActive [eModifierShift] = GetKeyState (VK_SHIFT) > 0;
+		m_bModifierActive [eModifierCtrl] = GetKeyState (VK_CONTROL) > 0;
+		m_bModifierActive [eModifierAlt] = GetKeyState (VK_MENU) > 0;
 		break;
 
 	default:
