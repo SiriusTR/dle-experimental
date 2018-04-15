@@ -44,26 +44,20 @@ enum eSelectModes {
 enum eMouseStates
 {
 	eMouseStateIdle,
-	eMouseStateButtonDown,
-	eMouseStateDrag,
-	eMouseStateRubberBand,
-	eMouseStateSelect,
-	eMouseStateLockedRotate,
-	eMouseStatePan,
-	eMouseStateRotate,
-	eMouseStateZoom,
-	// Transitional states (resets to idle after input applied)
-	eMouseStateZoomIn,
-	eMouseStateZoomOut,
 	eMouseStateQuickSelect,
 	eMouseStateQuickSelectObject,
-	eMouseStateApplySelect,
-	eMouseStateCancelSelect,
-	eMouseStateApplyDrag,
-	eMouseStateTagRubberBand,
-	eMouseStateUnTagRubberBand,
+	eMouseStateDrag,
+	eMouseStateRubberBandTag,
+	eMouseStateRubberBandUnTag,
 	eMouseStateQuickTag,
 	eMouseStateDoContextMenu,
+	eMouseStateSelect,
+	eMouseStateApplySelect,
+	eMouseStatePan,
+	eMouseStateRotate,
+	eMouseStateZoomIn,
+	eMouseStateZoomOut,
+	eMouseStateLockedRotate,
 	//must always be last tag
 	eMouseStateCount
 };
@@ -74,7 +68,8 @@ enum eMouseStateMatchResults
 {
 	eMatchNone = 0,
 	eMatchPartial = 1,
-	eMatchExact = 2
+	eMatchPartialCompleted = 2,
+	eMatchExact = 3
 };
 
 // -----------------------------------------------------------------------------
@@ -151,6 +146,32 @@ struct KeyboardBinding {
 // Forward declaration for CInputHandler
 class CMineView;
 
+class IMouseInputState {
+	public:
+		virtual eMouseStates GetValue () const = 0;
+		virtual const CPoint* GetStartPos () const = 0;
+		virtual HCURSOR GetCursor () const = 0;
+		virtual void LoadConfig () = 0;
+
+		// Called after the state has been entered
+		// msg indicates the event that caused the entry; point indicates the mouse location
+		virtual void OnEntered (UINT msg, const CPoint& point) = 0;
+		// Called after the state has been exited
+		// msg indicates the event that caused the exit; point indicates the mouse location
+		virtual void OnExited (UINT msg, const CPoint& point) = 0;
+		// Called whenever the mouse has moved
+		virtual void OnMouseMove (const CPoint& point) = 0;
+
+		// Checks whether the state will be entered with the event specified
+		virtual eMouseStateMatchResults HasEntered (UINT msg, const CPoint& point) const = 0;
+		// Checks whether the state will exit with the event specified
+		virtual bool HasExited (UINT msg, const CPoint& point) const = 0;
+		// Checks whether a transition to another state is permissible with the event specified
+		virtual bool IsExitAllowed (UINT msg, const CPoint& point) const = 0;
+		// Checks whether a specific transition is permissible with the event specified
+		virtual bool IsTransitionValid (eMouseStates newState, UINT msg, const CPoint& point) const = 0;
+};
+
 class CInputHandler {
 	public:
 		CInputHandler (CMineView *pMineView);
@@ -172,40 +193,33 @@ class CInputHandler {
 		void OnXButtonDown (UINT nFlags, UINT nButton, CPoint point);
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
 
-		eMouseStates MouseState () const { return m_mouseState; }
+		eMouseStates MouseState () const { return m_pCurrentMouseState->GetValue (); }
+		HCURSOR GetCurrentCursor () const { return m_pCurrentMouseState->GetCursor (); }
 		const CPoint& LastMousePos () const { return m_lastMousePos; }
 		bool HasMouseMovedInCurrentState () const { return HasMouseMoved (LastMousePos ()); }
 		bool HasInputLock () const { return m_bInputLockActive; }
-		bool IsMouseStateTransitional () const {
-			return (m_mouseState >= eMouseStateZoomIn) && (m_mouseState < eMouseStateCount);
-			}
+		bool IsStateExiting () const { return m_bIsStateExiting; }
 
 	private:
 		CMineView *m_pMineView;
 		KeyboardBinding m_keyBindings [eKeyCommandCount];
-		MouseStateConfig m_stateConfigs [eMouseStateCount];
 		eMovementModes m_movementMode;
 		double m_moveScale;
 		double m_rotateScale;
 		bool m_bFpInputLock;
-		eMouseStates m_mouseState;
-		CPoint *m_stateStartPos;
-		CPoint *m_zoomStartPos;
+		IMouseInputState *m_pMouseStates [eMouseStateCount];
+		IMouseInputState *m_pCurrentMouseState;
+		bool m_bIsStateExiting;
 		CPoint m_lastMousePos;
+		UINT m_mouseButtonStates;
 		bool m_bModifierActive [eModifierCount];
 		bool m_bKeyCommandActive [eKeyCommandCount];
 		bool m_bInputLockActive;
 		int m_nMovementCommandsActive;
 
+		IMouseInputState *GetMouseState (eMouseStates state) const;
 		eMouseStates MapInputToMouseState (UINT msg, const CPoint point) const;
-		eMouseStateMatchResults HasEnteredState (eMouseStates state, UINT msg) const;
-		bool HasExitedState (UINT msg) const;
-		eMouseStateMatchResults HasEnteredTransitionalState (eMouseStates state, UINT msg) const;
-		bool ButtonUpMatchesState (eMouseStates state, UINT msg) const;
-		bool IsClickState (eMouseStates state) const;
 		bool HasMouseMoved (const CPoint point) const;
-		bool CheckValidDragTarget (const CPoint point) const;
-		void ProcessTransitionalStates (CPoint point);
 		// Update mouse state in response to mouse input (e.g. clicks)
 		void UpdateMouseState (UINT msg, CPoint point);
 		// Update mouse state in response to keyboard input
@@ -215,18 +229,32 @@ class CInputHandler {
 		bool IsMovementCommand (eKeyCommands command);
 		eKeyCommands MapKeyToCommand (UINT nChar);
 		bool KeyMatchesKeyCommand (eKeyCommands command, UINT nChar);
-		void DoMousePan (const CPoint point);
-		void DoMouseZoom (const CPoint point);
-		void DoMouseRotate (const CPoint point);
 		void ApplyMovement (eKeyCommands command);
 		void StartMovement (eKeyCommands command);
 		void StopMovement (eKeyCommands command);
 		void StopAllMovement ();
-		void LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName);
-		void LoadStateConfig (MouseStateConfig &config, LPCTSTR bindingName);
-		void LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods);
+		static void LoadKeyBinding (KeyboardBinding &binding, LPCTSTR bindingName);
+		static void LoadStateConfig (MouseStateConfig &config, LPCTSTR bindingName);
+		static void LoadModifiers (bool (&modifierList) [eModifierCount], LPTSTR szMods);
 		static UINT StringToVK (LPCTSTR pszKey);
 		static UINT StringToMK (LPCTSTR pszButton);
+
+		template < eMouseStates T > friend class CMouseInputStateBase;
+		friend class CMouseStateIdle;
+		friend class CMouseStateQuickSelect;
+		friend class CMouseStateQuickSelectObject;
+		friend class CMouseStateDrag;
+		friend class CMouseStateRubberBandTag;
+		friend class CMouseStateRubberBandUnTag;
+		friend class CMouseStateQuickTag;
+		friend class CMouseStateDoContextMenu;
+		friend class CMouseStateSelect;
+		friend class CMouseStateApplySelect;
+		friend class CMouseStateLockedRotate;
+		friend class CMouseStatePan;
+		friend class CMouseStateRotate;
+		friend class CMouseStateZoomIn;
+		friend class CMouseStateZoomOut;
 };
 
 // -----------------------------------------------------------------------------
@@ -269,7 +297,6 @@ protected: // create from serialization only
 	int 				m_nDelayRefresh;
 	uint				m_viewOption;
 	uint				m_selectMode;
-	HCURSOR			m_hCursors [eMouseStateCount];
 
 	CPoint			m_lastDragPos;
 	CPoint			m_highlightPos;
@@ -473,7 +500,7 @@ public:
 	inline CPoint& ViewMax (void) { return m_viewMax; }
 
 	CPoint AdjustMousePos (CPoint point);
-	BOOL SetCursor (eMouseStates state);
+	BOOL UpdateCursor ();
 	const CPoint& LastMousePos () { return m_inputHandler.LastMousePos (); }
 	CPoint CenterMouse ();
 
