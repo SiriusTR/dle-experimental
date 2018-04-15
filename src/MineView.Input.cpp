@@ -510,6 +510,15 @@ class CMouseStateApplySelect : public CMouseInputStateBase < eMouseStateApplySel
 			m_pMineView->UpdateSelectHighlights ();
 			}
 
+		eMouseStateMatchResults HasEntered (UINT msg, const CPoint& point) const {
+			if (m_pInputHandler->MouseState () != eMouseStateSelect)
+				return eMatchNone;
+			eMouseStateMatchResults result = CMouseInputStateBase::HasEntered (msg, point);
+			if (result && !m_pInputHandler->HasMouseMoved (point))
+				result = eMatchNone;
+			return result;
+			}
+
 		bool IsExitAllowed (UINT msg, const CPoint& point) const {
 			if (m_pInputHandler->HasMouseMoved (point))
 				return true;
