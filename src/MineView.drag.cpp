@@ -208,7 +208,10 @@ else {
 	p.x = (short) xPos;
 	p.y = (short) yPos;
 	p.z = vertexManager [vert1].m_screen.z;
+	// BeginRender recalculates the view matrix
+	Renderer ().BeginRender (false);
 	ViewMatrix ()->Unproject (*vertexManager.Vertex (vert1), p, m_viewCenter);
+	Renderer ().EndRender ();
 	}
 undoManager.End (__FUNCTION__);
 Refresh ();
