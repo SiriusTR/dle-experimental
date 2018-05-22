@@ -1465,6 +1465,11 @@ if (!fp.Open (szHogFile, "r+b")) {
 	return nRes;
 	}
 
+// Make sure we can successfully write the level (to the temporary file) first.
+// Otherwise modifying the hog file is probably not a good idea
+if (theMine->Save (szTmp) <= 0)
+	return 0;
+
 WriteHogHeader (fp); // make sure the hog header is "D2X" if the hog file contains extended level headers (-> long level filenames)
 fp.Seek (3, SEEK_SET);
 
@@ -1483,6 +1488,7 @@ while (!fp.EoF ()) {
 	}
 if (bIdenticalLevelFound) {
 	if (QueryMsg ("Overwrite old level with same name?") != IDYES) {
+		CFileManager::Delete (szTmp);
 		fp.Close ();
 		return 0;
 		}
@@ -1498,7 +1504,6 @@ if (!fp.Open (szHogFile, "ab")) {
 	return 0;
 	}
 fp.Seek (0, SEEK_END);
-theMine->Save (szTmp);
 WriteSubFile (fp, szTmp, szSubFile);
 CFileManager::Delete (szTmp);
 
