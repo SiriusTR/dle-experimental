@@ -380,7 +380,7 @@ if (!DLE.IsD1File ()) {
 	segmentManager.ReadEquipMakers (fp);
 	lightManager.ReadLightDeltas (fp);
 	}
-segmentManager.RenumberProducers ();
+segmentManager.RenumberProducers (true);
 return 0;
 }
 

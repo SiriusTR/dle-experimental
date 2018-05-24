@@ -331,9 +331,9 @@ class CSegmentManager {
 
 		void CopyOtherSegment (void);
 
-		void RenumberRobotMakers (void);
+		void RenumberRobotMakers (bool bKeepOrder);
 
-		void RenumberEquipMakers (void);
+		void RenumberEquipMakers (bool bKeepOrder);
 
 		bool SetDefaultTexture (short nTexture);
 
@@ -396,7 +396,12 @@ class CSegmentManager {
 		
 		void WriteEquipMakers (CFileManager* fp);
 
-		void RenumberProducers (void);
+		// Fixes up numbering for producers (robot and equipment makers).
+		// If bKeepOrder is true, preserves how the level behaves in the game
+		// if any discrepancies are found.
+		// If bKeepOrder is false, the producer list will be reordered to
+		// match the segments that reference it.
+		void RenumberProducers (bool bKeepOrder = false);
 
 		void Clear (void);
 
@@ -473,7 +478,7 @@ class CSegmentManager {
 
 		bool CreateProducer (short nSegment, bool bCreate, ubyte nType, bool bSetDefTextures, CObjectProducer* producers, CMineItemInfo& info, char* szError);
 
-		void RenumberProducers (ubyte nFunction, short nClass);
+		void RenumberProducers (ubyte nFunction, short nClass, bool bKeepOrder);
 
 		void ReadProducers (CFileManager* fp, int nClass);
 		
