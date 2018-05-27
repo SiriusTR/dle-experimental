@@ -529,8 +529,11 @@ if (!theMine->LoadMineSigAndType (&fSrc)) {
 		paletteManager.Reload (paletteManager.Name ());
 		textureManager.LoadTextures ();
 		}
+	// Custom textures - always prefer .pog if there is one
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".pog")))
 		textureManager.ReadPog (fSrc, size);
+	else if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".dtx")))
+		textureManager.ReadDtx (fSrc, size);
 	modelManager.Reset ();
 	robotManager.ClearHXMData ();
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".hxm"))) {
@@ -950,7 +953,8 @@ while (!fp.EoF ()) {
 									 strstr (lh.Name (), ".hxm") || 
 									 strstr (lh.Name (), ".lgt") || 
 									 strstr (lh.Name (), ".clr") || 
-									 strstr (lh.Name (), ".pal")))) {
+									 strstr (lh.Name (), ".pal") || 
+									 strstr (lh.Name (), ".dtx")))) {
 		int i = plb->AddString (lh.Name ());
 		if (bGetFileData && (0 > ::AddFileData (plb, i, lh.FileSize (), position, nFiles))) {
 			ErrorMsg ("Too many files in HOG file.");

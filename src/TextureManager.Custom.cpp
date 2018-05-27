@@ -102,6 +102,80 @@ return 0;
 
 //-----------------------------------------------------------------------------------
 
+int CTextureManager::ReadDtx (CFileManager& fp, long nFileSize)
+{
+	CPigHeader pigFileInfo (0);
+	CPigTexture pigTexInfo (0);
+	uint hdrOffset, bmpOffset, hdrSize;
+	ushort nUnknownTextures, nMissingTextures;
+	CTexture* pTexture;
+
+if (DLE.IsD2File ()) {
+	INFOMSG (" DTX patches are not supported for Descent 2 levels. Use a POG file instead.");
+	return 1;
+	}
+
+// read file header
+pigFileInfo.Read (fp);
+sprintf_s (message, sizeof (message), " Pog manager: Reading %d custom textures", pigFileInfo.nTextures);
+DEBUGMSG (message);
+hdrOffset = fp.Tell ();
+hdrSize = pigFileInfo.nTextures * sizeof (PIG_TEXTURE_D1);
+bmpOffset = hdrOffset + hdrSize;
+nUnknownTextures = 0;
+nMissingTextures = 0;
+
+DLE.MainFrame ()->InitProgress (pigFileInfo.nTextures);
+
+for (int i = 0; i < pigFileInfo.nTextures; i++) {
+	DLE.MainFrame ()->Progress ().StepIt ();
+
+	// get texture data offset from texture header
+	fp.Seek (hdrOffset + i * sizeof (PIG_TEXTURE_D1), SEEK_SET);
+	pigTexInfo.Read (&fp);
+	if ((long) (hdrSize + pigTexInfo.offset) >= nFileSize) {
+		nMissingTextures++;
+		continue;
+		}
+
+	// find the texture index - this requires a name lookup
+	// TODO - how does DTX save animated texture frames?
+	short nTexture;
+	bool bFound = false;
+	for (short nMatchTexture = 0; nMatchTexture < MaxTextures (); nMatchTexture++) {
+		if (strnicmp (textureManager.Name (0, nMatchTexture), pigTexInfo.name, ARRAYSIZE (pigTexInfo.name)) == 0) {
+			nTexture = nMatchTexture;
+			bFound = true;
+			break;
+			}
+		}
+	if (!bFound) {
+		nUnknownTextures++;
+		continue;
+		}
+	
+	fp.Seek (bmpOffset + pigTexInfo.offset, SEEK_SET);
+	pTexture = OverrideTexture (Index (nTexture), null);
+	pTexture->LoadFromPog (fp, pigTexInfo);
+	}
+if (nUnknownTextures) {
+	sprintf_s (message, sizeof (message), " Pog manager: Unable to resolve %d textures in the DTX file.", nUnknownTextures);
+	DEBUGMSG (message);
+	}
+if (nMissingTextures) {
+	sprintf_s (message, sizeof (message), " Pog manager: %d textures missing (DTX file probably damaged).", nMissingTextures);
+	DEBUGMSG (message);
+	}
+// Textures shouldn't be marked modified on first load
+CommitTextureChanges ();
+
+DLE.MainFrame ()->Progress ().DestroyWindow ();
+
+return 0;
+}
+
+//-----------------------------------------------------------------------------------
+
 uint CTextureManager::WriteCustomTextureHeader (CFileManager& fp, const CTexture *pTexture, uint nId, uint nOffset)
 {
 	CPigTexture pigTexInfo (1);

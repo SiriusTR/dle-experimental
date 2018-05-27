@@ -278,6 +278,20 @@ if (!(bLoadFromHog || bCreate)) {
 			fp->Close ();
 			}
 		}
+	else {
+		// Load DTX patch for D1 levels if there is any
+		char filename [256];
+		strcpy_s (filename, sizeof (filename), fp->Name ());
+		char* ps = strstr (filename, ".");
+		if (ps)
+			strcpy_s (ps, 256 - (ps - filename), ".dtx");
+		else
+			strcat_s (filename, 256, ".dtx");
+		if (fp->Open (filename, "rb")) {
+			textureManager.ReadDtx (*fp, fp->Size ());
+			fp->Close ();
+			}
+		}
 	}
 UpdateCenter ();
 objectManager.Sort ();
