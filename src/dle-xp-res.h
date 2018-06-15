@@ -1185,8 +1185,9 @@
 #define ID_CONVERTMINE_STANDARD         32934
 #define ID_CONVERTMINE_VERTIGO          32935
 #define ID_CONVERTMINE_D2X              32936
-#define ID_FILE_EDITHOG                 32937
-#define ID_FILE_EDITPOG                 32938
+#define ID_CONVERTMINE_OVERLOAD         32937
+#define ID_FILE_EDITHOG                 32938
+#define ID_FILE_EDITPOG                 32939
 
 #define ID_SEL_POINT                    61447
 #define ID_SEL_LINE                     61448
