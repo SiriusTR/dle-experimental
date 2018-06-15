@@ -1156,6 +1156,7 @@ while(!fp.EoF ()) {
 		    _strcmpi (thisExt, ".rl2") &&
 		    _strcmpi (thisExt, ".hxm") &&
 		    _strcmpi (thisExt, ".pog") &&
+		    _strcmpi (thisExt, ".dtx") &&
 		    _strcmpi (thisExt, ".pal") &&
 		    _strcmpi (thisExt, ".lgt") &&
 		    _strcmpi (thisExt, ".clr"))
@@ -1252,7 +1253,7 @@ return FindFileData (NULL, pszSubFile, lh, nSize, nPos, FALSE, &fp);
 
 const char *GetCustomFileExtension (const int nType)
 {
-	static const char* extensions [] = {".lgt", ".clr", ".pal", ".pog", ".hxm"};
+	static const char* extensions [] = {".lgt", ".clr", ".pal", ".pog", ".hxm", ".dtx"};
 
 if (nType < 0 || nType >= ARRAYSIZE (extensions))
 	return null;
@@ -1313,6 +1314,9 @@ switch (nType) {
 	case CUSTOM_FILETYPE_HXM:
 		bHasContent = robotManager.HasCustomRobots ();
 		break;
+	case CUSTOM_FILETYPE_DTX:
+		bHasContent = textureManager.HasCustomTextures ();
+		break;
 	default:
 		break;
 	}
@@ -1337,6 +1341,9 @@ if (bHasContent) {
 			break;
 		case CUSTOM_FILETYPE_HXM:
 			nResult = robotManager.WriteHXM (fTmp);
+			break;
+		case CUSTOM_FILETYPE_DTX:
+			nResult = textureManager.CreateDtx (fTmp);
 			break;
 		default:
 			nResult = 0;

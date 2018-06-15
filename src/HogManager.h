@@ -95,7 +95,8 @@ extern CHogManager* hogManager;
 #define CUSTOM_FILETYPE_PALETTE  2
 #define CUSTOM_FILETYPE_POG      3
 #define CUSTOM_FILETYPE_HXM      4
-#define NUM_CUSTOM_FILETYPES (1+CUSTOM_FILETYPE_HXM)
+#define CUSTOM_FILETYPE_DTX      5
+#define NUM_CUSTOM_FILETYPES (1+CUSTOM_FILETYPE_DTX)
 
 bool BrowseForFile (BOOL bOpen, LPSTR pszDefExt, LPSTR pszFile, LPSTR pszFilter, DWORD nFlags = 0, CWnd *pParentWnd = null);
 int SaveToHog (LPSTR szHogFile, LPSTR szSubFile, bool bSaveAs);

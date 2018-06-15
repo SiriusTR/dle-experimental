@@ -140,10 +140,10 @@ for (int i = 0; i < pigFileInfo.nTextures; i++) {
 
 	// find the texture index - this requires a name lookup
 	// TODO - how does DTX save animated texture frames?
-	short nTexture;
+	int nTexture;
 	bool bFound = false;
-	for (short nMatchTexture = 0; nMatchTexture < MaxTextures (); nMatchTexture++) {
-		if (strnicmp (textureManager.Name (0, nMatchTexture), pigTexInfo.name, ARRAYSIZE (pigTexInfo.name)) == 0) {
+	for (int nMatchTexture = 0; nMatchTexture < GlobalTextureCount (); nMatchTexture++) {
+		if (strnicmp (textureManager.TextureByIndex (nMatchTexture)->Name (), pigTexInfo.name, ARRAYSIZE (pigTexInfo.name)) == 0) {
 			nTexture = nMatchTexture;
 			bFound = true;
 			break;
@@ -155,7 +155,7 @@ for (int i = 0; i < pigFileInfo.nTextures; i++) {
 		}
 	
 	fp.Seek (bmpOffset + pigTexInfo.offset, SEEK_SET);
-	pTexture = OverrideTexture (Index (nTexture), null);
+	pTexture = OverrideTexture (nTexture, null);
 	pTexture->LoadFromPog (fp, pigTexInfo);
 	}
 if (nUnknownTextures) {
@@ -178,7 +178,7 @@ return 0;
 
 uint CTextureManager::WriteCustomTextureHeader (CFileManager& fp, const CTexture *pTexture, uint nId, uint nOffset)
 {
-	CPigTexture pigTexInfo (1);
+	CPigTexture pigTexInfo (Version ());
 	ubyte *palIndex, *pSrc;
 
 memset (pigTexInfo.name, 0, sizeof (pigTexInfo.name));
@@ -190,23 +190,7 @@ else {
 	sprintf_s (name, sizeof (name), "POG%04d", nId);
 	memcpy (pigTexInfo.name, name, sizeof (pigTexInfo.name));
 	}
-#if 1
-pigTexInfo.Setup (1, pTexture->Width (), pTexture->Height (), (pTexture->Format () == TGA) ? 0x80 : 0, nOffset);
-#else
-pigTexInfo.dflags = 0;
-pigTexInfo.flags = pTexture->m_info.nFormat ? 0x80 : 0;
-pigTexInfo.width =  % 256;
-if ((pigTexInfo.flags & 0x80) && (pTexture->m_info.width > 256)) {
-	pigTexInfo.whExtra = (pTexture->m_info.width >> 8);
-	pigTexInfo.height = pTexture->m_info.height / pTexture->m_info.width;
-	}
-else {
-	pigTexInfo.height = pTexture->m_info.height % 256;
-	pigTexInfo.whExtra = (pTexture->m_info.width >> 8) | ((pTexture->m_info.height >> 4) & 0xF0);
-	}
-pigTexInfo.avgColor = 0;
-pigTexInfo.offset = nOffset;
-#endif
+pigTexInfo.Setup (Version (), pTexture->Width (), pTexture->Height (), (pTexture->Format () == TGA) ? 0x80 : 0, nOffset);
 
 // check for transparency and super transparency
 if (pTexture->Format () == BMP)
@@ -367,6 +351,78 @@ for (i = 0; i < h; i++) {
 sprintf_s (message, sizeof (message)," Pog manager: Saving %d custom textures", pigFileInfo.nTextures);
 DEBUGMSG (message);
 
+for (i = 0; i < h; i++) {
+	pTexture = TextureByIndex (i);
+	if (pTexture->IsCustom ())
+		WriteCustomTexture (fp, pTexture);
+	}
+
+return 1;
+}
+
+//------------------------------------------------------------------------------
+// CreateDtx ()
+//
+// Creates a DTX patch from all the changed textures
+//
+// Format:
+//   PIG Header (D1 format)
+//   Texture Header 0 (D1 format)
+//     ...
+//   Texture Header N (D1 format)
+//   Texture 0
+//     ...
+//   Texture N
+//
+// where N is the number of textures. DTX patches do not store texture indices,
+// and instead use texture names (as written in the texture header) to determine
+// which texture to override.
+//
+// Texture data is stored in the same way as in a POG file.
+//
+//-----------------------------------------------------------------------------------
+
+int CTextureManager::CreateDtx (CFileManager & fp)
+{
+if (!textureManager.Available ())
+	return 1;
+
+	CPigHeader		pigFileInfo (0);
+	uint				nOffset = 0;
+	int				nVersion = DLE.FileType ();
+	int				nId, i, h = m_header [nVersion].nTextures;
+	const CTexture*	pTexture;
+
+if (DLE.IsD2File ()) {
+	ErrorMsg ("DLE does not support saving DTX patches for Descent 2 levels. Use a POG file instead.");
+	return 0;
+	}
+
+paletteManager.ResetCLUT ();
+
+sprintf_s (message, sizeof (message), "%s\\dle_temp.dtx", DLE.AppFolder ());
+
+// write file header
+pigFileInfo.nTextures = 0;
+for (i = 0; i < h; i++) {
+	pTexture = TextureByIndex (i);
+	if (pTexture->IsCustom ())
+		pigFileInfo.nTextures++;
+	}
+pigFileInfo.Write (fp);
+
+sprintf_s (message, sizeof (message)," Pog manager: Saving %d custom textures", pigFileInfo.nTextures);
+DEBUGMSG (message);
+
+// write texture headers
+nId = 0;
+for (i = 0; i < h; i++) {
+	pTexture = TextureByIndex (i);
+	if (pTexture->IsCustom ())
+		nOffset = WriteCustomTextureHeader (fp, pTexture, nId++, nOffset);
+	}
+
+// write texture data
 for (i = 0; i < h; i++) {
 	pTexture = TextureByIndex (i);
 	if (pTexture->IsCustom ())

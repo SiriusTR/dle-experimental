@@ -871,11 +871,22 @@ void CPogDialog::OnOK (void)
 {
 CDlcDoc *pDocument = DLE.GetDocument ();
 ASSERT (pDocument); // we don't support stand-alone POGs yet
-char szOverwritePogQuery [250] = { 0 };
-sprintf_s (szOverwritePogQuery, ARRAYSIZE (szOverwritePogQuery),
-	"%d textures have been modified. Do you want to save these changes?\n\n"
-	"(Select \'No\' to revert changes and exit, or \'Cancel\' to return to the texture editor.)",
-	textureManager.CountModifiedTextures ());
+char szOverwritePogQuery [400] = { 0 };
+if (DLE.IsD2File ()) {
+	sprintf_s (szOverwritePogQuery, ARRAYSIZE (szOverwritePogQuery),
+		"%d textures have been modified. Do you want to save these changes?\n\n"
+		"(Select \'No\' to revert changes and exit, or \'Cancel\' to return to the texture editor.)",
+		textureManager.CountModifiedTextures ());
+	}
+else {
+	sprintf_s (szOverwritePogQuery, ARRAYSIZE (szOverwritePogQuery),
+		"%d textures have been modified. Do you want to save these changes?\n"
+		"Because this is a Descent 1 level, a DTX patch will be used. You will "
+		"need the DTXPATCH utility to apply the patch, or alternatively it can "
+		"automatically be loaded by D1X 1.00 or later.\n\n"
+		"(Select \'No\' to revert changes and exit, or \'Cancel\' to return to the texture editor.)",
+		textureManager.CountModifiedTextures ());
+	}
 
 // If this is a new level we won't save right now - we don't know where it's going. We do need
 // to commit textures though, so that subsequent visits to this dialog can't wipe them just by
@@ -886,7 +897,12 @@ else if (textureManager.CountModifiedTextures () > 0) {
 	switch (Query2Msg (szOverwritePogQuery, MB_YESNOCANCEL)) {
 		case IDYES:
 			textureManager.CommitTextureChanges ();
-			WriteCustomFile (pDocument->File (), pDocument->SubFile (), CUSTOM_FILETYPE_POG);
+			if (DLE.IsD2File ()) {
+				pDocument->SaveCustomFile (CUSTOM_FILETYPE_POG);
+				}
+			else {
+				pDocument->SaveCustomFile (CUSTOM_FILETYPE_DTX);
+				}
 			break;
 		case IDNO:
 			textureManager.UndoTextureChanges ();

@@ -437,30 +437,14 @@ if (bSaveToHog) {
 			}
 	}
 else {
-	CFileManager fp;
-	char filename [MAX_PATH] = { 0 };
-	strcpy_s (filename, sizeof (filename), m_szFile);
-	if (textureManager.HasCustomTextures ()) {
-		char* ps = strstr (filename, ".");
-		if (ps)
-			strcpy_s (ps, sizeof (filename) - (ps - filename), ".pog");
+	if (textureManager.HasCustomTextures ())
+		if (DLE.IsD2File ())
+			bSucceeded &= WriteExternalCustomFile (CUSTOM_FILETYPE_POG);
 		else
-			strcat_s (filename, sizeof (filename), ".pog");
-		if (fp.Open (filename, "wb")) {
-			bSucceeded &= textureManager.CreatePog (fp) > 0;
-			fp.Close ();
-			}
-		}
+			bSucceeded &= WriteExternalCustomFile (CUSTOM_FILETYPE_DTX);
 	
-	if (robotManager.HasCustomRobots ()) {
-		char* ps = strstr (filename, ".");
-		if (ps)
-			strcpy_s (ps, sizeof (filename) - (ps - filename), ".hxm");
-		else
-			strcat_s (filename, sizeof (filename), ".hxm");
-		if (fp.Open (filename, "wb"))
-			bSucceeded &= robotManager.WriteHXM (fp) > 0;
-		}
+	if (robotManager.HasCustomRobots ())
+		bSucceeded &= WriteExternalCustomFile (CUSTOM_FILETYPE_HXM);
 	}
 
 return bSucceeded;
@@ -477,6 +461,9 @@ bool CDlcDoc::PromptShouldWriteCustomFile (const int nType)
 	static const char* szHxmQuery = "This level contains custom robot settings.\nWould you like to save these changes into the HOG file?\n\n"
 		"Note: You must use version 1.2 or higher of Descent 2 for\nthe changes to take effect.";
 	static const char* szOverwriteHxmQuery = "Would you like to save changes to custom robot behavior for this level?";
+	static const char* szDtxQuery = "This level contains custom textures.\nWould you like to save these textures into the HOG file?\n\n"
+		"Note: In Descent 1 levels this uses a DTX patch, which will only be loaded automatically by D1X 1.00 or later.\n"
+		"For older versions of the game, you will need to download DTX and use the included DTXPATCH utility to apply the custom textures.";
 	char szSubFileName [24] = { 0 };
 
 strcpy_s (szSubFileName, sizeof (szSubFileName), m_szSubFile);
@@ -507,6 +494,17 @@ switch (nType) {
 		else
 			bShouldModify = textureManager.CountCustomTextures () > 0 && (QueryMsg (szPogQuery) == IDYES);
 		break;
+	case CUSTOM_FILETYPE_DTX:
+		if (!DLE.IsD1File ())
+			break;
+		sprintf_s (szOverwritePogQuery, ARRAYSIZE (szOverwritePogQuery),
+			"This level contains %d new or changed custom textures.\nWould you like to save these changes?",
+			textureManager.CountModifiedTextures ());
+		if (DoesSubFileExist (m_szFile, szSubFileName))
+			bShouldModify = textureManager.CountModifiedTextures () > 0 && (QueryMsg (szOverwritePogQuery) == IDYES);
+		else
+			bShouldModify = textureManager.CountCustomTextures () > 0 && (QueryMsg (szDtxQuery) == IDYES);
+		break;
 	case CUSTOM_FILETYPE_HXM:
 		if (DLE.IsD1File ())
 			break;
@@ -522,6 +520,66 @@ switch (nType) {
 	}
 
 return bShouldModify;
+}
+
+//--------------------------------------------------------------------------------
+
+bool CDlcDoc::SaveCustomFile (const int nType)
+{
+bool bSaveToHog = strstr (m_szFile, ".hog") != null;
+if (bSaveToHog)
+	return WriteCustomFile (m_szFile, m_szSubFile, nType) > 0;
+else
+	return WriteExternalCustomFile (nType);
+}
+
+//------------------------------------------------------------------------------
+
+bool CDlcDoc::WriteExternalCustomFile (const int nType)
+{
+	bool bSucceeded = true;
+	CFileManager fp;
+	char filename [MAX_PATH] = { 0 };
+	strcpy_s (filename, sizeof (filename), m_szFile);
+	char* ps = strstr (filename, ".");
+
+switch (nType) {
+	case CUSTOM_FILETYPE_POG:
+		if (ps)
+			strcpy_s (ps, sizeof (filename) - (ps - filename), ".pog");
+		else
+			strcat_s (filename, sizeof (filename), ".pog");
+		if (fp.Open (filename, "wb")) {
+			bSucceeded &= textureManager.CreatePog (fp) > 0;
+			fp.Close ();
+			}
+		break;
+
+	case CUSTOM_FILETYPE_DTX:
+		if (ps)
+			strcpy_s (ps, sizeof (filename) - (ps - filename), ".dtx");
+		else
+			strcat_s (filename, sizeof (filename), ".dtx");
+		if (fp.Open (filename, "wb")) {
+			bSucceeded &= textureManager.CreateDtx (fp) > 0;
+			fp.Close ();
+			}
+		break;
+
+	case CUSTOM_FILETYPE_HXM:
+		if (ps)
+			strcpy_s (ps, sizeof (filename) - (ps - filename), ".hxm");
+		else
+			strcat_s (filename, sizeof (filename), ".hxm");
+		if (fp.Open (filename, "wb"))
+			bSucceeded &= robotManager.WriteHXM (fp) > 0;
+		break;
+
+	default:
+		break;
+	}
+
+return bSucceeded;
 }
 
 //------------------------------------------------------------------------------
