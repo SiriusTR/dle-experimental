@@ -2,6 +2,11 @@
 #include "mine.h"
 #include "dle-xp.h"
 
+#include "rapidjson\document.h"
+#include "rapidjson\filewritestream.h"
+#include "rapidjson\pointer.h"
+#include "rapidjson\prettywriter.h"
+
 // -----------------------------------------------------------------------------
 
 short CMine::Save (const char * szFile)
@@ -210,6 +215,156 @@ if (IsD2File ()) {
 fp->Seek (startOffset, SEEK_SET);
 Info ().Write (fp, IsD2XLevel ());
 fp->Seek (0, SEEK_END);
+return 1;
+}
+
+// -----------------------------------------------------------------------------
+
+using namespace rapidjson;
+
+short CMine::ExportOverload (const char * filename)
+{
+	CFileManager fp;
+
+if (!fp.Open (filename, "w+b"))
+	return 0;
+else {
+	Document document;
+	document.SetObject ();
+	auto& allocator = document.GetAllocator ();
+	char path [128] = { 0 };
+
+	document.AddMember ("properties", Value ().SetObject (), allocator);
+	document.AddMember ("global_data", Value ().SetObject (), allocator);
+	document.AddMember ("challenge_data_string", "", allocator);
+	document.AddMember ("verts", Value ().SetObject (), allocator);
+	document.AddMember ("segments", Value ().SetObject (), allocator);
+	document.AddMember ("entities", Value ().SetObject (), allocator);
+
+	// Level properties
+	Pointer ("/properties/next_segment").Set (document, segmentManager.Count ());
+	Pointer ("/properties/next_vertex").Set (document, vertexManager.Count ());
+	Pointer ("/properties/next_entity").Set (document, 0);
+	Pointer ("/properties/selected_segment").Set (document, 0);
+	Pointer ("/properties/selected_side").Set (document, 1);
+	Pointer ("/properties/selected_vertex").Set (document, 0);
+	Pointer ("/properties/selected_entity").Set (document, -1);
+	Pointer ("/properties/num_segments").Set (document, segmentManager.Count ());
+	Pointer ("/properties/num_vertices").Set (document, vertexManager.Count ());
+	Pointer ("/properties/num_entities").Set (document, 0);
+	Pointer ("/properties/num_marked_segments").Set (document, 0);
+	Pointer ("/properties/num_marked_sides").Set (document, 0);
+	Pointer ("/properties/num_marked_vertices").Set (document, 0);
+	Pointer ("/properties/num_marked_entities").Set (document, 0);
+	Pointer ("/properties/texture_set").Set (document, "Titan - Bronze");
+
+	// Global data - just use default settings
+	Pointer ("/global_data/grid_size").Set (document, 8);
+	Pointer ("/global_data/pre_smooth").Set (document, 3);
+	Pointer ("/global_data/post_smooth").Set (document, 0);
+	Pointer ("/global_data/simplify_strength").Set (document, 0.0);
+	Pointer ("/global_data/deform_presets0").Set (document, "PLAIN_NOISE");
+	Pointer ("/global_data/deform_presets1").Set (document, "NONE");
+	Pointer ("/global_data/deform_presets2").Set (document, "NONE");
+	Pointer ("/global_data/deform_presets3").Set (document, "NONE");
+
+	// Vertices
+	for (int nVertex = 0; nVertex < vertexManager.Count (); nVertex++) {
+		CVertex& vertex = vertexManager [nVertex];
+		sprintf_s (path, "/verts/%d/marked", nVertex);
+		Pointer (path).Set (document, false);
+		sprintf_s (path, "/verts/%d/x", nVertex);
+		Pointer (path).Set (document, vertex.v.x / 5);
+		sprintf_s (path, "/verts/%d/y", nVertex);
+		Pointer (path).Set (document, vertex.v.y / 5);
+		sprintf_s (path, "/verts/%d/z", nVertex);
+		Pointer (path).Set (document, vertex.v.z / 5);
+		}
+
+	// Segments
+	for (int nSegment = 0; nSegment < segmentManager.Count (); nSegment++) {
+		CSegment* pSegment = segmentManager.Segment (nSegment);
+		sprintf_s (path, "/segments/%d/marked", nSegment);
+		Pointer (path).Set (document, false);
+		sprintf_s (path, "/segments/%d/pathfinding", nSegment);
+		Pointer (path).Set (document, "All");
+		sprintf_s (path, "/segments/%d/exitsegment", nSegment);
+		Pointer (path).Set (document, "None");
+		sprintf_s (path, "/segments/%d/dark", nSegment);
+		Pointer (path).Set (document, false);
+
+		// Vertex IDs
+		sprintf_s (path, "/segments/%d/verts", nSegment);
+		Value& verts = Pointer (path).Create (document).SetArray ();
+		for (int nVert = 0; nVert < MAX_VERTICES_PER_SEGMENT; nVert++)
+			verts.PushBack (pSegment->VertexId (nVert), allocator);
+
+		// Sides
+		sprintf_s (path, "/segments/%d/sides", nSegment);
+		Value& sides = Pointer (path).Create (document).SetArray ();
+		for (int nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++) {
+			CSide *pSide = pSegment->Side (nSide);
+			Value side (kObjectType);
+			Pointer ("/marked").Set (side, false, allocator);
+			Pointer ("/chunk_plane_order").Set (side, -1, allocator);
+			Pointer ("/tex_name").Set (side, "concrete_test", allocator);
+			Pointer ("/deformation_preset").Set (side, 0, allocator);
+			Pointer ("/deformation_height").Set (side, 0.0, allocator);
+
+			Value& sideVerts = Pointer ("/verts").Create (side, allocator).SetArray ();
+			Value& sideUVs = Pointer ("/uvs").Create (side, allocator).SetArray ();
+			for (int nSideVert = 0; nSideVert < pSide->VertexCount (); nSideVert++) {
+				sideVerts.PushBack (pSegment->VertexId (nSide, nSideVert), allocator);
+				Value uv (kObjectType);
+				uv.AddMember ("u", pSide->Uvls (nSideVert)->u, allocator);
+				uv.AddMember ("v", pSide->Uvls (nSideVert)->v, allocator);
+				sideUVs.PushBack (uv, allocator);
+				}
+
+			Value& decals = Pointer ("/decals").Create (side, allocator).SetArray ();
+			Value decal (kObjectType);
+			Pointer ("/mesh_name").Set (decal, "", allocator);
+			Pointer ("/align").Set (decal, "CENTER", allocator);
+			Pointer ("/mirror").Set (decal, "OFF", allocator);
+			Pointer ("/rotation").Set (decal, 0, allocator);
+			Pointer ("/repeat_u").Set (decal, 1, allocator);
+			Pointer ("/repeat_v").Set (decal, 1, allocator);
+			Pointer ("/offset_u").Set (decal, 0, allocator);
+			Pointer ("/offset_v").Set (decal, 0, allocator);
+			Pointer ("/hidden").Set (decal, false, allocator);
+			Value& clips = Pointer ("/clips").Create (decal, allocator).SetArray ();
+			clips.PushBack ("NONE", allocator);
+			clips.PushBack ("NONE", allocator);
+			clips.PushBack ("NONE", allocator);
+			clips.PushBack ("NONE", allocator);
+			Value& caps = Pointer ("/caps").Create (decal, allocator).SetArray ();
+			caps.PushBack ("NONE", allocator);
+			caps.PushBack ("NONE", allocator);
+			caps.PushBack ("NONE", allocator);
+			caps.PushBack ("NONE", allocator);
+			// Two decal slots per side
+			decals.PushBack (Value ().CopyFrom (decal, allocator), allocator);
+			decals.PushBack (decal, allocator);
+
+			Pointer ("/door").Set (side, -1, allocator);
+			sides.PushBack (side, allocator);
+			}
+
+		// Neighboring segments
+		sprintf_s (path, "/segments/%d/neighbors", nSegment);
+		Value& neighbors = Pointer (path).Create (document).SetArray ();
+		for (int nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++)
+			neighbors.PushBack (pSegment->ChildId (nSide), allocator);
+		}
+
+	char writeBuffer [65536] = { 0 };
+	FileWriteStream stream (fp.File (), writeBuffer, sizeof (writeBuffer));
+	PrettyWriter <FileWriteStream> writer (stream);
+	writer.SetIndent (' ', 2);
+	document.Accept (writer);
+	}
+
+fp.Close ();
 return 1;
 }
 

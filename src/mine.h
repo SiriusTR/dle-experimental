@@ -115,6 +115,8 @@ class CMine {
 
 		short Save (const char *filename);
 
+		short ExportOverload (const char *filename);
+
 		void UpdateCenter (void);
 
 		inline LPSTR LevelName (void) { return m_currentLevelName; }

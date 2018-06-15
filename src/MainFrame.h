@@ -238,6 +238,7 @@ public:
 	afx_msg void OnConvertToStandard ();
 	afx_msg void OnConvertToVertigo ();
 	afx_msg void OnConvertToD2X ();
+	afx_msg void OnConvertToOverload ();
 	afx_msg void OnEditorToolbar ();
 	afx_msg void OnCheckMine ();
 	afx_msg void OnUndo ();
