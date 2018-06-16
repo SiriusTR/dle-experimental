@@ -139,11 +139,13 @@ for (int i = 0; i < pigFileInfo.nTextures; i++) {
 		}
 
 	// find the texture index - this requires a name lookup
-	// TODO - how does DTX save animated texture frames?
 	int nTexture;
 	bool bFound = false;
 	for (int nMatchTexture = 0; nMatchTexture < GlobalTextureCount (); nMatchTexture++) {
-		if (strnicmp (textureManager.TextureByIndex (nMatchTexture)->Name (), pigTexInfo.name, ARRAYSIZE (pigTexInfo.name)) == 0) {
+		if (strnicmp (textureManager.TextureByIndex (nMatchTexture)->Name (), pigTexInfo.name, ARRAYSIZE (pigTexInfo.name)) == 0 &&
+			((pigTexInfo.dflags & BM_DFLAG_ANIMATED) == 0 ||
+			(pigTexInfo.dflags & BM_DFLAG_ANIMFRAME_MASK) == textureManager.TextureByIndex (nMatchTexture)->FrameNumber ())
+			) {
 			nTexture = nMatchTexture;
 			bFound = true;
 			break;
@@ -191,6 +193,9 @@ else {
 	memcpy (pigTexInfo.name, name, sizeof (pigTexInfo.name));
 	}
 pigTexInfo.Setup (Version (), pTexture->Width (), pTexture->Height (), (pTexture->Format () == TGA) ? 0x80 : 0, nOffset);
+if (pTexture->MaybeAnimated ()) {
+	pigTexInfo.dflags |= BM_DFLAG_ANIMATED | (pTexture->FrameNumber () & BM_DFLAG_ANIMFRAME_MASK);
+	}
 
 // check for transparency and super transparency
 if (pTexture->Format () == BMP)
