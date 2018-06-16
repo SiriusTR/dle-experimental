@@ -7004,6 +7004,7 @@ BEGIN
             MENUITEM "Descent &2",                  ID_CONVERTMINE_STANDARD
             MENUITEM "&Vertigo",                    ID_CONVERTMINE_VERTIGO
             MENUITEM "D2&X-XL",                     ID_CONVERTMINE_D2X
+            MENUITEM "&Overload (export only)"      ID_CONVERTMINE_OVERLOAD
         END
         MENUITEM "Check Mine",                  ID_FILE_CHECKMINE
         MENUITEM "R&un Level",                  ID_RUN_LEVEL
