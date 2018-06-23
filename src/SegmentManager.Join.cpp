@@ -749,7 +749,7 @@ for (short nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++)
 Delete (other->SegmentId ());
 
 undoManager.End (__FUNCTION__);
-SetLinesToDraw (); 
+SetLinesToDraw ();
 DLE.MineView ()->Refresh ();
 }
 

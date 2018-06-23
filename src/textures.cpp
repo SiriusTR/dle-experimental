@@ -982,7 +982,7 @@ if (i != int (paletteSize)) {
 		if ((palette [i].rgbRed != sysPal [i].peRed) ||
 			 (palette [i].rgbGreen != sysPal [i].peGreen) ||
 			 (palette [i].rgbBlue != sysPal [i].peBlue)) {
-			if (!bAllowTransparent || i < (paletteSize - 2)) {
+			if (!bAllowTransparent || ((uint) i < paletteSize - 2)) {
 				uint closestDelta = 0x7fffffff;
 				for (int j = 0; j < 254; j++) {
 					uint delta = ColorDelta (palette + i, sysPal, j);

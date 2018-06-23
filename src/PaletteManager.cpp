@@ -315,14 +315,21 @@ int CPaletteManager::NumAvailablePalettes (int nVersion)
 
 const char* CPaletteManager::AvailablePaletteName (int nPalette, int nVersion)
 {
-	static CDynamicArray <const char*> paletteNames [] = {
-		{{ "Descent" }},
-		{{ "GroupA", "Water", "Fire", "Ice", "Alien1", "Alien2" }}
-	};
+	static const char* paletteNamesD1 [] = { "Descent" };
+	static const char* paletteNamesD2 [] = { "GroupA", "Water", "Fire", "Ice", "Alien1", "Alien2" };
 
-if (nPalette < 0 || nPalette >= paletteNames [nVersion].Length ())
+if (nVersion < 0 || nVersion > 1)
 	return null;
-return paletteNames [nVersion][nPalette];
+else if (nVersion == 0) {
+	if (nPalette < 0 || (uint)nPalette >= ARRAYSIZE (paletteNamesD1))
+		return null;
+	return paletteNamesD1 [nPalette];
+	}
+else {
+	if (nPalette < 0 || (uint)nPalette >= ARRAYSIZE (paletteNamesD2))
+		return null;
+	return paletteNamesD2 [nPalette];
+	}
 }
 
 //------------------------------------------------------------------------------
