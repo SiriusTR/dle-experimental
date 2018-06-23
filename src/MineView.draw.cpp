@@ -1454,7 +1454,8 @@ nearest->SetSegmentId (-1);
 nearest->SetSideId (-1);
 nearest->SetEdge (-1);
 
-if (m_inputHandler.MouseState () == eMouseStateSelect) {
+if ((m_inputHandler.MouseState () == eMouseStateSelect && m_inputHandler.HasMouseMovedInCurrentState ()) ||
+	m_inputHandler.MouseState () == eMouseStateApplySelect) {
 	if (DrawSelectablePoint ())
 		;
 	else if (DrawSelectableEdge ())

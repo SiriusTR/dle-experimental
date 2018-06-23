@@ -396,17 +396,10 @@ CHECKMINE;
 	CRect	rc;
 
 MainFrame ()->GetWindowRect (rc);
-#if 0 // looks like some monitor layouts actually do have negative offsets; we'll clip this on reloading
-if (rc.left < 0)
-	rc.left = 0;
-if (rc.top < 0)
-	rc.top = 0;
-#endif
 WritePrivateProfileInt ("xWin", rc.left);
 WritePrivateProfileInt ("yWin", rc.top);
 WritePrivateProfileInt ("cxWin", rc.Width ());
 WritePrivateProfileInt ("cyWin", rc.Height ());
-//MainFrame ()->ScreenToClient (rc);
 MainFrame ()->m_toolBar.GetWindowRect (rc);
 WritePrivateProfileInt ("xMainTB", rc.left);
 WritePrivateProfileInt ("yMainTB", rc.top);

@@ -353,6 +353,8 @@ for (short nSegment = 0; nSegment < nSegments; nSegment++) {
 	CSegment* pSegment = Segment (nSegment);
 	if ((pSegment->Function () == SEGMENT_FUNC_SKYBOX) && !bAllowSkyBox)
 		continue;
+	if (pSegment->m_info.bTunnel)
+		continue;
 	bool bSegmentSelected = false;
 	short nSide = 0;
 	for (; nSide < 6; nSide++) {

@@ -476,6 +476,11 @@ bool CHogManager::LoadLevel (LPSTR pszFile, LPSTR pszSubFile)
 	CLevelHeader	lh;
 	long				size, offset;
 	int				index = -1;
+	char				szPreviousPalette [256];
+	char				szPreviousPigPath [256];
+
+strcpy_s (szPreviousPalette, ARRAYSIZE (szPreviousPalette), paletteManager.Name ());
+strcpy_s (szPreviousPigPath, ARRAYSIZE (szPreviousPigPath), descentFolder [1]);
 
 if (!pszFile)
 	pszFile = m_szFile;
@@ -514,11 +519,23 @@ if (!theMine->LoadMineSigAndType (&fSrc)) {
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".clr")))
 		lightManager.ReadColorMap (fSrc);
 	paletteManager.Reload (paletteManager.Name ());
-	textureManager.LoadTextures ();
+	if (!textureManager.LoadTextures ()) {
+		sprintf_s (message, sizeof (message), "Unable to load palette \"%s\" - may be missing or corrupt.", paletteManager.Name ());
+		ErrorMsg (message);
+		// Let's try reverting to the previous palette;
+		// at least we might be able to open the level
+		paletteManager.SetName (szPreviousPalette);
+		strcpy_s (descentFolder [1], sizeof (descentFolder [1]), szPreviousPigPath);
+		paletteManager.Reload (paletteManager.Name ());
+		textureManager.LoadTextures ();
+		}
+	// Custom textures - always prefer .pog if there is one
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".pog")))
 		textureManager.ReadPog (fSrc, size);
+	else if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".dtx")))
+		textureManager.ReadDtx (fSrc, size);
 	modelManager.Reset ();
-	robotManager.Reset ();
+	robotManager.ClearHXMData ();
 	if (0 < (size = FindSubFile (fSrc, pszFile, pszSubFile, ".hxm"))) {
 		robotManager.ReadHXM (fSrc, size);
 		int nCustom = 0;
@@ -936,7 +953,8 @@ while (!fp.EoF ()) {
 									 strstr (lh.Name (), ".hxm") || 
 									 strstr (lh.Name (), ".lgt") || 
 									 strstr (lh.Name (), ".clr") || 
-									 strstr (lh.Name (), ".pal")))) {
+									 strstr (lh.Name (), ".pal") || 
+									 strstr (lh.Name (), ".dtx")))) {
 		int i = plb->AddString (lh.Name ());
 		if (bGetFileData && (0 > ::AddFileData (plb, i, lh.FileSize (), position, nFiles))) {
 			ErrorMsg ("Too many files in HOG file.");
@@ -1138,6 +1156,7 @@ while(!fp.EoF ()) {
 		    _strcmpi (thisExt, ".rl2") &&
 		    _strcmpi (thisExt, ".hxm") &&
 		    _strcmpi (thisExt, ".pog") &&
+		    _strcmpi (thisExt, ".dtx") &&
 		    _strcmpi (thisExt, ".pal") &&
 		    _strcmpi (thisExt, ".lgt") &&
 		    _strcmpi (thisExt, ".clr"))
@@ -1234,7 +1253,7 @@ return FindFileData (NULL, pszSubFile, lh, nSize, nPos, FALSE, &fp);
 
 const char *GetCustomFileExtension (const int nType)
 {
-	static const char* extensions [] = {".lgt", ".clr", ".pal", ".pog", ".hxm"};
+	static const char* extensions [] = {".lgt", ".clr", ".pal", ".pog", ".hxm", ".dtx"};
 
 if (nType < 0 || nType >= ARRAYSIZE (extensions))
 	return null;
@@ -1295,6 +1314,9 @@ switch (nType) {
 	case CUSTOM_FILETYPE_HXM:
 		bHasContent = robotManager.HasCustomRobots ();
 		break;
+	case CUSTOM_FILETYPE_DTX:
+		bHasContent = textureManager.HasCustomTextures ();
+		break;
 	default:
 		break;
 	}
@@ -1319,6 +1341,9 @@ if (bHasContent) {
 			break;
 		case CUSTOM_FILETYPE_HXM:
 			nResult = robotManager.WriteHXM (fTmp);
+			break;
+		case CUSTOM_FILETYPE_DTX:
+			nResult = textureManager.CreateDtx (fTmp);
 			break;
 		default:
 			nResult = 0;
@@ -1451,6 +1476,11 @@ if (!fp.Open (szHogFile, "r+b")) {
 	return nRes;
 	}
 
+// Make sure we can successfully write the level (to the temporary file) first.
+// Otherwise modifying the hog file is probably not a good idea
+if (theMine->Save (szTmp) <= 0)
+	return 0;
+
 WriteHogHeader (fp); // make sure the hog header is "D2X" if the hog file contains extended level headers (-> long level filenames)
 fp.Seek (3, SEEK_SET);
 
@@ -1469,6 +1499,7 @@ while (!fp.EoF ()) {
 	}
 if (bIdenticalLevelFound) {
 	if (QueryMsg ("Overwrite old level with same name?") != IDYES) {
+		CFileManager::Delete (szTmp);
 		fp.Close ();
 		return 0;
 		}
@@ -1484,7 +1515,6 @@ if (!fp.Open (szHogFile, "ab")) {
 	return 0;
 	}
 fp.Seek (0, SEEK_END);
-theMine->Save (szTmp);
 WriteSubFile (fp, szTmp, szSubFile);
 CFileManager::Delete (szTmp);
 

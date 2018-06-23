@@ -34,6 +34,8 @@ public:
 	bool SaveIfModified (void);
 	bool SaveCustomFiles (bool bSaveToHog);
 	bool PromptShouldWriteCustomFile (const int nType);
+	bool SaveCustomFile (const int nType);
+	bool WriteExternalCustomFile (const int nType);
 	void UpdateCaption ();
 	inline char *File ()
 		{ return m_szFile; }

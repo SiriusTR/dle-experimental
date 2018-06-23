@@ -18,7 +18,6 @@ if (fp == null) {
 	if (CreateNewLevel (mf)) 
 		fp = &mf;
 	else {
-		lightManager.CreateLightMap ();
 		CFileManager::SplitPath (IsD1File () ? descentFolder [0] : missionFolder, m_startFolder, null, null);
 		char filename [256];
 		sprintf_s (filename, sizeof (filename), IsD1File () ? "%new.rdl" : "%snew.rl2", m_startFolder);
@@ -74,7 +73,7 @@ short CMine::Load (CFileManager* fp, bool bLoadFromHog)
 {
 	bool bCreate = false;
 
-DLE.MineView ()->SetViewDist (0);
+DLE.MineView ()->SetViewDistIndex (0);
 DLE.ToolView ()->Refresh ();
 undoManager.Reset ();
 tunnelMaker.Destroy ();
@@ -184,6 +183,9 @@ m_changesMade = 0;
 if (LoadMineSigAndType (fp))
 	return -1;
 textureManager.Reload (textureManager.Version (), false);
+// If we are loading from .HOG, the light manager will have already been initialized
+if (!bLoadFromHog)
+	lightManager.CreateLightMap ();
 ClearMineData ();
 // read mine data offset
 int mineDataOffset = fp->ReadInt32 ();
@@ -241,6 +243,7 @@ if (!(bLoadFromHog || bCreate)) {
 			fp->Close ();
 			}
 		robotManager.ReadHAM (null);
+		robotManager.ClearHXMData ();
 		if (IsD2File ()) {
 			char szHogFile [256], szHamFile [256], *p;
 			long nSize, nOffset;
@@ -272,6 +275,20 @@ if (!(bLoadFromHog || bCreate)) {
 			strcat_s (filename, 256, ".hxm");
 		if (fp->Open (filename, "rb")) {
 			robotManager.ReadHXM (*fp, -1);
+			fp->Close ();
+			}
+		}
+	else {
+		// Load DTX patch for D1 levels if there is any
+		char filename [256];
+		strcpy_s (filename, sizeof (filename), fp->Name ());
+		char* ps = strstr (filename, ".");
+		if (ps)
+			strcpy_s (ps, 256 - (ps - filename), ".dtx");
+		else
+			strcat_s (filename, 256, ".dtx");
+		if (fp->Open (filename, "rb")) {
+			textureManager.ReadDtx (*fp, fp->Size ());
 			fp->Close ();
 			}
 		}
@@ -377,7 +394,7 @@ if (!DLE.IsD1File ()) {
 	segmentManager.ReadEquipMakers (fp);
 	lightManager.ReadLightDeltas (fp);
 	}
-segmentManager.RenumberProducers ();
+segmentManager.RenumberProducers (true);
 return 0;
 }
 

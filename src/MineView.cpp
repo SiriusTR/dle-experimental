@@ -138,35 +138,11 @@ for (int nWeight = 0; nWeight < 2; nWeight++)
 CMineView::CMineView() :
 	m_inputHandler (this)
 {
-static LPSTR nIdCursors [eMouseStateCount] = {
-	IDC_ARROW, // Idle
-	IDC_ARROW, // ButtonDown
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // Drag
-	IDC_ARROW, // RubberBand
-	IDC_ARROW, // Select
-	MAKEINTRESOURCE (IDC_CURSOR_XHAIRS), // LockedRotate
-	MAKEINTRESOURCE (IDC_CURSOR_PAN), // Pan
-	MAKEINTRESOURCE (IDC_CURSOR_ROTATE), // Rotate
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOM), // Zoom
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOMIN), // ZoomIn
-	MAKEINTRESOURCE (IDC_CURSOR_ZOOMOUT), // ZoomOut
-	IDC_ARROW, // QuickSelect
-	IDC_ARROW, // ApplySelect
-	IDC_ARROW, // CancelSelect
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // ApplyDrag
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // TagRubberBand
-	MAKEINTRESOURCE (IDC_CURSOR_DRAG), // UnTagRubberBand
-	IDC_ARROW, // QuickTag
-	IDC_ARROW // DoContextMenu
-	};
-
 m_renderers [0] = new CRendererSW (m_renderData);
 m_renderers [1] = new CRendererGL (m_renderData);
 m_nRenderer = 0;
 SetRenderer (1);
 
-for (int i = eMouseStateIdle; i < eMouseStateCount; i++)
-	m_hCursors [i] = LoadCursor ((nIdCursors [i] == IDC_ARROW) ? null: DLE.m_hInstance, nIdCursors [i]);
 ViewObjectFlags () = eViewObjectsAll;
 ViewMineFlags () = eViewMineLights | eViewMineWalls | eViewMineSpecial;
 m_viewOption = eViewTextured;
@@ -805,9 +781,9 @@ return CView::OnSetCursor (pWnd, nHitTest, message);
 
 //------------------------------------------------------------------------------
 
-BOOL CMineView::SetCursor (eMouseStates state)
+BOOL CMineView::UpdateCursor ()
 {
-	HCURSOR hCursor = m_hCursors [state];
+	HCURSOR hCursor = m_inputHandler.GetCurrentCursor ();
 
 if (hCursor == NULL)
 	return FALSE;
@@ -839,6 +815,11 @@ return ptCenter - rcWindow.TopLeft ();
 
 void CMineView::OnMouseMove (UINT nFlags, CPoint point)
 {
+// This allows you to use mineview commands (next side, point etc) on mouseover
+// instead of having to click (and potentially select something else).
+if (GetFocus () != this)
+	SetFocus ();
+
 m_inputHandler.OnMouseMove (nFlags, AdjustMousePos (point));
 }
 
@@ -925,7 +906,9 @@ if (!(bRefreshing || m_nDelayRefresh)) {
 	bRefreshing = true;
 	InvalidateRect (null, TRUE);
 //	SetFocus ();
-	if (bAll && (m_inputHandler.MouseState () == eMouseStateIdle)) {
+	// Don't update the UI panels if we're moving the mouse because this
+	// results in repaints every frame which is slow
+	if (bAll && (m_inputHandler.MouseState () == eMouseStateIdle || m_inputHandler.IsStateExiting ())) {
 		DLE.ToolView ()->Refresh ();
 		DLE.TextureView ()->Refresh ();
 //		UpdateWindow ();
@@ -967,6 +950,7 @@ for (int i = 0, j = vertexManager.Count (); i < j; i++) {
 	CVertex& v = vertexManager [i];
 	if (BETWEEN (clickPos.x, v.m_screen.x, releasePos.x) &&
 		 BETWEEN (clickPos.y, v.m_screen.y, releasePos.y) &&
+		 v.m_view.v.z > 0 && // in front of camera
 		 VertexVisible (i)) {
 		if (bTag)
 			vertexManager [i].Tag ();
@@ -1001,7 +985,8 @@ BOOL CMineView::DrawRubberBox (void)
 if (theMine == null)
 	return FALSE;
 
-if (m_inputHandler.MouseState () != eMouseStateRubberBand)
+if (m_inputHandler.MouseState () != eMouseStateRubberBandTag &&
+	m_inputHandler.MouseState () != eMouseStateRubberBandUnTag)
 	return FALSE;
 
 if ((m_rubberRect.Width () || m_rubberRect.Height ())) {

@@ -644,6 +644,22 @@ void CMainFrame::OnConvertToD2X ()
 ConvertMine (3);
 }
 
+void CMainFrame::OnConvertToOverload ()
+{
+	char szFile [256] = { 0 };
+
+DLE.ToolView ()->Refresh ();
+
+if (Query2Msg ("DLE allows you to export levels to a format (.overload) that can be read by "
+	"the Overload Level Editor. You will not be able to edit the level in DLE after it has "
+	"been exported.\n\n"
+	"Do you want to proceed? (The existing Descent level will not be modified.)", MB_OKCANCEL) != IDOK)
+	return;
+
+if (BrowseForFile (FALSE, "overload", szFile, "Overload levels (*.overload)|*.overload||", 0, DLE.MainFrame ()))
+	theMine->ExportOverload (szFile);
+}
+
 //------------------------------------------------------------------------------
 
 void CMainFrame::DebugMsg (const char *pszMsg)

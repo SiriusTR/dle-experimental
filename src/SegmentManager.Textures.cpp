@@ -197,8 +197,9 @@ return nChildSide;
 
 void CSegmentManager::UpdateTexCoords (ushort nVertexId, bool bMove, short nIgnoreSegment, short nIgnoreSide)
 {
-CSegment* pSegment = Segment (0);
+CSegment* pSegment;
 for (short nSegment = 0; 0 <= (nSegment = FindByVertex (nVertexId, nSegment)); nSegment++, pSegment++) {
+	pSegment = Segment (nSegment);
 	if (nIgnoreSegment >= 0) {
 		if ((nIgnoreSide < 0) && (nSegment == nIgnoreSegment))
 			continue;

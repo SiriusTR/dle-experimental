@@ -5,22 +5,30 @@
 
 // -----------------------------------------------------------------------------
 
-void CSegmentManager::RenumberProducers (ubyte nFunction, short nClass) 
+void CSegmentManager::RenumberProducers (ubyte nFunction, short nClass, bool bKeepOrder)
 {
 int h, i = 0, nErrors = 0; 
 
-m_producers [nClass].SortAscending (0, ProducerCount (nClass) - 1);
-for (h = i = 0; i < ProducerCount (nClass); i++) {
-	short nSegment = m_producers [nClass][i].m_info.nSegment; 
-	if (nSegment < 0) 
+if (bKeepOrder) {
+	for (i = 0; i < ProducerCount (nClass); i++) {
+		m_producers [nClass][i].m_info.nSegment = -1;
 		++nErrors;
-	else {
-		CSegment* pSegment = Segment (nSegment); 
-		if ((pSegment->m_info.function == nFunction) && (pSegment->m_info.nProducer < 0)) 
-			m_producers [nClass][i].m_info.nProducer = pSegment->m_info.nProducer = h++; 
-		else {
-			m_producers [nClass][i].m_info.nSegment = -1; 
+		}
+	}
+else {
+	m_producers [nClass].SortAscending (0, ProducerCount (nClass) - 1);
+	for (h = i = 0; i < ProducerCount (nClass); i++) {
+		short nSegment = m_producers [nClass][i].m_info.nSegment; 
+		if (nSegment < 0) 
 			++nErrors;
+		else {
+			CSegment* pSegment = Segment (nSegment); 
+			if ((pSegment->m_info.function == nFunction) && (pSegment->m_info.nProducer < 0)) 
+				m_producers [nClass][i].m_info.nProducer = pSegment->m_info.nProducer = h++; 
+			else {
+				m_producers [nClass][i].m_info.nSegment = -1; 
+				++nErrors;
+				}
 			}
 		}
 	}
@@ -59,28 +67,28 @@ if (nErrors) { // delete remaining unassigned matcens
 
 // -----------------------------------------------------------------------------
 
-void CSegmentManager::RenumberRobotMakers (void) 
+void CSegmentManager::RenumberRobotMakers (bool bKeepOrder)
 {
-RenumberProducers (SEGMENT_FUNC_ROBOTMAKER, 0);
+RenumberProducers (SEGMENT_FUNC_ROBOTMAKER, 0, bKeepOrder);
 }
 
 // -----------------------------------------------------------------------------
 
-void CSegmentManager::RenumberEquipMakers (void) 
+void CSegmentManager::RenumberEquipMakers (bool bKeepOrder)
 {
-RenumberProducers (SEGMENT_FUNC_EQUIPMAKER, 1);
+RenumberProducers (SEGMENT_FUNC_EQUIPMAKER, 1, bKeepOrder);
 }
 
 // -----------------------------------------------------------------------------
 
-void CSegmentManager::RenumberProducers (void)
+void CSegmentManager::RenumberProducers (bool bKeepOrder)
 {
 undoManager.Begin (__FUNCTION__, udSegments);
 CSegment* pSegment = Segment (0);
 for (int h = 0, i = Count (); i; i--, pSegment++)
 	pSegment->m_info.nProducer = -1;
-RenumberRobotMakers ();
-RenumberEquipMakers ();
+RenumberRobotMakers (bKeepOrder);
+RenumberEquipMakers (bKeepOrder);
 pSegment = Segment (0);
 for (int h = 0, i = Count (); i; i--, pSegment++)
 	if ((pSegment->m_info.function == SEGMENT_FUNC_PRODUCER) ||

@@ -125,7 +125,7 @@ else {
 		nPos = 0;
 	else if (nPos > MAX_VIEWDIST)
 		nPos = MAX_VIEWDIST;
-	DLE.MineView ()->SetViewDist (appSettings.m_nViewDist = nPos);
+	DLE.MineView ()->SetViewDistIndex (appSettings.m_nViewDist = nPos);
 	}
 }
 

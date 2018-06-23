@@ -86,7 +86,7 @@ m_defWall.Type () = WALL_DOOR;
 m_defWall.Info ().flags = WALL_DOOR_AUTO;
 m_defWall.Info ().keys = KEY_NONE;
 m_defWall.Info ().nClip = -1;
-m_defWall.Info ().cloakValue = 16; //50%
+m_defWall.Info ().cloakValue = 0; // 0% transparency (opaque) - since this is a door
 m_defDoorTexture = -1;
 m_defTexture = -1;
 m_defOvlTexture = 414;
@@ -391,7 +391,7 @@ pSide [1] = segmentManager.BackSide (keys [0], keys [1]);
 if (pSide [1] != null) 
 	pSegment [1] = segmentManager.Segment (keys [1].m_nSegment);
 
-for (BOOL bSide = FALSE; bSide <= m_bBothSides; bSide++)
+for (BOOL bSide = FALSE; (bSide <= m_bBothSides) && pSide [bSide] != null; bSide++)
 	if (pSide [bSide]->Info ().nWall < wallManager.WallCount ())
 		ErrorMsg ("There is already a wall at that side of the current segment.");
 	else if (wallManager.WallCount () >= MAX_WALLS)

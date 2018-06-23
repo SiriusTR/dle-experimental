@@ -687,6 +687,8 @@
 #define IDC_REACTOR_DELWALLTGT          10906
 #define IDC_REACTOR_COUNTDOWN				 10907
 #define IDC_REACTOR_SECRETRETURN			 10908
+#define IDC_REACTOR_STRENGTH            10909
+#define IDC_REACTOR_STRENGTHDEFAULT     10910
 
 #define IDD_NEWLEVEL							 11000
 #define IDC_LEVELNAME                   11000
@@ -1077,15 +1079,16 @@
 #define ID_DELETE_OBJECT                30881
 #define ID_DELETE_WALL                  30882
 #define ID_DELETE_TRIGGER               30883
-#define ID_JOIN_CURRENTSIDE             30884
-#define ID_JOIN_SIDES                   30885
-#define ID_JOIN_LINES                   30886
-#define ID_JOIN_POINTS                  30887
-#define ID_SPLIT_CURRENTSIDE            30888
-#define ID_SPLIT_SIDES                  30889
-#define ID_SPLIT_LINES                  30890
-#define ID_SPLIT_POINTS                 30891
-#define ID_TOOLS_EDITORTOOLBAR          30892
+#define ID_JOIN_SEGMENTS                30884
+#define ID_JOIN_CURRENTSIDE             30885
+#define ID_JOIN_SIDES                   30886
+#define ID_JOIN_LINES                   30887
+#define ID_JOIN_POINTS                  30888
+#define ID_SPLIT_CURRENTSIDE            30889
+#define ID_SPLIT_SIDES                  30890
+#define ID_SPLIT_LINES                  30891
+#define ID_SPLIT_POINTS                 30892
+#define ID_TOOLS_EDITORTOOLBAR          30900
 #define ID_HELP_USINGHELP               30904
 #define ID_FILE_TEST                    30905
 #define ID_VIEW_ROTATE_LEFT             30906
@@ -1182,8 +1185,9 @@
 #define ID_CONVERTMINE_STANDARD         32934
 #define ID_CONVERTMINE_VERTIGO          32935
 #define ID_CONVERTMINE_D2X              32936
-#define ID_FILE_EDITHOG                 32937
-#define ID_FILE_EDITPOG                 32938
+#define ID_CONVERTMINE_OVERLOAD         32937
+#define ID_FILE_EDITHOG                 32938
+#define ID_FILE_EDITPOG                 32939
 
 #define ID_SEL_POINT                    61447
 #define ID_SEL_LINE                     61448

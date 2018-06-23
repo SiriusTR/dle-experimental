@@ -96,6 +96,7 @@ class CDlgHelpers {
 		void SelectItemData (CComboBox *pcb, int nItemData);
 		void CBUpdateListWidth (CComboBox *pcb);
 		void EnableControls (int nIdFirst, int nIdLast, BOOL bEnable);
+		BOOL OnToolTipNotify (UINT id, NMHDR *pNMHDR, LRESULT *pResult);
 
 		BOOL SelectColor (BYTE& red, BYTE& green, BYTE& blue);
 		void CreateColorCtrl (CColorControl *pWnd, int nIdC);
@@ -138,9 +139,13 @@ class CTabDlg : public CDialog, public CDlgHelpers {
 
 		inline BOOL Valid (void) { return m_bValid; }
 
-		CTabDlg (UINT nId, CWnd* pParent = null) : m_bInited (0), m_bValid (0), m_bHaveData (0), CDialog (nId, pParent), CDlgHelpers (this) {}
+		CTabDlg (UINT nId, CWnd* pParent = null);
 
 		//virtual BOOL PreTranslateMessage (MSG* pMsg);
+
+		BOOL OnToolTipNotify (UINT id, NMHDR *pNMHDR, LRESULT *pResult);
+
+		DECLARE_MESSAGE_MAP ()
 	};
 
 //------------------------------------------------------------------------------
@@ -486,6 +491,8 @@ class CReactorTool : public CToolDlg
 		int			m_iTarget;
 		int			m_nCountDown;
 		int			m_nSecretReturn;
+		int			m_nStrength;
+		int			m_bDefaultStrength;
 		char			m_szTarget [40];
 		CReactorTrigger	*m_pTrigger;
 
@@ -505,6 +512,8 @@ class CReactorTool : public CToolDlg
 		afx_msg void OnDeleteWallTarget ();
 		afx_msg void OnCountDown ();
 		afx_msg void OnSecretReturn ();
+		afx_msg void OnStrength ();
+		afx_msg void OnStrengthDefault ();
 		afx_msg void OnSetTarget ();
 		inline CListBox *LBTargets ()
 			{ return LBCtrl (IDC_REACTOR_TARGETLIST); }
@@ -725,6 +734,14 @@ class CAdvancedObjTool : public CObjectTabDlg
 		void Reset ();
 		virtual bool Refresh (void);
 		afx_msg void OnAccept ();
+		template < int _id >
+		afx_msg void OnField () {
+			char szVal [5];
+			::GetWindowText (GetDlgItem (_id)->m_hWnd, szVal, sizeof (szVal));
+			if (!*szVal)
+				return;
+			OnAccept ();
+			}
 
 		DECLARE_MESSAGE_MAP ()
 };

@@ -890,8 +890,10 @@ if (!bSemaphore) {
 
 void CTextureTool::OnBrightnessEdit (void)
 {
-if (m_brightnessCtrl.OnEdit ())
+if (m_brightnessCtrl.OnEdit ()) {
 	UpdateData (TRUE);
+	SetBrightness (m_nBrightness);
+	}
 }
 
 //------------------------------------------------------------------------------

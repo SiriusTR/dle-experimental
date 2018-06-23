@@ -28,6 +28,7 @@ BEGIN_MESSAGE_MAP (CMainFrame, CFrameWnd)
 	//{{AFX_MSG_MAP (CMainFrame)
 	ON_WM_CREATE ()
 	ON_WM_CLOSE ()
+	ON_WM_DESTROY ()
 	ON_WM_SIZE ()
 	ON_COMMAND_EX (ID_VIEW_TOOLBAR, OnBarCheck)
 	ON_COMMAND (ID_TOOLS_EDITORTOOLBAR,OnEditorToolbar)
@@ -38,6 +39,7 @@ BEGIN_MESSAGE_MAP (CMainFrame, CFrameWnd)
 	ON_COMMAND (ID_CONVERTMINE_STANDARD, OnConvertToStandard)
 	ON_COMMAND (ID_CONVERTMINE_VERTIGO, OnConvertToVertigo)
 	ON_COMMAND (ID_CONVERTMINE_D2X, OnConvertToD2X)
+	ON_COMMAND (ID_CONVERTMINE_OVERLOAD, OnConvertToOverload)
 	ON_COMMAND (ID_EDIT_UNDO, OnUndo)
 	ON_COMMAND (ID_EDIT_REDO, OnRedo)
 	ON_COMMAND (ID_EDITGEO_FWD, OnEditGeoFwd)
@@ -127,6 +129,7 @@ BEGIN_MESSAGE_MAP (CMainFrame, CFrameWnd)
 	ON_COMMAND (ID_SPLIT_SIDES, OnSplitSides)
 	ON_COMMAND (ID_JOIN_CURRENTSIDE, OnJoinCurrentSide)
 	ON_COMMAND (ID_SPLIT_CURRENTSIDE, OnSplitCurrentSide)
+	ON_COMMAND (ID_JOIN_SEGMENTS, OnJoinSegments)
 	ON_COMMAND (ID_INSMODE_NORMAL, OnInsModeNormal)
 	ON_COMMAND (ID_INSMODE_EXTEND, OnInsModeExtend)
 	ON_COMMAND (ID_INSMODE_MIRROR, OnInsModeMirror)
@@ -173,7 +176,7 @@ BEGIN_MESSAGE_MAP (CMainFrame, CFrameWnd)
 	ON_COMMAND (ID_FINER_TUNNEL, OnFinerTunnel)
 	ON_COMMAND (ID_COARSER_TUNNEL, OnCoarserTunnel)
 	ON_UPDATE_COMMAND_UI (ID_FILE_EDITHOG, OnUpdateEditHog)
-	ON_UPDATE_COMMAND_UI (ID_FILE_EDITPOG, OnUpdateEditPog)
+	//ON_UPDATE_COMMAND_UI (ID_FILE_EDITPOG, OnUpdateEditPog)
 	ON_UPDATE_COMMAND_UI (ID_VIEW_TOGGLEVIEWS, OnUpdateToggleViews)
 	ON_UPDATE_COMMAND_UI (ID_VIEW_TOGGLETEXPANE, OnUpdateToggleTexPane)
 	ON_UPDATE_COMMAND_UI (ID_FILE_EXTBLKFMT, OnUpdateExtBlkFmt)
@@ -545,6 +548,11 @@ segmentManager.Join (*current, false);
 void CMainFrame::OnJoinCurrentSide ()
 {
 segmentManager.Join (*current, true);
+}
+
+void CMainFrame::OnJoinSegments ()
+{
+segmentManager.JoinSegments ();
 }
 
 void CMainFrame::OnSplitPoints ()

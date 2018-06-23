@@ -327,7 +327,11 @@ class CTextureManager {
 
 		int ReadPog (CFileManager& fp, long nFileSize);
 
+		int ReadDtx (CFileManager& fp, long nFileSize);
+
 		int CreatePog (CFileManager& fp);
+
+		int CreateDtx (CFileManager& fp);
 
 		int WriteCustomTexture (CFileManager& fp, const CTexture *pTexture, bool bUseBMPFileFormat = false);
 

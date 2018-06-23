@@ -84,6 +84,9 @@ class CDynamicArray : public CQuickSort < _T > {
 			Init (); 
 			Create (nLength);
 			}
+
+		template <size_t _N>
+		CDynamicArray (_T const (&source) [_N]) : CDynamicArray (_N) { operator= ((_T*)source); }
 		
 		~CDynamicArray() { Destroy (); }
 		
@@ -210,7 +213,10 @@ class CDynamicArray : public CQuickSort < _T > {
 				Clear (); // hack to avoid d'tors
 				}
 			m_data.length = length;
-			m_data.pos %= length;
+			if (length > 0)
+				m_data.pos %= length;
+			else
+				m_data.pos = 0;
 			delete[] m_data.buffer;
 			return m_data.buffer = p;
 			}

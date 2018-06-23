@@ -128,7 +128,10 @@ short nSegment;
 if (m_viewOption == eViewTextured || m_viewOption == eViewTexturedWireFrame) {
 	int nResult = Renderer ().GetSideKey (xMouse, yMouse, nSegment, nSide);
 	if (nResult == 1)
-		return nSegment;
+		if (!segmentManager.Segment (nSegment)->m_info.bTunnel)
+			return nSegment;
+		else
+			return -1;
 	if (nResult == 0)
 		return -1;
 	}
@@ -159,6 +162,8 @@ bool bSkyBox = ViewFlag (eViewMineSkyBox);
 for (short nSegment = 0; nSegment < nSegments; nSegment++) {
 	CSegment* pSegment = segmentManager.Segment (nSegment);
 	if (!bSkyBox && (pSegment->Function () == SEGMENT_FUNC_SKYBOX))
+		continue;
+	if (pSegment->m_info.bTunnel)
 		continue;
 	CSide* pSide = pSegment->Side (0);
 	for (short nSide = 0; nSide < 6; nSide++, pSide++) {

@@ -132,8 +132,9 @@ class CTunnelPath {
 		int										m_nPivot;
 		CDynamicArray<CTunnelStartSide>	m_startSides;
 		CDynamicArray<ushort>				m_nStartVertices;
+		bool										m_bMorph;
 
-		CTunnelPath () : m_nSteps (0) {}
+		CTunnelPath () : m_nSteps (0), m_bMorph (false) {}
 
 		bool Setup (CTunnelBase base [2], bool bStartSides, bool bPath);
 

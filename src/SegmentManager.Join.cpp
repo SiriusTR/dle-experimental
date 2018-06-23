@@ -536,6 +536,223 @@ SetLinesToDraw();
 DLE.MineView ()->Refresh ();
 }
 
+// -----------------------------------------------------------------------------
+// JoinSegments ()
+//
+//  Action - Merges the current segment and other segment into one segment
+// -----------------------------------------------------------------------------
+
+void CSegmentManager::JoinSegments ()
+{
+	CSegment *pCurrent = current->Segment ();
+	CSegment *pOther = other->Segment ();
+	CSide *pJoinSideCurrent = null;
+	CSide *pJoinSideOther = null;
+	CSide *pOppositeSideCurrent = null;
+	CSide *pOppositeSideOther = null;
+	bool bValid = true;
+
+// First check that these two segments are currently connected, and that the
+// resulting segment would be valid.
+for (short nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++) {
+	if (pCurrent->Side (nSide)->Child () == other->Segment ()) {
+		pJoinSideCurrent = pCurrent->Side (nSide);
+		break;
+		}
+	}
+for (short nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++) {
+	if (pOther->Side (nSide)->Child () == pCurrent) {
+		pJoinSideOther = pOther->Side (nSide);
+		break;
+		}
+	}
+if (pJoinSideCurrent == null || pJoinSideOther == null) {
+	bValid = false;
+	if (!DLE.ExpertMode ())
+		ErrorMsg ("The selected cube and 'other' cube must be adjacent to be joined.\n\n"
+			"Hint: Join a side of the selected cube to the other cube first, then join the cubes.");
+	return;
+	}
+
+// All points from the combined segment need to be in front of each remaining face
+// for the segment to be valid.
+pOppositeSideCurrent = pCurrent->OppositeSide (pCurrent->SideIndex (pJoinSideCurrent));
+pOppositeSideCurrent->ComputeNormals (pCurrent->VertexIds (), pCurrent->ComputeCenter ());
+pCurrent->ComputeCenter (pOppositeSideCurrent);
+pOppositeSideOther = pOther->OppositeSide (pOther->SideIndex (pJoinSideOther));
+pOppositeSideOther->ComputeNormals (pOther->VertexIds (), pOther->ComputeCenter ());
+pOther->ComputeCenter (pOppositeSideOther);
+for (short nPoint = 0; nPoint < pOppositeSideOther->VertexCount (); nPoint++) {
+	const CVertex *pVertex = pOther->Vertex (pOppositeSideOther->VertexIdIndex (nPoint));
+	CDoubleVector vec = *pVertex - pOppositeSideCurrent->Center ();
+	if ((pOppositeSideCurrent->Normal () ^ vec) <= 0) {
+		bValid = false;
+		break;
+		}
+	}
+for (short nPoint = 0; nPoint < pOppositeSideCurrent->VertexCount (); nPoint++) {
+	const CVertex *pVertex = pCurrent->Vertex (pOppositeSideCurrent->VertexIdIndex (nPoint));
+	CDoubleVector vec = *pVertex - pOppositeSideOther->Center ();
+	if ((pOppositeSideOther->Normal () ^ vec) <= 0) {
+		bValid = false;
+		break;
+		}
+	}
+
+// The combined segment also needs to have enough vertices to be a valid segment.
+if (pOppositeSideCurrent->VertexCount () < 3 ||
+	 pOppositeSideOther->VertexCount () < 3 ||
+	 pOppositeSideCurrent->VertexCount () != pOppositeSideOther->VertexCount ())
+	bValid = false;
+if (!bValid) {
+	if (!DLE.ExpertMode ())
+		ErrorMsg ("Cannot join these cubes because the resulting cube would have illegal geometry.");
+	return;
+	}
+
+// Figure out how we'll be combining these two segments. Normally we'll delete the other segment
+// and join the current segment to the side it was attached to. But if its opposite side is
+// unattached, we'll join the current segment to that instead and then delete it.
+// We look this up early because it can potentially fail, and it's safer not to have to roll these
+// changes back.
+CSideKey currentSideKey (current->SegmentId (), pCurrent->SideIndex (pJoinSideCurrent));
+CSideKey joinSideKey;
+// Was the other segment joined to another side?
+if (pOppositeSideOther->Child () != null) {
+	// Fetch the joined side
+	CSegment *pChild = pOppositeSideOther->Child ();
+	short nSide;
+	for (nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++) {
+		if (pChild->Side (nSide)->Child () == pOther) {
+			joinSideKey = CSideKey (pOther->ChildId (pOther->SideIndex (pOppositeSideOther)), nSide);
+			break;
+			}
+		}
+	if (nSide == 6) {
+		ErrorMsg ("Error: Other cube is not correctly joined to its neighboring cubes.\n"
+			"Try running diagnostics with \"auto fix bugs\" checked.");
+		return;
+		}
+	}
+else {
+	// Join to the opposite side instead
+	joinSideKey = CSideKey (other->SegmentId (), pOther->SideIndex (pOppositeSideOther));
+	}
+CSideMatcher sideMatcher;
+tVertMatch match [4];
+sideMatcher.SetSide (0, currentSideKey);
+sideMatcher.SetSide (1, joinSideKey);
+sideMatcher.Match ();
+short joinPoint;
+if (!sideMatcher.GetBestMatch (joinSideKey, joinPoint, match)) {
+	if (!DLE.ExpertMode ())
+		ErrorMsg ("Error: Unable to join the current cube to the opposite side.");
+	return; 
+	}
+
+// We're OK, now perform the join.
+undoManager.Begin (__FUNCTION__, udSegments | udVertices | udWalls);
+
+// We need to look at all the other sides of the current segment. If they're joined to another segment,
+// we'll detach them. Otherwise, we'll try to preserve UV co-ordinates if both segments have the same
+// texture on that side.
+bool needResetUVs [MAX_SIDES_PER_SEGMENT];
+for (short nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++) {
+	CSide *pSideCurrent = pCurrent->Side (nSide);
+	if (pSideCurrent == pJoinSideCurrent || pSideCurrent == pOppositeSideCurrent) {
+		needResetUVs [nSide] = false;
+		continue;
+		}
+	
+	if (pCurrent->Child (nSide) != null) {
+		// Side is joined; we'll detach it later (not now since it will break linkage with the other cube)
+		needResetUVs [nSide] = true;
+		continue;
+		}
+
+	// Side is not joined; check whether we can preserve textures
+	if (pSideCurrent->VertexCount () < 4) {
+		needResetUVs [nSide] = true;
+		continue;
+		}
+
+	// Find the corresponding side in the other segment
+	short nSideOther = -1;
+	short nStartVertexCurrent;
+	ushort nEdgeVerts [2];
+	for (nStartVertexCurrent = 0; nStartVertexCurrent < pSideCurrent->VertexCount (); nStartVertexCurrent++) {
+		nEdgeVerts [0] = pCurrent->VertexId (nSide, nStartVertexCurrent);
+		nEdgeVerts [1] = pCurrent->VertexId (nSide, nStartVertexCurrent + 1);
+		nSideOther = pOther->AdjacentSide (pOther->SideIndex (pJoinSideOther), nEdgeVerts);
+		if (nSideOther != -1)
+			break;
+		}
+	if (nSideOther == -1) {
+		needResetUVs [nSide] = true;
+		continue;
+		}
+	CSide *pSideOther = pOther->Side (nSideOther);
+	if (pSideOther->Child () != null) {
+		needResetUVs [nSide] = true;
+		continue;
+		}
+
+	// UV translation won't really work under this implementation with mismatched
+	// vertex counts, so don't handle that case
+	if (pSideCurrent->VertexCount () != pSideOther->VertexCount ()) {
+		needResetUVs [nSide] = true;
+		continue;
+		}
+
+	// Do the textures match?
+	if (pSideCurrent->BaseTex () != pSideOther->BaseTex () ||
+		 pSideCurrent->OvlTex () != pSideOther->OvlTex ()) {
+		needResetUVs [nSide] = true;
+		continue;
+		}
+
+	// All OK; copy UV co-ordinates
+	short nStartVertexOther = 0;
+	for (bool bFoundStart = false; !bFoundStart; nStartVertexOther++) {
+		ushort vertexId = pOther->VertexId (nSideOther, nStartVertexOther);
+		ushort nextVertexId = pOther->VertexId (nSideOther, nStartVertexOther + 1);
+		bool bVertexShared = (vertexId == nEdgeVerts [0] || vertexId == nEdgeVerts [1]);
+		bool bNextVertexShared = (nextVertexId == nEdgeVerts [0] || nextVertexId == nEdgeVerts [1]);
+		if (bVertexShared && !bNextVertexShared)
+			bFoundStart = true; // nStartVertexOther will increment before checking bFoundStart
+		}
+	for (short nVertex = 0; nVertex < 2; nVertex++) {
+		short nVertexCurrent = (nStartVertexCurrent + nVertex) % 4;
+		short nVertexOtherBase = (4 + nStartVertexOther - nVertex - 1) % 4;
+		short nVertexOtherOffset = (nStartVertexOther + nVertex) % 4;
+		*pSideCurrent->Uvls (nVertexCurrent) += *pSideOther->Uvls (nVertexOtherOffset) - *pSideOther->Uvls (nVertexOtherBase);
+		}
+	needResetUVs [nSide] = false;
+	}
+
+// Now separate any sides attached to other segments (including the actual "other" segment;
+// it might share vertices with something else, which we would then distort)
+for (short nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++)
+	if (pCurrent->Side (nSide) != pOppositeSideCurrent
+		 && pCurrent->Child (nSide) != null)
+		SeparateSegments (FALSE, nSide, false);
+
+// Join the current segment to the specified side
+LinkSides (currentSideKey.m_nSegment, currentSideKey.m_nSide, joinSideKey.m_nSegment, joinSideKey.m_nSide, match);
+
+// Reset the textures on each side if necessary
+for (short nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++)
+	if (needResetUVs [nSide])
+		pCurrent->SetUV (nSide, 0.0, 0.0);
+
+// Finally, delete the other segment
+Delete (other->SegmentId ());
+
+undoManager.End (__FUNCTION__);
+SetLinesToDraw ();
+DLE.MineView ()->Refresh ();
+}
+
 // ----------------------------------------------------------------------------- 
 // FixChildren()
 //
