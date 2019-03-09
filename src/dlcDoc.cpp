@@ -560,8 +560,13 @@ switch (nType) {
 			strcpy_s (ps, sizeof (filename) - (ps - filename), ".dtx");
 		else
 			strcat_s (filename, sizeof (filename), ".dtx");
+		CDtxSoundList soundList;
+		if (fp.Exist (filename) && fp.Open (filename, "rb")) {
+			soundList.Load (fp, fp.Size ());
+			fp.Close ();
+			}
 		if (fp.Open (filename, "wb")) {
-			bSucceeded &= textureManager.CreateDtx (fp) > 0;
+			bSucceeded &= textureManager.CreateDtx (fp, soundList) > 0;
 			fp.Close ();
 			}
 		break;

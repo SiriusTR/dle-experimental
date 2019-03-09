@@ -1281,6 +1281,7 @@ int WriteCustomFile (const char* pszFile, char* pszSubFile, const int nType)
 	int nResult = 1;
 	CFileManager fp, fTmp;
 	char szFolder [256], szTmp [256], szDest [256], szBase [256];
+	long size = 0;
 
 // determine base name
 CFileManager::SplitPath (pszFile, szFolder, null, null);
@@ -1292,6 +1293,11 @@ if (!fp.Open (pszFile, "r+b")) {
 	ErrorMsg ("Destination HOG file not found or inaccessible.");
 	return 0;
 	}
+
+// Save sounds from D1 DTX patches so we can write them back later
+CDtxSoundList soundList;
+if (nType == CUSTOM_FILETYPE_DTX && (0 < (size = hogManager->FindSubFile (fp, pszFile, szDest, null))))
+	soundList.Load (fp, size);
 
 // If target HOG already contains a file with this name, delete it so we can overwrite it
 if (DoesSubFileExist (fp, szDest))
@@ -1315,7 +1321,7 @@ switch (nType) {
 		bHasContent = robotManager.HasCustomRobots ();
 		break;
 	case CUSTOM_FILETYPE_DTX:
-		bHasContent = textureManager.HasCustomTextures ();
+		bHasContent = textureManager.HasCustomTextures () || (soundList.Count () > 0);
 		break;
 	default:
 		break;
@@ -1343,7 +1349,7 @@ if (bHasContent) {
 			nResult = robotManager.WriteHXM (fTmp);
 			break;
 		case CUSTOM_FILETYPE_DTX:
-			nResult = textureManager.CreateDtx (fTmp);
+			nResult = textureManager.CreateDtx (fTmp, soundList);
 			break;
 		default:
 			nResult = 0;

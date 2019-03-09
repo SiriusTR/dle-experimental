@@ -44,7 +44,10 @@ typedef struct {
 } PIG_TEXTURE_D2;
 
 typedef struct {
-	ubyte unknown[20];
+	char name[8];
+	int length;
+	int data_length;
+	int offset;
 } PIG_SOUND;
 
 typedef struct {

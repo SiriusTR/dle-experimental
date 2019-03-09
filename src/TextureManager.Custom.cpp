@@ -120,7 +120,7 @@ pigFileInfo.Read (fp);
 sprintf_s (message, sizeof (message), " Pog manager: Reading %d custom textures", pigFileInfo.nTextures);
 DEBUGMSG (message);
 hdrOffset = fp.Tell ();
-hdrSize = pigFileInfo.nTextures * sizeof (PIG_TEXTURE_D1);
+hdrSize = pigFileInfo.nTextures * sizeof (PIG_TEXTURE_D1) + pigFileInfo.nSounds * sizeof (PIG_SOUND);
 bmpOffset = hdrOffset + hdrSize;
 nUnknownTextures = 0;
 nMissingTextures = 0;
@@ -372,22 +372,29 @@ return 1;
 //
 // Format:
 //   PIG Header (D1 format)
-//   Texture Header 0 (D1 format)
+//   Texture Header 1 (D1 format)
 //     ...
 //   Texture Header N (D1 format)
-//   Texture 0
+//   Sound Header 1
 //     ...
-//   Texture N
+//   Sound Header M
+//   Texture/Sound 1
+//     ...
+//   Texture/Sound N+M
 //
-// where N is the number of textures. DTX patches do not store texture indices,
-// and instead use texture names (as written in the texture header) to determine
-// which texture to override.
+// where N is the number of textures and M is the number of sound clips. DTX patches
+// do not store texture indices, and instead use texture names (as written in the
+// texture header) to determine which texture to override. Sounds are handled in the
+// same way - although presently we do not edit these and just carry them over from
+// the old file if we found any.
 //
-// Texture data is stored in the same way as in a POG file.
+// Texture data is stored in the same way as in a POG file. While the DTX file format
+// appears to allow textures and sounds to be interleaved, we write textures first,
+// then sounds.
 //
 //-----------------------------------------------------------------------------------
 
-int CTextureManager::CreateDtx (CFileManager & fp)
+int CTextureManager::CreateDtx (CFileManager & fp, CDtxSoundList & soundList)
 {
 if (!textureManager.Available ())
 	return 1;
@@ -414,6 +421,7 @@ for (i = 0; i < h; i++) {
 	if (pTexture->IsCustom ())
 		pigFileInfo.nTextures++;
 	}
+pigFileInfo.nSounds = soundList.Count ();
 pigFileInfo.Write (fp);
 
 sprintf_s (message, sizeof (message)," Pog manager: Saving %d custom textures", pigFileInfo.nTextures);
@@ -427,12 +435,20 @@ for (i = 0; i < h; i++) {
 		nOffset = WriteCustomTextureHeader (fp, pTexture, nId++, nOffset);
 	}
 
+// write sound headers
+for (i = 0; i < soundList.Count (); i++)
+	nOffset = soundList.WriteHeader (fp, i, nOffset);
+
 // write texture data
 for (i = 0; i < h; i++) {
 	pTexture = TextureByIndex (i);
 	if (pTexture->IsCustom ())
 		WriteCustomTexture (fp, pTexture);
 	}
+
+// write sound data
+for (i = 0; i < soundList.Count (); i++)
+	soundList.WriteSoundClip (fp, i);
 
 return 1;
 }
@@ -478,6 +494,66 @@ if (DLE.MakeModFolders ("textures")) {
 	ReadMod (DLE.m_modFolders [1]);
 	DLE.MainFrame ()->Progress ().DestroyWindow ();
 	}
+}
+
+//------------------------------------------------------------------------------
+
+CDtxSoundList::~CDtxSoundList ()
+{
+for (uint i = 0; i < m_sounds.Length (); i++)
+	free (m_sounds [i]);
+}
+
+//------------------------------------------------------------------------------
+
+void CDtxSoundList::Load (CFileManager& fp, long nFileSize)
+{
+	CPigHeader pigFileInfo (0);
+	uint hdrOffset, dataOffset, hdrSize;
+
+// read file header
+pigFileInfo.Read (fp);
+hdrOffset = fp.Tell ();
+hdrSize = pigFileInfo.nTextures * sizeof (PIG_TEXTURE_D1) + pigFileInfo.nSounds * sizeof (PIG_SOUND);
+dataOffset = hdrOffset + hdrSize;
+
+m_headers.Resize (pigFileInfo.nSounds, false);
+m_sounds.Resize (pigFileInfo.nSounds, false);
+
+// read sound headers
+fp.Seek (hdrOffset + pigFileInfo.nTextures * sizeof (PIG_TEXTURE_D1), SEEK_SET);
+for (int i = 0; i < pigFileInfo.nSounds; i++) {
+	// get texture data offset from texture header
+	fp.ReadBytes (&m_headers [i], sizeof (PIG_SOUND));
+	}
+
+// read sound data
+for (int i = 0; i < pigFileInfo.nSounds; i++) {
+	if ((long) (hdrSize + m_headers [i].offset + m_headers [i].length) > nFileSize)
+		continue;
+	
+	m_sounds [i] = malloc (m_headers [i].length);
+	fp.Seek (dataOffset + m_headers [i].offset, SEEK_SET);
+	fp.ReadBytes (m_sounds [i], m_headers [i].length);
+	}
+}
+
+//------------------------------------------------------------------------------
+
+uint CDtxSoundList::WriteHeader (CFileManager& fp, uint nItem, uint nOffset)
+{
+// update clip offset, it might have moved
+m_headers [nItem].offset = nOffset;
+
+fp.WriteBytes (&m_headers [nItem], sizeof (PIG_SOUND));
+return nOffset + m_headers [nItem].length;
+}
+
+//------------------------------------------------------------------------------
+
+void CDtxSoundList::WriteSoundClip (CFileManager& fp, uint nItem)
+{
+fp.WriteBytes (m_sounds [nItem], m_headers [nItem].length);
 }
 
 //------------------------------------------------------------------------------
