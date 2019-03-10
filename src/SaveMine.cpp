@@ -353,8 +353,12 @@ else {
 		// Neighboring segments
 		sprintf_s (path, "/segments/%d/neighbors", nSegment);
 		Value& neighbors = Pointer (path).Create (document).SetArray ();
-		for (int nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++)
-			neighbors.PushBack (pSegment->ChildId (nSide), allocator);
+		for (int nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++) {
+			short nChildId = pSegment->ChildId (nSide);
+			if (nChildId == -2)
+				nChildId = -1; // -2 is not supported by the Overload format
+			neighbors.PushBack (nChildId, allocator);
+			}
 		}
 
 	char writeBuffer [65536] = { 0 };
