@@ -947,6 +947,11 @@ void CInputHandler::OnMouseWheel (UINT nFlags, short zDelta, CPoint pt)
 {
 }
 
+void CInputHandler::OnSetFocus ()
+{
+UpdateModifierStates (WM_SETFOCUS, 0, 0);
+}
+
 //------------------------------------------------------------------------------
 // Internal functions
 
@@ -1062,8 +1067,6 @@ switch (msg) {
 		m_mouseButtonStates = nFlags & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON | MK_XBUTTON1 | MK_XBUTTON2);
 		break;
 
-		// WM_SETFOCUS currently isn't sent to the input handler, but if we continue to have problems with
-		// modifier keys (particularly Alt) getting out of sync we might need to plumb it through
 	case WM_SETFOCUS:
 		m_bModifierActive [eModifierShift] = GetKeyState (VK_SHIFT) > 0;
 		m_bModifierActive [eModifierCtrl] = GetKeyState (VK_CONTROL) > 0;

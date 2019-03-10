@@ -64,6 +64,7 @@ BEGIN_MESSAGE_MAP(CMineView, CView)
 	ON_WM_KEYDOWN()
 	ON_WM_SYSKEYUP()
 	ON_WM_SYSKEYDOWN()
+	ON_WM_SETFOCUS()
 	//}}AFX_MSG_MAP
 	// Standard printing commands
 	ON_COMMAND(ID_FILE_PRINT, CView::OnFilePrint)
@@ -1277,6 +1278,13 @@ m_inputHandler.OnKeyUp (nChar, nRepCnt, nFlags);
 void CMineView::OnSysKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 m_inputHandler.OnKeyDown (nChar, nRepCnt, nFlags);
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::OnSetFocus (CWnd* pOldWnd)
+{
+m_inputHandler.OnSetFocus ();
 }
 
 //------------------------------------------------------------------------------
