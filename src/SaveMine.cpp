@@ -307,7 +307,7 @@ else {
 			Value side (kObjectType);
 			Pointer ("/marked").Set (side, false, allocator);
 			Pointer ("/chunk_plane_order").Set (side, -1, allocator);
-			Pointer ("/tex_name").Set (side, "concrete_test", allocator);
+			Pointer ("/tex_name").Set (side, textureManager.Textures (pSide->BaseTex ())->Name (), allocator);
 			Pointer ("/deformation_preset").Set (side, 0, allocator);
 			Pointer ("/deformation_height").Set (side, 0.0, allocator);
 
