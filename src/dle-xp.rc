@@ -7004,7 +7004,7 @@ BEGIN
             MENUITEM "Descent &2",                  ID_CONVERTMINE_STANDARD
             MENUITEM "&Vertigo",                    ID_CONVERTMINE_VERTIGO
             MENUITEM "D2&X-XL",                     ID_CONVERTMINE_D2X
-            MENUITEM "&Overload (export)"           ID_CONVERTMINE_OVERLOAD
+            MENUITEM "&Overload (export)",          ID_CONVERTMINE_OVERLOAD
         END
         MENUITEM "Check Mine",                  ID_FILE_CHECKMINE
         MENUITEM "R&un Level",                  ID_RUN_LEVEL
@@ -7037,6 +7037,9 @@ BEGIN
         MENUITEM "Collapse &Edge\tAlt+E",       ID_VIEW_COLLAPSE_EDGE
         MENUITEM "Create &Wedge\tAlt+W",        ID_VIEW_CREATE_WEDGE
         MENUITEM "Create P&yramid\tAlt+P",      ID_VIEW_CREATE_PYRAMID
+        MENUITEM SEPARATOR
+        MENUITEM "Recalculate mine center",     ID_EDIT_RECALCULATE_CENTER
+        MENUITEM "Set mine center to current Cube", ID_EDIT_SET_CENTER
     END
     POPUP "&View"
     BEGIN
@@ -7271,7 +7274,7 @@ BEGIN
     "C",            ID_JOIN_CURRENTSIDE,    VIRTKEY, CONTROL, NOINVERT
     "C",            ID_SEL_PREV_SEGMENT,    VIRTKEY, SHIFT, NOINVERT
     "C",            ID_SPLIT_CURRENTSIDE,   VIRTKEY, SHIFT, CONTROL, NOINVERT
-    "C",            ID_JOIN_SEGMENTS,       VIRTKEY, ALT, CONTROL, NOINVERT
+    "C",            ID_JOIN_SEGMENTS,       VIRTKEY, CONTROL, ALT, NOINVERT
     "E",            ID_VIEW_ROTATE_CLOCKWISE, VIRTKEY, NOINVERT
     "E",            ID_VIEW_COLLAPSE_EDGE,  VIRTKEY, ALT, NOINVERT
     "G",            ID_TOOLS_CURVEGENERATOR, VIRTKEY, NOINVERT
@@ -7696,6 +7699,13 @@ BEGIN
     IDC_PREFS_BROWSE_MISSIONS "browse\nbrowse"
     IDC_TEXLIGHT_ADD        "add variable light\nadd variable light"
     IDC_TEXLIGHT_DELETE     "delete variable light\ndelete variable light"
+END
+
+STRINGTABLE
+BEGIN
+    ID_EDIT_RECALCULATE_CENTER 
+                            "Updates the level geometry co-ordinates so that the origin is in the center of the level."
+    ID_EDIT_SET_CENTER      "Updates the level geometry co-ordinates so that the origin is in the center of the current cube."
 END
 
 #endif    // English (United States) resources

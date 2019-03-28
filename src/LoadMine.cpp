@@ -293,7 +293,6 @@ if (!(bLoadFromHog || bCreate)) {
 			}
 		}
 	}
-UpdateCenter ();
 objectManager.Sort ();
 DLE.MainFrame ()->SetSelectMode (eSelectSide);
 current->Reset ();

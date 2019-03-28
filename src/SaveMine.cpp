@@ -28,7 +28,6 @@ else if (vertexManager.Overflow ()) {
 	int				mineDataOffset, gameDataOffset, hostageTextOffset;
 	int				mineErr, gameErr;
 
-UpdateCenter ();
 strcpy_s (filename, sizeof (filename), szFile);
 if (!fp.Open (filename, "w+b"))
 	return 0;

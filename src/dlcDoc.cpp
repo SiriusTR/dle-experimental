@@ -556,6 +556,7 @@ switch (nType) {
 		break;
 
 	case CUSTOM_FILETYPE_DTX:
+		{
 		if (ps)
 			strcpy_s (ps, sizeof (filename) - (ps - filename), ".dtx");
 		else
@@ -569,6 +570,7 @@ switch (nType) {
 			bSucceeded &= textureManager.CreateDtx (fp, soundList) > 0;
 			fp.Close ();
 			}
+		}
 		break;
 
 	case CUSTOM_FILETYPE_HXM:

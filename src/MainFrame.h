@@ -363,6 +363,8 @@ public:
 	afx_msg void OnCollapseEdge ();
 	afx_msg void OnCreateWedge ();
 	afx_msg void OnCreatePyramid (); 
+	afx_msg void OnEditRecalculateCenter ();
+	afx_msg void OnEditSetCenter ();
 	afx_msg void OnIncSpline ();
 	afx_msg void OnDecSpline ();
 	afx_msg void OnFinerTunnel ();

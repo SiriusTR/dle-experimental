@@ -154,6 +154,8 @@ BEGIN_MESSAGE_MAP (CMainFrame, CFrameWnd)
 	ON_COMMAND (ID_VIEW_COLLAPSE_EDGE, OnCollapseEdge)
 	ON_COMMAND (ID_VIEW_CREATE_WEDGE, OnCreateWedge)
 	ON_COMMAND (ID_VIEW_CREATE_PYRAMID, OnCreatePyramid)
+	ON_COMMAND (ID_EDIT_RECALCULATE_CENTER, OnEditRecalculateCenter)
+	ON_COMMAND (ID_EDIT_SET_CENTER, OnEditSetCenter)
 	ON_COMMAND (ID_SEL_NEXT_SEGMENT_ELEM, OnSelNextSegmentElem)
 	ON_COMMAND (ID_SEL_PREV_SEGMENT_ELEM, OnSelPrevSegmentElem)
 	ON_COMMAND (ID_SEL_NEXT_SEGMENT_ELEM_KEY, OnSelNextSegmentElemKey)
@@ -1344,6 +1346,23 @@ if (nVersion < 3) {
 if (nVersion < 2)
 	objectManager.DeleteVertigo ();
 DLE.MineView ()->DelayRefresh (false);
+DLE.MineView ()->Refresh ();
+}
+
+//------------------------------------------------------------------------------
+
+void CMainFrame::OnEditRecalculateCenter ()
+{
+theMine->UpdateCenter ();
+DLE.MineView ()->Refresh ();
+}
+
+//------------------------------------------------------------------------------
+
+void CMainFrame::OnEditSetCenter ()
+{
+current->Segment ()->ComputeCenter ();
+theMine->SetCenter (current->Segment ()->Center ());
 DLE.MineView ()->Refresh ();
 }
 
