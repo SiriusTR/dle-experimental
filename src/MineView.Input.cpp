@@ -1064,13 +1064,16 @@ switch (msg) {
 	case WM_XBUTTONDOWN:
 		m_bModifierActive [eModifierShift] = (nFlags & MK_SHIFT) == MK_SHIFT;
 		m_bModifierActive [eModifierCtrl] = (nFlags & MK_CONTROL) == MK_CONTROL;
+		m_bModifierActive [eModifierAlt] = (GetKeyState (VK_MENU) & 0xF0) > 0;
 		m_mouseButtonStates = nFlags & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON | MK_XBUTTON1 | MK_XBUTTON2);
 		break;
 
 	case WM_SETFOCUS:
-		m_bModifierActive [eModifierShift] = GetKeyState (VK_SHIFT) > 0;
-		m_bModifierActive [eModifierCtrl] = GetKeyState (VK_CONTROL) > 0;
-		m_bModifierActive [eModifierAlt] = GetKeyState (VK_MENU) > 0;
+		// Low-order bits from GetKeyState report "toggle" state which is seemingly always set
+		// on some of these keys. So we mask them out
+		m_bModifierActive [eModifierShift] = (GetKeyState (VK_SHIFT) & 0xF0) > 0;
+		m_bModifierActive [eModifierCtrl] = (GetKeyState (VK_CONTROL) & 0xF0) > 0;
+		m_bModifierActive [eModifierAlt] = (GetKeyState (VK_MENU) & 0xF0) > 0;
 		break;
 
 	default:
