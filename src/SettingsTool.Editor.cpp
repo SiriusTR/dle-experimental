@@ -30,7 +30,8 @@ static char THIS_FILE[] = __FILE__;
 
 BEGIN_MESSAGE_MAP(CEditorSettingsTool, CSettingsTabDlg)
 	ON_WM_HSCROLL ()
-	ON_BN_CLICKED (IDC_PREFS_BUMPOBJECTS, OnChange)
+	ON_BN_CLICKED (IDC_PREFS_ALLOWOBJECTOVERLAP, OnChange)
+	ON_BN_CLICKED (IDC_PREFS_UPDATETEXALIGN, OnChange)
 	ON_EN_KILLFOCUS (IDC_PREFS_UNDO, OnChange)
 	ON_EN_KILLFOCUS (IDC_PREFS_MOVERATE, OnChange)
 	ON_EN_KILLFOCUS (IDC_PREFS_VIEW_MOVERATE, OnChange)
@@ -69,7 +70,8 @@ m_rotateRate.DoDataExchange (pDX, appSettings.m_iRotateRate);
 DDX_Text (pDX, IDC_PREFS_MOVERATE, appSettings.m_moveRate [0]);
 DDX_Text (pDX, IDC_PREFS_VIEW_MOVERATE, appSettings.m_moveRate [1]);
 DDX_Text (pDX, IDC_PREFS_UNDO, appSettings.m_nMaxUndo);
-DDX_Check (pDX, IDC_PREFS_BUMPOBJECTS, appSettings.m_bBumpObjects);
+DDX_Check (pDX, IDC_PREFS_ALLOWOBJECTOVERLAP, appSettings.m_bAllowObjectOverlap);
+DDX_Check (pDX, IDC_PREFS_UPDATETEXALIGN, appSettings.m_bUpdateTexAlign);
 if (pDX->m_bSaveAndValidate)
 	appSettings.Set ();
 }

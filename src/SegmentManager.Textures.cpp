@@ -197,6 +197,10 @@ return nChildSide;
 
 void CSegmentManager::UpdateTexCoords (ushort nVertexId, bool bMove, short nIgnoreSegment, short nIgnoreSide)
 {
+// Automatic texture adjustment can be disabled, so check for that first
+if (!m_bUpdateAlignmentOnEdit)
+	return;
+
 CSegment* pSegment;
 for (short nSegment = 0; 0 <= (nSegment = FindByVertex (nVertexId, nSegment)); nSegment++, pSegment++) {
 	pSegment = Segment (nSegment);

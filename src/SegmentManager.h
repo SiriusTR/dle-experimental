@@ -122,6 +122,7 @@ class CSegmentManager {
 		CSegment*				m_selectedSegments;
 		CSide*					m_selectedSides;
 		CFogInfo					m_fogInfo [NUM_FOG_TYPES];
+		bool						m_bUpdateAlignmentOnEdit;
 
 	public:
 		inline void ResetInfo (void) {
@@ -220,6 +221,8 @@ class CSegmentManager {
 		inline int AddMode (void) { return m_nAddMode; }
 
 		CSegment* FindRobotMaker (short i = 0);
+
+		inline bool& UpdateAlignmentOnEdit (void) { return m_bUpdateAlignmentOnEdit; }
 
 		// Operations
 		short Add (void);
