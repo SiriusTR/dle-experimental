@@ -383,13 +383,13 @@ else {
 				CWall* pOppositeWall = wallManager.OppositeWall (*pWall);
 
 				// Check that we haven't already added this door from the other side
-				if (!pOppositeWall || doorWallIds.Find (pOppositeWall->Id ()) == -1) {
+				if (!pOppositeWall || doorWallIds.Find (wallManager.Index (pOppositeWall)) == -1) {
 					// In Overload levels, doors are entities, and the /door field contains the entity number.
 					// We don't have a corresponding entity in the Descent level so we'll have to create one.
 					doorNum = numEntities;
 					numEntities++;
-					doorWallIds.Resize (doorWallIds.Size () + 1);
-					*doorWallIds.End () = pWall->Id ();
+					doorWallIds.Resize (doorWallIds.Length () + 1);
+					*doorWallIds.End () = wallManager.Index (pWall);
 					}
 				}
 			Pointer ("/door").Set (side, doorNum, allocator);
@@ -409,8 +409,8 @@ else {
 
 	// Entities
 	// First write the doors, since we already pointed segment data to them
-	for (size_t nDoor = 0; nDoor < doorWallIds.Size (); nDoor++) {
-		CWall* pWall = wallManager.Wall (nDoor);
+	for (size_t nDoor = 0; nDoor < doorWallIds.Length (); nDoor++) {
+		CWall* pWall = wallManager.Wall (doorWallIds [nDoor]);
 
 		// We have to generate a GUID for each entity
 		GUID guid;
@@ -428,15 +428,18 @@ else {
 		// Position
 		sprintf_s (path, "/entities/%d/position", nDoor);
 		Value& position = Pointer (path).Create (document).SetArray ();
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < 3; i++) {
+			segmentManager.Segment (pWall->m_nSegment)->ComputeCenter (pWall->Side ());
 			position.PushBack (pWall->Side ()->Center () [i] / 5, allocator);
+			}
 
 		// Rotation (4x4 matrix; DLE uses 3x3 so we have to pad it)
+		// CTunnelBase happens to calculate the orientation of a side already, so we're repurposing that
 		sprintf_s (path, "/entities/%d/rotation", nDoor);
 		Value& rotation = Pointer (path).Create (document).SetArray ();
-		CDoubleMatrix mRotation;
-		CQuaternion qRotation;
-		qRotation.FromAxisAngle (pWall->Side ()->Normal (), 0).ToMatrix (mRotation);
+		CTunnelBase sideOrientation;
+		CSelection wallSide (*pWall);
+		sideOrientation.Setup (&wallSide, -1.0, true);
 		for (size_t i = 0; i < 4; i++)
 			for (size_t j = 0; j < 4; j++) {
 				if (i == 3 && j == 3)
@@ -444,7 +447,7 @@ else {
 				else if (i == 3 || j == 3)
 					rotation.PushBack (0.0f, allocator);
 				else
-					rotation.PushBack (mRotation [i] [j], allocator);
+					rotation.PushBack (sideOrientation.m_rotation [i] [j], allocator);
 				}
 
 		// ...and the other stuff
@@ -464,7 +467,7 @@ else {
 		Pointer (path).Set (document, "False", allocator);
 		}
 
-	int nEntity = doorWallIds.Size();
+	int nEntity = doorWallIds.Length ();
 
 	// Now write anything else applicable
 	for (int nObject = 0; nObject < objectManager.Count (); nObject++) {
@@ -570,6 +573,9 @@ else {
 	}
 
 fp.Close ();
+char msg [MAX_PATH + 30];
+sprintf_s (msg, _countof (msg), "Level exported to %s", filename);
+INFOMSG (msg);
 return 1;
 }
 
