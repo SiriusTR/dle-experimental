@@ -220,7 +220,6 @@ m_bSelections = false;
 CUndoManager::CUndoManager (int maxSize)
 	: m_nHead (maxSize, -1), m_nTail (maxSize, -1), m_nCurrent (maxSize, 0), m_nMaxSize (maxSize), m_nNested (0), m_nMode (0), m_nLock (0)
 {
-m_size = 0;
 m_history.Create (100);
 m_history.SetGrowth (100);
 m_lockHistory.Create (100);
@@ -238,12 +237,13 @@ Reset ();
 
 void CUndoManager::Reset ()
 {
-if (m_size > 0) {
-	m_nCurrent = m_nHead;
-	Truncate ();
-	m_nHead = 0;
-	m_nTail = 0;
+while (Count () > 0) {
+	m_buffer [*m_nTail].Destroy ();
+	--m_nTail;
 	}
+m_nHead = -1;
+m_nTail = -1;
+m_nCurrent = 0;
 m_nLock = 0;
 }
 

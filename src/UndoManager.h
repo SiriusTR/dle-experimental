@@ -328,7 +328,6 @@ class CUndoManager
 		//CUndoItem*	m_tail;
 		//CUndoItem*	m_current;
 		int				m_nMaxSize;
-		int				m_size;
 		int				m_nLock;
 		int				m_nMode;
 		int				m_nNested;
