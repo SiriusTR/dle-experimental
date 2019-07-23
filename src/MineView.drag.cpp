@@ -25,13 +25,7 @@ if (theMine == null) return FALSE;
 if (m_inputHandler.MouseState () != eMouseStateDrag)
 	return FALSE;
 
-	short nVert = current->Side ()->VertexIdIndex (current->Point ());
-	short i = current->Segment ()->m_info.vertexIds [nVert];
-	CVertex& v = vertexManager [i];
-
-HighlightDrag (nVert, v.m_screen.x, v.m_screen.y);
-
-//InvalidateRect (null, TRUE);
+InvalidateRect (null, TRUE);
 return TRUE;
 }
 
@@ -46,8 +40,6 @@ void CMineView::InitDrag ()
 m_highlightPos.x = v.m_screen.x;
 m_highlightPos.y = v.m_screen.y;
 m_lastDragPos = m_highlightPos;
-
-HighlightDrag (nVert, v.m_screen.x, v.m_screen.y);
 }
 
 //------------------------------------------------------------------------------
@@ -59,6 +51,8 @@ CHECKMINE;
 Renderer ().SelectObject ((HBRUSH) GetStockObject (NULL_BRUSH));
 if (!m_nRenderer)
 	DC ()->SetROP2 (R2_NOT);
+else
+	Renderer ().SelectPen (penWhite + 1);
 
 Renderer ().Ellipse (x, y, 4, 4);
 
@@ -78,11 +72,12 @@ for (int i = 0; i < 3; i++) {
 		rc.bottom = v.m_screen.y;
 	}
 
-if (!m_nRenderer)
+if (!m_nRenderer) {
 	DC ()->SetROP2 (R2_COPYPEN);
-rc.InflateRect (4, 4);
-InvalidateRect (rc, FALSE);
-UpdateWindow ();
+	rc.InflateRect (4, 4);
+	InvalidateRect (rc, FALSE);
+	UpdateWindow ();
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -161,7 +156,7 @@ vert1 = segmentManager.Segment (0) [current->SegmentId ()].m_info.vertexIds [poi
 // find point to merge with
 for (i = 0; i < vertexManager.Count (); i++) {
 	CVertex& v = vertexManager [i];
-	if ((abs (xPos - v.m_screen.x) < 5) && (abs (yPos - v.m_screen.x) < 5)) {
+	if ((abs (xPos - v.m_screen.x) < 5) && (abs (yPos - v.m_screen.y) < 5)) {
 		count++;
 		newVert = i;
 		}
