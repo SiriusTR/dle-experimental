@@ -322,9 +322,9 @@ class CSegmentManager {
 
 		bool HasTaggedVertices (short nSide = -1);
 
-		void AlignTextures (short nSegment, short nSide, int bUse1st, int bUse2nd, int bIgnorePlane, bool bStart, bool bTagged);
+		void AlignTextures (short nSegment, short nSide, int bUse1st, int bUse2nd, int bIgnorePlane, bool bAlignAll);
 
-		void AlignChildTextures (short nSegment, short nSide, int bUse1st, int bUse2nd, int bIgnorePlane);
+		void AlignChildTextures (CSideKey sideKey, int bUse1st, int bUse2nd, int bIgnorePlane);
 
 		int AlignSideTextures (short nStartSeg, short nStartSide, short nChildSeg, short nChildSide, int bAlign1st, int bAlign2nd);
 
@@ -558,14 +558,28 @@ class CTagByTextures : public CTaggingStrategy {
 		
 		CTagByTextures (short nBaseTex, short nOvlTex, bool bIgnorePlane = true) : m_nBaseTex (nBaseTex), m_nOvlTex (nOvlTex), m_bIgnorePlane (bIgnorePlane) { m_bAll = !segmentManager.HasTaggedSegments (true); }
 
+		// Return true if the child side can be aligned from the parent side.
+		// Filters for marked cubes and matching primary/secondary textures.
+		// Currently only filters out back faces of cube connections without bIgnorePlane set
+		// (handling that case would require building the edge list differently).
 		virtual bool Accept (void) { 
-			short nOtherSide;
-			return (m_bAll || m_pSegment->IsTagged () || m_pSide->IsTagged ()) &&
-					 m_pChildSide->IsVisible () &&
-					 (m_bIgnorePlane || (m_parent.m_nSegment != m_child.m_nSegment &&
-					  m_pSegment->CommonSides (m_child.m_nSegment, nOtherSide) != -1)) &&
-					 ((m_nBaseTex < 0) || (m_pChildSide->BaseTex () == m_nBaseTex)) && 
-					 ((m_nOvlTex < 0) || (m_pChildSide->OvlTex () == m_nOvlTex)); 
+			if (!m_bAll) {
+				bool bThisTagged = m_pSegment->IsTagged () || m_pSide->IsTagged ();
+				bool bChildTagged = m_pChildSeg->IsTagged () || m_pChildSide->IsTagged ();
+				if (!bThisTagged || !bChildTagged)
+					return false;
+				}
+			if (!m_pChildSide->IsVisible ())
+				return false;
+			if (!m_bIgnorePlane) {
+				short nOtherSide;
+				if ((m_parent.m_nSegment == m_child.m_nSegment) ||
+					(m_pSegment->CommonSides (m_child.m_nSegment, nOtherSide) == -1) ||
+					(nOtherSide == m_child.m_nSide)) // don't align the connected side
+					return false;
+				}
+			return ((m_nBaseTex < 0) || (m_pChildSide->BaseTex () == m_nBaseTex)) &&
+					 ((m_nOvlTex < 0) || (m_pChildSide->OvlTex (0) == m_nOvlTex));
 			}
 	};
 

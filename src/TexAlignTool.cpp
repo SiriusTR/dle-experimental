@@ -876,47 +876,11 @@ UpdateAlignWnd ();
 
 void CTextureAlignTool::OnAlignAll (void)
 {
-// set all segment sides as not aligned yet
-	CSegment	* currSeg = current->Segment (),
-				* pSegment = segmentManager.Segment (0);
-	CSide		* pSide = current->Side (),
-				*pChildSide;
-	short		nSegment, 
-				nSide = current->SideId (),
-				nChildLine = 3;
-	double	sAngle, cAngle, angle; 
 	CTextureTool *texTool = DLE.ToolView ()->TextureTool ();
 
 UpdateData (TRUE);
 undoManager.Begin (__FUNCTION__, udSegments);
-bool bAll = !segmentManager.HasTaggedSegments (true);
-for (nSegment = 0, pSegment = segmentManager.Segment (0); nSegment < segmentManager.Count (); nSegment++, pSegment++)
-	 pSegment->Index () = 0;
-for (nSegment = 0, pSegment = segmentManager.Segment (0); nSegment < segmentManager.Count (); nSegment++, pSegment++) {
-	if (pSegment->Index ())
-		continue;
-	pChildSide = pSegment->m_sides + nSide;
-	if (pChildSide->Shape () > SIDE_SHAPE_TRIANGLE)
-		continue;
-	if (texTool->m_bUse1st && (pSide->BaseTex () != pChildSide->BaseTex ()))
-		continue;
-	if (texTool->m_bUse2nd && (pSide->OvlTex (0) != pChildSide->OvlTex (0)))
-		continue;
-	if (!(bAll || segmentManager.IsTagged (CSideKey (nSegment, nSide))))
-		continue;
-	if (nSegment != current->SegmentId ()) {
-		segmentManager.Segment (nSegment)->SetUV (nSide, 0, 0);
-		sAngle = atan3 (pSide->m_info.uvls [(nChildLine + 1) % pSide->VertexCount ()].v - pSide->m_info.uvls [nChildLine].v, 
-							 pSide->m_info.uvls [(nChildLine + 1) % pSide->VertexCount ()].u - pSide->m_info.uvls [nChildLine].u); 
-		cAngle = atan3 (pChildSide->m_info.uvls [nChildLine].v - pChildSide->m_info.uvls [(nChildLine + 1) % pSide->VertexCount ()].v, 
-							 pChildSide->m_info.uvls [nChildLine].u - pChildSide->m_info.uvls [(nChildLine + 1) % pSide->VertexCount ()].u); 
-		// now rotate childs (u, v) coords around child_point1 (cAngle - sAngle)
-		angle = cAngle - sAngle;
-		for (int i = 0; i < pChildSide->VertexCount (); i++) 
-			pChildSide->m_info.uvls [i].Rotate (angle); 
-		}
-	segmentManager.AlignTextures (nSegment, nSide, texTool->m_bUse1st, texTool->m_bUse2nd, m_bIgnorePlane, false, false);
-	}
+segmentManager.AlignTextures (current->SegmentId (), current->SideId (), texTool->m_bUse1st, texTool->m_bUse2nd, m_bIgnorePlane, true);
 undoManager.End (__FUNCTION__);
 UpdateAlignWnd ();
 }
@@ -927,11 +891,10 @@ void CTextureAlignTool::OnAlignChildren ()
 {
 	CTextureTool *texTool = DLE.ToolView ()->TextureTool ();
 
-// set all segment sides as not aligned yet
 UpdateData (TRUE);
 undoManager.Begin (__FUNCTION__, udSegments);
 // the alignment function will take care of only aligning tagged sides (provided they are all connected)
-segmentManager.AlignTextures (current->SegmentId (), current->SideId (), texTool->m_bUse1st, texTool->m_bUse2nd, m_bIgnorePlane, true, false);
+segmentManager.AlignTextures (current->SegmentId (), current->SideId (), texTool->m_bUse1st, texTool->m_bUse2nd, m_bIgnorePlane, false);
 undoManager.End (__FUNCTION__);
 UpdateAlignWnd ();
 }

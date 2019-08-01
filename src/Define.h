@@ -341,8 +341,9 @@ inline double Degrees (double a) {
 #define DELETED_MASK ubyte (0x40) // used on wallFlags & vertexStatus 
 #define NEW_MASK     ubyte (0x20) // used on vertexStatus      
 #define SHARED_MASK	ubyte (0x10)
-#define ALIGNED_MASK	ubyte (0x08)
+#define ALIGNED_MASK ubyte (0x08) // indicates a side has already been aligned
 #define TUNNEL_MASK	ubyte (0x04)
+#define ALIGN_MASK   ubyte (0x02) // indicates a side needs aligning
 
 // -----------------------------------------------------------------------------
 
