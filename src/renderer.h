@@ -184,7 +184,7 @@ class CRenderer {
 		inline bool DepthTest (void) { return m_renderData.m_bDepthTest; }
 		inline void SetDepthTest (bool bDepthTest) { m_renderData.m_bDepthTest = bDepthTest; }
 		inline int RenderIllumination (void) { return (m_renderData.m_viewMineFlags & eViewMineIllumination) != 0; }
-		inline int RenderVariableLights (void) { return (m_renderData.m_viewMineFlags & eViewMineVariableLights) != 0; }
+		inline int RenderVariableLights (void) { return RenderIllumination () && (m_renderData.m_viewMineFlags & eViewMineVariableLights) != 0; }
 		inline ubyte Alpha (void) { return m_renderData.m_alpha; }
 		inline void SetAlpha (ubyte alpha) { m_renderData.m_alpha = alpha; }
 		inline double ViewMoveRate (void) { return m_renderData.m_moveRate [1]; }

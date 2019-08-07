@@ -127,7 +127,7 @@ if (bVariableLights /*&& (lightManager.LightIsOn (face) < 1)*/) {
 	// check each variable light whether it affects side face
 	// search delta light index to see if current side has light
 	int indexCount = lightManager.DeltaIndexCount ();
-#pragma omp parallel for if (indexCount > 15)
+//#pragma omp parallel for if (indexCount > 15)
 	for (int i = 0; i < indexCount; i++) {
 		CLightDeltaIndex* pIndex = lightManager.LightDeltaIndex (i);
 #ifdef _DEBUG
@@ -139,7 +139,7 @@ if (bVariableLights /*&& (lightManager.LightIsOn (face) < 1)*/) {
 		if (*pIndex == face) {
 			int lightDelta = (int) lightManager.Brightness (face);
 			for (short k = 0; k < nVertices; k++) 
-#pragma omp atomic
+//#pragma omp atomic
 				b [k] -= lightDelta;
 			}
 		else {
@@ -153,7 +153,7 @@ if (bVariableLights /*&& (lightManager.LightIsOn (face) < 1)*/) {
 						//	lightDelta = 0x7fff;
 						//else
 						//	lightDelta <<= 10;
-#pragma omp atomic
+//#pragma omp atomic
 						b [k] -= pLightDelta->m_info.vertLight [k];
 						}
 					break;
