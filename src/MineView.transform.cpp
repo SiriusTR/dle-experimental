@@ -195,7 +195,7 @@ if ((i < 0) || (i > 2))
 	return;
 angle *= DLE.MineView ()->ViewMoveRate ();
 ViewMatrix ()->Rotate (direction, -2 * angle); // * ((double) DLE.MineView ()->MineMoveRate () / 0x10000L));
-a += 2 * angle;// * PI;
+a += Degrees (2 * angle);
 if (a < -360)
 	a += 360;
 else if (a > 360)
