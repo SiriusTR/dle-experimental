@@ -135,7 +135,7 @@ if (bVariableLights /*&& (lightManager.LightIsOn (face) < 1)*/) {
 			nDbgSeg = nDbgSeg;
 #endif
 		if (lightManager.LightIsOn (*pIndex))
-			continue; // light is on or there's no variable light for this delta light index (-> light data error!)
+			continue; // light is on or there's no variable light for this delta light index (e.g. only blastable)
 		if (*pIndex == face) {
 			int lightDelta = (int) lightManager.Brightness (face);
 			for (short k = 0; k < nVertices; k++) 

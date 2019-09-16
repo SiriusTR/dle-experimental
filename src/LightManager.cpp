@@ -103,7 +103,19 @@ return false;
 
 //------------------------------------------------------------------------------
 
-short CLightManager::VariableLight (CSideKey key) 
+CLightDeltaIndex* CLightManager::LightDeltaIndex (CSideKey key)
+{
+for (int nIndex = 0; nIndex < DeltaIndexCount (); nIndex++) {
+	CLightDeltaIndex* pIndex = LightDeltaIndex (nIndex);
+	if (*pIndex == key)
+		return pIndex;
+	}
+return null;
+}
+
+//------------------------------------------------------------------------------
+
+short CLightManager::VariableLight (CSideKey key)
 {
 current->Get (key);
 CVariableLight* flP = VariableLight (0);
@@ -167,6 +179,8 @@ if (pLight == null) {
 pLight->Setup (key, time, mask);
 pLight->Backup (opAdd);
 undoManager.End (__FUNCTION__);
+if (CLightDeltaIndex* pIndex = LightDeltaIndex (key))
+	pIndex->RecalculateVariableLightIndex ();
 return Count ();
 }
 
@@ -200,6 +214,8 @@ short index = VariableLight (key);
 if (index == -1)
 	return false;
 DeleteVariableLight (index);
+if (CLightDeltaIndex* pIndex = LightDeltaIndex (key))
+	pIndex->RecalculateVariableLightIndex ();
 return true;
 }
 
@@ -248,9 +264,9 @@ return -1;
 
 //-------------------------------------------------------------------------
 
-int CLightManager::LightIsOn (CSideKey key)
+int CLightManager::LightIsOn (CLightDeltaIndex light)
 {
-short nLight = VariableLight (key);
+short nLight = light.VariableLightIndex ();
 if (nLight < 0)
 	return -1;
 CVariableLight* pLight = lightManager.VariableLight (nLight);

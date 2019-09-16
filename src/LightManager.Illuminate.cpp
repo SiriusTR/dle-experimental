@@ -615,6 +615,7 @@ for (short nSourceSeg = 0; !nErrors && (nSourceSeg < nSegments); nSourceSeg++) {
 		pIndex->m_nSide = nSourceSide;
 		pIndex->m_info.count = 0; // will be incremented below
 		pIndex->m_info.index = (ushort) DeltaValueCount ();
+		pIndex->RecalculateVariableLightIndex ();
 
 		// find orthogonal angle of source segment
 		sourceNormal = Average (pSrcSide->m_vNormal [0], pSrcSide->m_vNormal [1]);
