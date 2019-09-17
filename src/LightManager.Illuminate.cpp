@@ -89,10 +89,8 @@ for (int i = 0; i < nSegments; i++) {
 		if (bAll || pSide->IsTagged ()) {
 			CUVL* pTexCoord = pSide->m_info.uvls;
 			for (int i = 0; i < 4; i++) {
-				double l = ((double) ((ushort) pTexCoord [i].l)) * fLight;
-				l = min (l, 0x8000);
-				l = max (l, 0);
-				pTexCoord [i].l = (ushort) l;
+				double l = ((double) pTexCoord [i].l) * fLight;
+				pTexCoord [i].l = (uint) l;
 				}
 			}
 		}
