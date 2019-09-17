@@ -149,6 +149,7 @@ if (nId < 0 || nId >= MAX_ROBOT_ID_D2)
 
 CRobotInfo robotInfo = *robotManager.RobotInfo (nId);
 robotInfo.Info ().bCustom |= 1;
+robotInfo.SetModified (true);
 robotInfo.Info ().kamikaze = BtnCtrl (IDC_OBJ_AI_KAMIKAZE)->GetCheck ();
 robotInfo.Info ().companion = BtnCtrl (IDC_OBJ_AI_COMPANION)->GetCheck ();
 robotInfo.Info ().thief = BtnCtrl (IDC_OBJ_AI_THIEF)->GetCheck ();

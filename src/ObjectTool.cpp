@@ -446,6 +446,7 @@ if ((nId < 0) || (nId >= MAX_ROBOT_ID_D2))
 
 CRobotInfo robotInfo = *robotManager.RobotInfo (nId);
 robotInfo.Info ().bCustom |= 1;
+robotInfo.SetModified (true);
 Current ()->UpdateRobot ();
 #if 0
 undoManager.Begin (__FUNCTION__, udRobots);

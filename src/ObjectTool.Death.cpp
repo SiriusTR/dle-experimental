@@ -172,6 +172,7 @@ if ((nId < 0) || (nId >= MAX_ROBOT_ID_D2))
 	nId = 0;
 CRobotInfo robotInfo = *robotManager.RobotInfo (nId);
 robotInfo.Info ().bCustom |= 1;
+robotInfo.SetModified (true);
 
 robotInfo.Info ().scoreValue = m_data [0].GetValue ();
 robotInfo.Info ().deathRoll = m_data [1].GetValue ();
