@@ -907,7 +907,7 @@ for (i = segmentManager.Count (); i; i--, pSegment++) {
 
 for (i = 0; i < h; i++) {
 	const CTexture* pTexture = Textures (i);
-	if (pTexture->IsAnimated () && m_bUsed [nVersion][pTexture->GetParent ()->Id()])
+	if (IsAnimationFrame (i) && m_bUsed [nVersion][pTexture->GetParent ()->Id()])
 		m_bUsed [nVersion][i] = true;
 	}
 }
