@@ -235,7 +235,7 @@ if (DLE.LevelType ()) {
 		m_info.damage [1] = fp->ReadInt16 ();
 		}
 	}
-m_info.staticLight = (DLE.LevelType () == 0) ? (int) fp->ReadInt16 () : fp->ReadInt32 ();
+m_info.staticLight = (DLE.LevelType () == 0) ? ((int) fp->ReadUInt16 ()) << 4 : fp->ReadInt32 ();
 }
 
 // -----------------------------------------------------------------------------
@@ -342,7 +342,7 @@ if (DLE.LevelType () == 2) {
 	fp->Write (m_info.damage [1]);
 	}
 if (DLE.LevelType () == 0)
-	fp->WriteInt16 ((short) m_info.staticLight);
+	fp->WriteUInt16 ((ushort) (m_info.staticLight >> 4));
 else
 	fp->Write (m_info.staticLight);
 }
