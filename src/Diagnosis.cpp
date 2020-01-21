@@ -842,7 +842,7 @@ for (nObject = 0; nObject < objCount ; nObject++, pObject++) {
 		if (count > 0) {
 			id = pObject->m_info.contents.id;
 			// check contains id range
-			if (h = CheckId (pObject->m_info.contents.id, pObject->m_info.contents.id)) {
+			if (h = CheckId (pObject->m_info.contents.type, pObject->m_info.contents.id)) {
 				if (h == 2)
 					sprintf_s (message, sizeof (message), "FIXED: Illegal contains id (object=%d, contains id=%d)", nObject, id);
 				else
