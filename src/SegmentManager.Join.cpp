@@ -138,7 +138,7 @@ if (tunnelMaker.Active ())
 	return; 
 
 if (selections [0].m_nSegment== selections [1].m_nSegment) {
-	ErrorMsg ("You cannot joint two points on the same segment.\n\n"
+	ErrorMsg ("You cannot join two points on the same segment.\n\n"
 				 "Hint: The two golden circles represent the current point, \n"
 				 "and the 'other' segment's current point.  Press 'P' to change the\n"
 				 "current point or press the space bar to switch to the other segment."); 
@@ -158,7 +158,7 @@ if (vert1== vert2) {
 // make sure there are distances are close enough
 distance = Distance (*vertexManager.Vertex (vert1), *vertexManager.Vertex (vert2)); 
 if (distance > MAX_JOIN_DISTANCE) {
-	ErrorMsg ("Points are too far apart to join"); 
+	ErrorMsg ("Points are too far apart to join.");
 	return; 
 	}
 if (QueryMsg("Are you sure you want to join the current point\n"
@@ -192,7 +192,7 @@ if (tunnelMaker.Active ())
 	return; 
 
 if (selections [0].m_nSegment == selections [1].m_nSegment) {
-	ErrorMsg ("You cannot joint two lines on the same segment.\n\n"
+	ErrorMsg ("You cannot join two lines on the same segment.\n\n"
 				"Hint: The two green lines represent the current line, \n"
 				"and the 'other' segment's current line.  Press 'L' to change\n"
 				"the current line or press the space bar to switch to the other segment."); 
@@ -231,7 +231,7 @@ for (i = 0; i < 2; i++) {
 
 // make sure there are distances are close enough
 if ((match [0] < 0) || (match [1] < 0)) {
-	ErrorMsg ("Lines are too far apart to join"); 
+	ErrorMsg ("Lines are too far apart to join.");
 	return; 
 	}
 

@@ -125,7 +125,7 @@ while (!fp.EoF ()) {
 	pSegment->m_info.owner = -1;
 	pSegment->m_info.group = -1;
 	short nSegIdx = -1;
-	if (Error (fscanf_s (fp.File (), "segment %d\n", &nSegIdx), 1, "Invalid segment id", nSegIdx, __FUNCTION__))
+	if (Error (fscanf_s (fp.File (), "segment %hd\n", &nSegIdx), 1, "Invalid segment id", nSegIdx, __FUNCTION__))
 		return 0;
 	m_xlatSegNum [nSegIdx] = nSegment;
 	// invert segment number so its children can be children can be fixed later
@@ -169,7 +169,7 @@ while (!fp.EoF ()) {
 			pSide->DetectShape ();
 			if (bVariableLight) {
 				tVariableLight vl;
-				if (Error (fscanf_s (fp.File (), "    variable light %d %d %d\n", &vl.mask, &vl.timer, &vl.delay), 1, "Invalid variable light data", nSegIdx, __FUNCTION__))
+				if (Error (fscanf_s (fp.File (), "    variable light %u %d %d\n", &vl.mask, &vl.timer, &vl.delay), 3, "Invalid variable light data", nSegIdx, __FUNCTION__))
 					return 0;
 				lightManager.AddVariableLight (CSideKey (nSegment, nSide), vl.mask, vl.timer);
 				}
@@ -239,7 +239,7 @@ while (!fp.EoF ()) {
 
 	short children [6];
 	if (Error (fscanf_s (fp.File (), "  children %hd %hd %hd %hd %hd %hd\n", 
-				  children + 0, children + 1, children + 2, children + 3, children + 4, children + 5, children + 6), 
+				  children + 0, children + 1, children + 2, children + 3, children + 4, children + 5), 
 				  6, "Invalid child information", nSegIdx, __FUNCTION__))
 		return 0;
 	for (i = 0; i < 6; i++)
@@ -340,7 +340,7 @@ while (!fp.EoF ()) {
 	if (Error (fscanf_s (fp.File (), "  static_light %d\n", &pSegment->m_info.staticLight), 1, "Invalid static light information", nSegIdx, __FUNCTION__))
 		return 0;
 	if (m_bExtended) {
-		scanRes = fscanf_s (fp.File (), "  special %d\n", &pSegment->m_info.function);
+		scanRes = fscanf_s (fp.File (), "  special %hhd\n", &pSegment->m_info.function);
 		scanRes += fscanf_s (fp.File (), "  matcen_num %d\n", &byteBuf);
 		pSegment->m_info.nProducer = (ubyte) byteBuf;
 		scanRes += fscanf_s (fp.File (), "  value %d\n", &byteBuf);
@@ -463,7 +463,7 @@ for (short nSegment = 0; nSegment < nSegments; nSegment++) {
 		CSide* pSide = pSegment->m_sides;
 		for (short nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++, pSide++) {
 			CVariableLight* pLight = lightManager.VariableLight (lightManager.VariableLight (CSideKey (nSegment, nSide)));
-			fprintf (fp.File (), "  side %d\n", (pLight == null) ? nSide : -nSide);
+			fprintf (fp.File (), "  side %d\n", (pLight == null || !m_bExtended) ? nSide : -nSide);
 			fprintf (fp.File (), "    %s %d\n", m_bExtended ? "BaseTex" : "tmap_num", pSide->BaseTex ());
 			fprintf (fp.File (), "    %s %d\n", m_bExtended ? "OvlTex" : "tmap_num2", pSide->m_info.nOvlTex);
 			for (j = 0; j < 4; j++) {
@@ -473,7 +473,7 @@ for (short nSegment = 0; nSegment < nSegments; nSegment++) {
 				fprintf (fp.File (), "    vertex ids %hu %hu %hu %hu\n",
 							pSide->m_vertexIdIndex [0], pSide->m_vertexIdIndex [1], pSide->m_vertexIdIndex [2], pSide->m_vertexIdIndex [3]);
 				if (pLight) 
-					fprintf (fp.File (), "    variable light %d %d %d\n", pLight->m_info.mask, pLight->m_info.timer, pLight->m_info.delay);
+					fprintf (fp.File (), "    variable light %u %d %d\n", pLight->m_info.mask, pLight->m_info.timer, pLight->m_info.delay);
 				fprintf (fp.File (), "    wall %d\n", pSide->m_info.nWall);
 				if (pSide->m_info.nWall != NO_WALL) {
 					CWall* pWall = pSide->Wall ();

@@ -160,45 +160,53 @@ void CSegmentManager::SeparateLines (short nLine)
 if (tunnelMaker.Active ()) 
 	return; 
 
-if (vertexManager.Count () > (VERTEX_LIMIT - 2)) {
-	if (!DLE.ExpertMode ())
-		ErrorMsg ("Cannot unjoin these lines because\nthere are not enought points left."); 
-	return; 
-	}
-if (nLine < 0)
+if (nLine < 0) {
 	nLine = current->Edge ();
+	}
 
-	CSegment*	pSegment = current->Segment (); 
+	CSegment*	pSegment = current->Segment ();
 	CSide*		pSide = current->Side ();
 	ubyte			vertexIdIndex [2] = {pSide->VertexIdIndex (nLine), pSide->VertexIdIndex (nLine + 1)};
-	ushort		nEdgeVerts [2]; 
-	bool			bShared [2]; 
-	int			i;
+	ushort		nEdgeVerts [2];
+	bool			bShared [2];
+	int			verticesRequired = 0;
 
-for (i = 0; i < 2; i++) {
+for (size_t i = 0; i < 2; i++) {
 	nEdgeVerts [i] = pSegment->m_info.vertexIds [vertexIdIndex [i]];
-	bShared [i] = VertexInUse (nEdgeVerts [i]); 
+	bShared [i] = VertexInUse (nEdgeVerts [i]);
+	if (bShared [i])
+		verticesRequired++;
 	}
-if (!(bShared [0] && bShared [1])) {
+if (verticesRequired == 0) {
 	if (!DLE.ExpertMode ())
-		ErrorMsg ("One or both of these points are not joined with any other points."); 
-	return; 
+		ErrorMsg ("This line is already unjoined.");
+	return;
+	}
+if (vertexManager.Count () > (MAX_VERTICES - verticesRequired)) {
+	if (!DLE.ExpertMode ())
+		ErrorMsg ("Cannot unjoin this line because\nthere are not enough vertices left.");
+	return;
 	}
 
 if (QueryMsg ("Are you sure you want to unjoin this line?") != IDYES)
-	return; 
+	return;
 
 undoManager.Begin (__FUNCTION__, udSegments | udVertices);
 // create new points (copy of other vertices)
-for (i = 0; i < 2; i++)
+for (size_t i = 0; i < 2; i++)
 	if (bShared [i]) {
-		memcpy (vertexManager.Vertex (vertexManager.Count ()), vertexManager.Vertex (nEdgeVerts [i]), sizeof (*vertexManager.Vertex (0)));
-		// replace existing point with new point
-		pSegment->m_info.vertexIds [vertexIdIndex [i]] = vertexManager.Count (); 
-		pSegment->UnTag (); 
-		vertexManager.Status (vertexManager.Count ()++) = 0; 
+		// Clone the vertex
+		ushort nVertex;
+		vertexManager.Add (&nVertex);
+		vertexManager [nVertex] = vertexManager [nEdgeVerts [i]];
+		vertexManager [nVertex].Status () = 0;
+
+		// Re-point the segment to the new vertex
+		pSegment->SetVertexId (vertexIdIndex [i], nVertex);
+		pSegment->UnTag ();
+		nEdgeVerts [i] = nVertex;
 		}
-// this code will unlink all adjacement segments that share this edge, too
+// Unlink all adjacent segments that share this edge, too
 for (short nSide = 0; nSide < 6; nSide++) {
 	CSideKey back, key (current->SegmentId (), nSide);
 	if (pSegment->HasEdge (nSide, nEdgeVerts [0], nEdgeVerts [1]) && BackSide (key, back)) {
@@ -210,7 +218,8 @@ for (short nSide = 0; nSide < 6; nSide++) {
 SetLinesToDraw (); 
 undoManager.End (__FUNCTION__);
 DLE.MineView ()->Refresh ();
-INFOMSG ("Two new points were made for the current line."); 
+sprintf_s (message, sizeof (message), "%d new points were made for the current line.", verticesRequired);
+INFOMSG (message);
 }
 
 // ----------------------------------------------------------------------------- 
@@ -237,8 +246,9 @@ if (nChildSeg == -1) {
 	ErrorMsg ("The current side is not connected to another segment"); 
 	return false; 
 	}
-if (nSide < 0)
+if (nSide < 0) {
 	nSide = current->SideId ();
+	}
 
 	CSide*	pSide = pSegment->Side (nSide);
 	int		nVertices = pSide->VertexCount ();
@@ -258,7 +268,7 @@ for (i = 0; i < nVertices; i++) {
 //	ErrorMsg ("One or more of these points are not joined with any other points."); 
 //	return; 
 
-if (!bSolidify && (vertexManager.Count () > (VERTEX_LIMIT - nShared))) {
+if (!bSolidify && (vertexManager.Count () > (MAX_VERTICES - nShared))) {
 	ErrorMsg ("Cannot unjoin this side because\nthere are not enough vertices left."); 
 	return false; 
 	}
@@ -286,7 +296,8 @@ if (!bSolidify) {
 		if (nSide != nOppSide)
 			UnlinkChild (current->SegmentId (), nSide); 
 	SetLinesToDraw (); 
-	INFOMSG (" Four new points were made for the current side."); 
+	sprintf_s (message, sizeof (message), "%d new points were made for the current side.", nShared);
+	INFOMSG (message);
 	}
 else {
 	// does this side have a child?

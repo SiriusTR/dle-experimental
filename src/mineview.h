@@ -192,6 +192,7 @@ class CInputHandler {
 		void OnXButtonUp (UINT nFlags, UINT nButton, CPoint point);
 		void OnXButtonDown (UINT nFlags, UINT nButton, CPoint point);
 		void OnMouseWheel (UINT nFlags, short zDelta, CPoint pt);
+		void OnSetFocus ();
 
 		eMouseStates MouseState () const { return m_pCurrentMouseState->GetValue (); }
 		HCURSOR GetCurrentCursor () const { return m_pCurrentMouseState->GetCursor (); }
@@ -653,6 +654,7 @@ protected:
 	afx_msg void OnKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnSysKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnSysKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnSetFocus (CWnd* pOldWnd);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

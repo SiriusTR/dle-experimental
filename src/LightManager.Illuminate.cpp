@@ -89,10 +89,8 @@ for (int i = 0; i < nSegments; i++) {
 		if (bAll || pSide->IsTagged ()) {
 			CUVL* pTexCoord = pSide->m_info.uvls;
 			for (int i = 0; i < 4; i++) {
-				double l = ((double) ((ushort) pTexCoord [i].l)) * fLight;
-				l = min (l, 0x8000);
-				l = max (l, 0);
-				pTexCoord [i].l = (ushort) l;
+				double l = ((double) pTexCoord [i].l) * fLight;
+				pTexCoord [i].l = (uint) l;
 				}
 			}
 		}
@@ -615,6 +613,7 @@ for (short nSourceSeg = 0; !nErrors && (nSourceSeg < nSegments); nSourceSeg++) {
 		pIndex->m_nSide = nSourceSide;
 		pIndex->m_info.count = 0; // will be incremented below
 		pIndex->m_info.index = (ushort) DeltaValueCount ();
+		pIndex->RecalculateVariableLightIndex ();
 
 		// find orthogonal angle of source segment
 		sourceNormal = Average (pSrcSide->m_vNormal [0], pSrcSide->m_vNormal [1]);
@@ -880,34 +879,35 @@ return (cornerLights [0] != 0.0) || (cornerLights [1] != 0.0) || (cornerLights [
 void CLightManager::SetObjectLight (bool bAll, bool bDynSegLights)
 {
 	double fLight = m_fObjectLight / 100.0;
-	long nLight = D2X (fLight) * 12; //24.0 * 327.68);
+	// SegmentTool scales light values by about 12. I don't really know why, and haven't found anything
+	// that explains it in D1/D2 source, but it looks about right when examining in-built levels.
+	// So leaving it like this for now.
+	long nLight = D2X (fLight) * 12;
 
 undoManager.Begin (__FUNCTION__, udSegments);
 int nSegments = segmentManager.Count ();
 for (int si = 0; si < nSegments; si++) {
 	CSegment* pSegment = segmentManager.Segment (si);
-	if (!bDynSegLights) {
-		if (bAll || (pSegment->IsTagged ())) 
+	if (bAll || (pSegment->IsTagged ())) {
+		if (!bDynSegLights) {
 			pSegment->m_info.staticLight = nLight;
-		}
-	else {
-		int l = 0;
-		int c = 0;
-		CSide* pSide = pSegment->m_sides;
-		for (short nSide = 0; nSide < 6; nSide++) {
-			if (bAll || pSide->IsTagged ()) {
-				for (short nCorner = 0; nCorner < 4; nCorner++) {
-					uint h = (uint) pSide [nSide].m_info.uvls [nCorner].l;
-					if (h || !pSide->IsVisible ()) {
-						l += h;
+			}
+		else {
+			int l = 0;
+			int c = 0;
+			CSide* pSide = pSegment->m_sides;
+			for (short nSide = 0; nSide < 6; nSide++) {
+				if (pSide->FaceCount () > 0) {
+					for (short nCorner = 0; nCorner < pSide->VertexCount (); nCorner++) {
+						l += pSide [nSide].m_info.uvls [nCorner].l;
 						c++;
 						}
 					}
 				}
+			pSegment->Backup ();
+			// Multiply by an extra 2 because of how corner lights are scaled (65536 = 200%)
+			pSegment->m_info.staticLight = c ? D2X (fLight * (X2D (l) / (double) c)) * 2 * 12 : nLight;
 			}
-		pSegment->Backup ();
-		// Segment light values seem to be higher than corner light values - factor of about 12
-		pSegment->m_info.staticLight = (int) (c ? fLight * ((double) l / (double) c) * 2 * 12 : nLight);
 		}
 	}
 undoManager.End (__FUNCTION__);

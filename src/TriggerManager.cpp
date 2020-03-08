@@ -346,12 +346,8 @@ for (CWallIterator wi; wi; wi++) {
 		continue;
 	bool bExit = pTrigger->IsExit (false);
 	bool bFound = (reactorTrigger->Find (*pWall) >= 0);
-	if (bFound == bExit)
-		continue;
-	if (bExit)
+	if (bExit && !bFound)
 		reactorTrigger->Add (*pWall);
-	else 
-		reactorTrigger->Delete (*pWall);
 	}
 undoManager.End (__FUNCTION__);
 }

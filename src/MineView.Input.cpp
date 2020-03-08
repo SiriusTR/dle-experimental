@@ -947,6 +947,11 @@ void CInputHandler::OnMouseWheel (UINT nFlags, short zDelta, CPoint pt)
 {
 }
 
+void CInputHandler::OnSetFocus ()
+{
+UpdateModifierStates (WM_SETFOCUS, 0, 0);
+}
+
 //------------------------------------------------------------------------------
 // Internal functions
 
@@ -1059,15 +1064,16 @@ switch (msg) {
 	case WM_XBUTTONDOWN:
 		m_bModifierActive [eModifierShift] = (nFlags & MK_SHIFT) == MK_SHIFT;
 		m_bModifierActive [eModifierCtrl] = (nFlags & MK_CONTROL) == MK_CONTROL;
+		m_bModifierActive [eModifierAlt] = (GetKeyState (VK_MENU) & 0xF0) > 0;
 		m_mouseButtonStates = nFlags & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON | MK_XBUTTON1 | MK_XBUTTON2);
 		break;
 
-		// WM_SETFOCUS currently isn't sent to the input handler, but if we continue to have problems with
-		// modifier keys (particularly Alt) getting out of sync we might need to plumb it through
 	case WM_SETFOCUS:
-		m_bModifierActive [eModifierShift] = GetKeyState (VK_SHIFT) > 0;
-		m_bModifierActive [eModifierCtrl] = GetKeyState (VK_CONTROL) > 0;
-		m_bModifierActive [eModifierAlt] = GetKeyState (VK_MENU) > 0;
+		// Low-order bits from GetKeyState report "toggle" state which is seemingly always set
+		// on some of these keys. So we mask them out
+		m_bModifierActive [eModifierShift] = (GetKeyState (VK_SHIFT) & 0xF0) > 0;
+		m_bModifierActive [eModifierCtrl] = (GetKeyState (VK_CONTROL) & 0xF0) > 0;
+		m_bModifierActive [eModifierAlt] = (GetKeyState (VK_MENU) & 0xF0) > 0;
 		break;
 
 	default:

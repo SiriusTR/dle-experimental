@@ -1927,8 +1927,9 @@ class CAppSettings {
 		int				m_bExpertMode;
 		int				m_bApplyFaceLightSettingsGlobally;
 		int				m_bSortObjects;
-		int				m_bBumpObjects;
+		int				m_bAllowObjectOverlap;
 		double			m_bumpIncrement;
+		int				m_bUpdateTexAlign;
 		int				m_nViewDist;
 		int				m_nMineCenter;
 		int				m_nRenderer;

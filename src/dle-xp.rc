@@ -398,7 +398,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,65,148,10
     CONTROL         "show splash screen on program start",IDC_PREFS_SPLASHSCREEN,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,74,148,10
-    CONTROL         "automatically bump coincident objects",IDC_PREFS_BUMPOBJECTS,
+    CONTROL         "allow objects to overlap",IDC_PREFS_ALLOWOBJECTOVERLAP,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,83,135,10
     EDITTEXT        IDC_PREFS_UNDO,26,93,23,12,ES_CENTER | ES_AUTOHSCROLL | WS_GROUP
     CONTROL         "horizontal",IDC_PREFS_LAYOUT0,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,560,46,46,10
@@ -1063,7 +1063,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,46,233,148,10
     CONTROL         "show splash screen on program start",IDC_PREFS_SPLASHSCREEN,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,46,242,148,10
-    CONTROL         "automatically bump coincident objects",IDC_PREFS_BUMPOBJECTS,
+    CONTROL         "allow objects to overlap",IDC_PREFS_ALLOWOBJECTOVERLAP,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,46,251,135,10
     LTEXT           "D1 PIG:",IDC_STATIC,21,14,26,8
     LTEXT           "D2 PIG:",IDC_STATIC,21,28,26,8
@@ -2683,7 +2683,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,38,233,148,10
     CONTROL         "show splash screen on program start",IDC_PREFS_SPLASHSCREEN,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,38,242,148,10
-    CONTROL         "automatically bump coincident objects",IDC_PREFS_BUMPOBJECTS,
+    CONTROL         "allow objects to overlap",IDC_PREFS_ALLOWOBJECTOVERLAP,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,38,251,135,10
     LTEXT           "D1 PIG:",IDC_STATIC,13,14,26,8
     LTEXT           "D2 PIG:",IDC_STATIC,13,28,26,8
@@ -2897,11 +2897,13 @@ BEGIN
     GROUPBOX        "Move Rate [units]",IDC_STATIC,5,3,96,44
     RTEXT           "Mine:",IDC_STATIC,19,17,18,8
     RTEXT           "View:",IDC_STATIC,18,29,18,8
-    CONTROL         "bump coincident objects",IDC_PREFS_BUMPOBJECTS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,109,68,89,10
     EDITTEXT        IDC_PREFS_UNDO,17,67,23,12,ES_CENTER | ES_AUTOHSCROLL | WS_GROUP
     LTEXT           "undos (0 - 500)",IDC_STATIC,41,69,50,8
     GROUPBOX        "Undo",IDC_STATIC,5,49,96,44
-    GROUPBOX        "Object Placement",IDC_STATIC,106,49,96,44
+    GROUPBOX        "Misc",IDC_STATIC,106,49,96,44
+    CONTROL         "Allow objects to overlap",IDC_PREFS_ALLOWOBJECTOVERLAP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,109,60,89,10
+    CONTROL         "Adjust texture alignment when editing cubes",IDC_PREFS_UPDATETEXALIGN,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,109,72,89,16
 END
 
 IDD_SETTINGS_VERT DIALOGEX 0, 0, 222, 264
@@ -2942,11 +2944,13 @@ BEGIN
     CTEXT           "######",IDT_PREFS_ROTATE_RATE,86,79,29,8
     CONTROL         "",IDC_PREFS_ROTATE_RATE_SPINNER,"msctls_updown32",UDS_ARROWKEYS | UDS_HORZ,123,77,16,9
     GROUPBOX        "Rotate Rate",IDC_STATIC,50,50,96,44
-    CONTROL         "bump coincident objects",IDC_PREFS_BUMPOBJECTS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,53,163,89,10
-    GROUPBOX        "Object Placement",IDC_STATIC,50,144,96,44
     EDITTEXT        IDC_PREFS_UNDO,59,115,23,12,ES_CENTER | ES_AUTOHSCROLL | WS_GROUP
     LTEXT           "Mine:",IDC_STATIC,62,17,17,8
     LTEXT           "View:",IDC_STATIC,62,29,17,8
+    GROUPBOX        "Misc",IDC_STATIC,50,144,96,44
+    CONTROL         "Allow objects to overlap",IDC_PREFS_ALLOWOBJECTOVERLAP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,53,155,89,10
+    CONTROL         "Adjust texture alignment when editing cubes",IDC_PREFS_UPDATETEXALIGN,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,53,166,89,16
 END
 
 IDD_PREFS_RENDERER_VERT DIALOGEX 0, 0, 200, 210
@@ -7004,7 +7008,7 @@ BEGIN
             MENUITEM "Descent &2",                  ID_CONVERTMINE_STANDARD
             MENUITEM "&Vertigo",                    ID_CONVERTMINE_VERTIGO
             MENUITEM "D2&X-XL",                     ID_CONVERTMINE_D2X
-            MENUITEM "&Overload (export)"           ID_CONVERTMINE_OVERLOAD
+            MENUITEM "&Overload (export)",          ID_CONVERTMINE_OVERLOAD
         END
         MENUITEM "Check Mine",                  ID_FILE_CHECKMINE
         MENUITEM "R&un Level",                  ID_RUN_LEVEL
@@ -7037,6 +7041,9 @@ BEGIN
         MENUITEM "Collapse &Edge\tAlt+E",       ID_VIEW_COLLAPSE_EDGE
         MENUITEM "Create &Wedge\tAlt+W",        ID_VIEW_CREATE_WEDGE
         MENUITEM "Create P&yramid\tAlt+P",      ID_VIEW_CREATE_PYRAMID
+        MENUITEM SEPARATOR
+        MENUITEM "Recalculate mine center",     ID_EDIT_RECALCULATE_CENTER
+        MENUITEM "Set mine center to current Cube", ID_EDIT_SET_CENTER
     END
     POPUP "&View"
     BEGIN
@@ -7271,7 +7278,7 @@ BEGIN
     "C",            ID_JOIN_CURRENTSIDE,    VIRTKEY, CONTROL, NOINVERT
     "C",            ID_SEL_PREV_SEGMENT,    VIRTKEY, SHIFT, NOINVERT
     "C",            ID_SPLIT_CURRENTSIDE,   VIRTKEY, SHIFT, CONTROL, NOINVERT
-    "C",            ID_JOIN_SEGMENTS,       VIRTKEY, ALT, CONTROL, NOINVERT
+    "C",            ID_JOIN_SEGMENTS,       VIRTKEY, CONTROL, ALT, NOINVERT
     "E",            ID_VIEW_ROTATE_CLOCKWISE, VIRTKEY, NOINVERT
     "E",            ID_VIEW_COLLAPSE_EDGE,  VIRTKEY, ALT, NOINVERT
     "G",            ID_TOOLS_CURVEGENERATOR, VIRTKEY, NOINVERT
@@ -7375,8 +7382,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,12,31,0
- PRODUCTVERSION 1,12,31,0
+ FILEVERSION 1,12,32,0
+ PRODUCTVERSION 1,12,32,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -7392,13 +7399,13 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "Comments", "MFC port and enhancements: Dietfrid Mali. Logo and icon: Steve Chamberlain."
-            VALUE "FileDescription", "Descent Level Editor [16 jun 2018]"
-            VALUE "FileVersion", "1.12.31.0"
+            VALUE "FileDescription", "Descent Level Editor [8 mar 2020]"
+            VALUE "FileVersion", "1.12.32.0"
             VALUE "InternalName", "DLE"
             VALUE "LegalCopyright", "Copyright (C) Bryan Aamot, Dietfrid Mali"
             VALUE "OriginalFilename", "DLE.EXE"
             VALUE "ProductName", "Descent Level Editor"
-            VALUE "ProductVersion", "1.12.31.0"
+            VALUE "ProductVersion", "1.12.32.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -7429,7 +7436,7 @@ IDR_COMOBJ              REGISTRY                "resource/registry/ComObj.rgs"
 
 STRINGTABLE
 BEGIN
-    IDR_MAINFRAME           "Descent Level Editor 1.12.31\n\nDLE\nDescent Level (*.hog)\n.hog\n\nDLE.Document\nDLE Document"
+    IDR_MAINFRAME           "Descent Level Editor 1.12.32\n\nDLE\nDescent Level (*.hog)\n.hog\n\nDLE.Document\nDLE Document"
     IDP_OLE_INIT_FAILED     "OLE initialization failed.  Make sure that the OLE libraries are the correct version."
 END
 
@@ -7696,6 +7703,13 @@ BEGIN
     IDC_PREFS_BROWSE_MISSIONS "browse\nbrowse"
     IDC_TEXLIGHT_ADD        "add variable light\nadd variable light"
     IDC_TEXLIGHT_DELETE     "delete variable light\ndelete variable light"
+END
+
+STRINGTABLE
+BEGIN
+    ID_EDIT_RECALCULATE_CENTER 
+                            "Updates the level geometry co-ordinates so that the origin is in the center of the level."
+    ID_EDIT_SET_CENTER      "Updates the level geometry co-ordinates so that the origin is in the center of the current cube."
 END
 
 #endif    // English (United States) resources

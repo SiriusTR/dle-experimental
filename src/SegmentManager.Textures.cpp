@@ -40,40 +40,62 @@ return true;
 
 //------------------------------------------------------------------------------
 
-void CSegmentManager::AlignTextures (short nSegment, short nSide, int bUse1st, int bUse2nd, int bIgnorePlane, bool bStart, bool bTagged)
+void CSegmentManager::AlignTextures (short nSegment, short nSide, int bUse1st, int bUse2nd, int bIgnorePlane, bool bAlignAll)
 {
-if (bStart) {
-	segmentManager.UnTagAll (ALIGNED_MASK);
-	CSegment* pSegment = segmentManager.Segment (0);
-	for (int i = 0; i < segmentManager.Count (); i++, pSegment++)
-		for (short j = 0; j < 6; j++)
-			// if we're aligning marked sides, consider untagged already aligned
-			if ((pSegment->Side (j)->Shape () > SIDE_SHAPE_TRIANGLE) || (bTagged && !segmentManager.IsTagged (CSideKey (i, j))))
-				pSegment->Tag (j, ALIGNED_MASK);
-	}
-// mark current side as aligned
-segmentManager.Segment (nSegment)->Tag (nSide, ALIGNED_MASK);
-// call recursive function which aligns one at a time
-AlignChildTextures (nSegment, nSide, bUse1st, bUse2nd, bIgnorePlane);
+	bool bTaggedSidesOnly = segmentManager.HasTaggedSegments (true);
+	CSideKey nextSideKey (nSegment, nSide);
+	CSide* pNextSide = segmentManager.Side (nextSideKey);
+	// Search counters for bAlignAll - initialized outside the loop to ensure we only go through once
+	int nSearchSegment = 0;
+	short nSearchSide = 0;
+
+segmentManager.UnTagAll (ALIGNED_MASK);
+
+do {
+	// mark current side as aligned
+	pNextSide->Tag (ALIGNED_MASK);
+	AlignChildTextures (nextSideKey, bUse1st, bUse2nd, bIgnorePlane);
+
+	if (bAlignAll) {
+		// Look for the next side that hasn't been aligned yet
+		pNextSide = nullptr;
+		for (; nSearchSegment < segmentManager.Count (); nSearchSegment++) {
+			for (; nSearchSide < 6; nSearchSide++) {
+				CSide* pSide = segmentManager.Segment (nSearchSegment)->Side (nSearchSide);
+				if (pSide->IsVisible () && // is it alignable?
+					(!bTaggedSidesOnly || pSide->IsTagged ()) && // is it marked (if applicable)?
+					!pSide->IsTagged (ALIGNED_MASK)) // is it not already aligned?
+					{
+					nextSideKey = CSideKey (nSearchSegment, nSearchSide);
+					pNextSide = pSide;
+					break;
+					}
+				}
+			if (pNextSide)
+				break;
+			}
+		}
+
+	} while (bAlignAll && pNextSide);
+
+segmentManager.UnTagAll (ALIGNED_MASK | ALIGN_MASK);
 }
 
 //------------------------------------------------------------------------------
 
-void CSegmentManager::AlignChildTextures (short nSegment, short nSide, int bUse1st, int bUse2nd, int bIgnorePlane)
+void CSegmentManager::AlignChildTextures (CSideKey sideKey, int bUse1st, int bUse2nd, int bIgnorePlane)
 {
-	CSegment*		pSegment = segmentManager.Segment (nSegment);
-	CSide*			pSide = pSegment->Side (nSide);
-	CTagByTextures tagger (bUse1st ? pSide->BaseTex () : -1, bUse2nd ? pSide->OvlTex () : -1, bIgnorePlane != 0);
-	int				nSides;
+	CSide* pSide = segmentManager.Side (sideKey);
+	CTagByTextures tagger (bUse1st ? pSide->BaseTex () : -1, bUse2nd ? pSide->OvlTex (0) : -1, bIgnorePlane != 0);
 
-if (!tagger.Setup (segmentManager.VisibleSideCount (), ALIGNED_MASK))
+if (!tagger.Setup (segmentManager.VisibleSideCount (), ALIGN_MASK))
 	return;
-nSides = tagger.Run ();
+int nSides = tagger.Run (sideKey.m_nSegment, sideKey.m_nSide);
 
-for (int i = 0; i < nSides; i++) 
+for (int i = 0; i < nSides; i++) {
 	segmentManager.AlignSideTextures (tagger.ParentSegment (i), tagger.ParentSide (i), tagger.ChildSegment (i), tagger.ChildSide (i), bUse1st, bUse2nd);
-
-segmentManager.UnTagAll (TAGGED_MASK | ALIGNED_MASK);
+	segmentManager.Segment (tagger.ChildSegment (i))->Side (tagger.ChildSide (i))->Tag (ALIGNED_MASK);
+	}
 }
 
 // ------------------------------------------------------------------------ 
@@ -197,6 +219,10 @@ return nChildSide;
 
 void CSegmentManager::UpdateTexCoords (ushort nVertexId, bool bMove, short nIgnoreSegment, short nIgnoreSide)
 {
+// Automatic texture adjustment can be disabled, so check for that first
+if (!m_bUpdateAlignmentOnEdit)
+	return;
+
 CSegment* pSegment;
 for (short nSegment = 0; 0 <= (nSegment = FindByVertex (nVertexId, nSegment)); nSegment++, pSegment++) {
 	pSegment = Segment (nSegment);

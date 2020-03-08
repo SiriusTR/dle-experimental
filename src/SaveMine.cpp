@@ -1,6 +1,7 @@
 // Copyright (c) 1998 Bryan Aamot, Brainware
 #include "mine.h"
 #include "dle-xp.h"
+#include "quaternion.h"
 
 #include "rapidjson\document.h"
 #include "rapidjson\filewritestream.h"
@@ -28,7 +29,6 @@ else if (vertexManager.Overflow ()) {
 	int				mineDataOffset, gameDataOffset, hostageTextOffset;
 	int				mineErr, gameErr;
 
-UpdateCenter ();
 strcpy_s (filename, sizeof (filename), szFile);
 if (!fp.Open (filename, "w+b"))
 	return 0;
@@ -233,6 +233,8 @@ else {
 	document.SetObject ();
 	auto& allocator = document.GetAllocator ();
 	char path [128] = { 0 };
+	int numEntities = 0;
+	CDynamicArray <uint> doorWallIds;
 
 	document.AddMember ("properties", Value ().SetObject (), allocator);
 	document.AddMember ("global_data", Value ().SetObject (), allocator);
@@ -307,7 +309,7 @@ else {
 			Value side (kObjectType);
 			Pointer ("/marked").Set (side, false, allocator);
 			Pointer ("/chunk_plane_order").Set (side, -1, allocator);
-			Pointer ("/tex_name").Set (side, "concrete_test", allocator);
+			Pointer ("/tex_name").Set (side, textureManager.Textures (pSide->BaseTex ())->Name (), allocator);
 			Pointer ("/deformation_preset").Set (side, 0, allocator);
 			Pointer ("/deformation_height").Set (side, 0.0, allocator);
 
@@ -322,6 +324,7 @@ else {
 				}
 
 			Value& decals = Pointer ("/decals").Create (side, allocator).SetArray ();
+			// Fill out basic decal data...
 			Value decal (kObjectType);
 			Pointer ("/mesh_name").Set (decal, "", allocator);
 			Pointer ("/align").Set (decal, "CENTER", allocator);
@@ -342,19 +345,224 @@ else {
 			caps.PushBack ("NONE", allocator);
 			caps.PushBack ("NONE", allocator);
 			caps.PushBack ("NONE", allocator);
-			// Two decal slots per side
+
+			// Two decal slots per side. Set up the first one
+			if (pSegment->ChildId (nSide) == -1) {
+				// This side is not connected and is therefore a solid surface.
+				// Use the secondary texture (if any) as a decal.
+				if (pSide->OvlTex (0)) {
+					Pointer ("/mesh_name").Set (decal, textureManager.Textures (pSide->OvlTex (0))->Name (), allocator);
+					Pointer ("/rotation").Set (decal, pSide->OvlAlignment () * 2, allocator);
+					}
+				}
+			else if (pSegment->ChildId (nSide) >= 0 && pSide->Wall () &&
+				(pSide->Wall ()->Type () == WALL_NORMAL || pSide->Wall ()->Type () == WALL_CLOSED)) {
+				// This is a solid wall. Use the primary texture for the first decal.
+				Pointer ("/mesh_name").Set (decal, textureManager.Textures (pSide->BaseTex ())->Name (), allocator);
+				}
 			decals.PushBack (Value ().CopyFrom (decal, allocator), allocator);
+
+			// Second decal. We only use this for the secondary texture of walls
+			if (pSegment->ChildId (nSide) >= 0 && pSide->Wall () &&
+				(pSide->Wall ()->Type () == WALL_NORMAL || pSide->Wall ()->Type () == WALL_CLOSED) &&
+				pSide->OvlTex (0)) {
+				// This is a solid wall. Use the secondary texture for the second decal.
+				Pointer ("/mesh_name").Set (decal, textureManager.Textures (pSide->OvlTex (0))->Name (), allocator);
+				Pointer ("/rotation").Set (decal, pSide->OvlAlignment () * 2, allocator);
+				}
+			else {
+				// Blank out fields for the second decal
+				Pointer ("/mesh_name").Set (decal, "", allocator);
+				Pointer ("/rotation").Set (decal, 0, allocator);
+				}
 			decals.PushBack (decal, allocator);
 
-			Pointer ("/door").Set (side, -1, allocator);
+			int doorNum = -1;
+			if (pSide->Wall () && pSide->Wall ()->IsDoor ()) {
+				CWall* pWall = pSide->Wall ();
+				CWall* pOppositeWall = wallManager.OppositeWall (*pWall);
+
+				// Check that we haven't already added this door from the other side
+				if (!pOppositeWall || doorWallIds.Find (wallManager.Index (pOppositeWall)) == -1) {
+					// In Overload levels, doors are entities, and the /door field contains the entity number.
+					// We don't have a corresponding entity in the Descent level so we'll have to create one.
+					doorNum = numEntities;
+					numEntities++;
+					doorWallIds.Resize (doorWallIds.Length () + 1);
+					*doorWallIds.End () = wallManager.Index (pWall);
+					}
+				}
+			Pointer ("/door").Set (side, doorNum, allocator);
 			sides.PushBack (side, allocator);
 			}
 
 		// Neighboring segments
 		sprintf_s (path, "/segments/%d/neighbors", nSegment);
 		Value& neighbors = Pointer (path).Create (document).SetArray ();
-		for (int nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++)
-			neighbors.PushBack (pSegment->ChildId (nSide), allocator);
+		for (int nSide = 0; nSide < MAX_SIDES_PER_SEGMENT; nSide++) {
+			short nChildId = pSegment->ChildId (nSide);
+			if (nChildId == -2)
+				nChildId = -1; // -2 is not supported by the Overload format
+			neighbors.PushBack (nChildId, allocator);
+			}
+		}
+
+	// Entities
+	// First write the doors, since we already pointed segment data to them
+	for (size_t nDoor = 0; nDoor < doorWallIds.Length (); nDoor++) {
+		CWall* pWall = wallManager.Wall (doorWallIds [nDoor]);
+
+		// We have to generate a GUID for each entity
+		GUID guid;
+		CoCreateGuid (&guid);
+		char guidString [GUIDSTRING_MAX];
+		sprintf_s (guidString, "%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+			guid.Data1, guid.Data2, guid.Data3, guid.Data4 [0], guid.Data4 [1],
+			guid.Data4 [2], guid.Data4 [3], guid.Data4 [4], guid.Data4 [5], guid.Data4 [6], guid.Data4 [7]);
+		sprintf_s (path, "/entities/%d/guid", nDoor);
+		Pointer (path).Set (document, guidString);
+
+		sprintf_s (path, "/entities/%d/ref_guid", nDoor);
+		Pointer (path).Set (document, "00000000-0000-0000-0000-000000000000");
+
+		// Position
+		sprintf_s (path, "/entities/%d/position", nDoor);
+		Value& position = Pointer (path).Create (document).SetArray ();
+		for (int i = 0; i < 3; i++) {
+			segmentManager.Segment (pWall->m_nSegment)->ComputeCenter (pWall->Side ());
+			position.PushBack (pWall->Side ()->Center () [i] / 5, allocator);
+			}
+
+		// Rotation (4x4 matrix; DLE uses 3x3 so we have to pad it)
+		// CTunnelBase happens to calculate the orientation of a side already, so we're repurposing that
+		sprintf_s (path, "/entities/%d/rotation", nDoor);
+		Value& rotation = Pointer (path).Create (document).SetArray ();
+		CTunnelBase sideOrientation;
+		CSelection wallSide (*pWall);
+		sideOrientation.Setup (&wallSide, -1.0, true);
+		for (size_t i = 0; i < 4; i++)
+			for (size_t j = 0; j < 4; j++) {
+				if (i == 3 && j == 3)
+					rotation.PushBack (1.0f, allocator);
+				else if (i == 3 || j == 3)
+					rotation.PushBack (0.0f, allocator);
+				else
+					rotation.PushBack (sideOrientation.m_rotation [i] [j], allocator);
+				}
+
+		// ...and the other stuff
+		sprintf_s (path, "/entities/%d/segnum", nDoor);
+		Pointer (path).Set (document, pWall->m_nSegment, allocator);
+		sprintf_s (path, "/entities/%d/type", nDoor);
+		Pointer (path).Set (document, "DOOR", allocator);
+		sprintf_s (path, "/entities/%d/sub_type", nDoor);
+		Pointer (path).Set (document, "OM1", allocator); // just a reasonable default - can't remap
+		sprintf_s (path, "/entities/%d/mp_team", nDoor);
+		Pointer (path).Set (document, 0, allocator);
+		sprintf_s (path, "/entities/%d/properties/door_lock", nDoor);
+		Pointer (path).Set (document, (pWall->Info ().flags & WALL_DOOR_LOCKED) ? 1 : 0, allocator);
+		sprintf_s (path, "/entities/%d/properties/robot_access", nDoor);
+		Pointer (path).Set (document, "False", allocator);
+		sprintf_s (path, "/entities/%d/properties/no_chunk", nDoor);
+		Pointer (path).Set (document, "False", allocator);
+		}
+
+	int nEntity = doorWallIds.Length ();
+
+	// Now write anything else applicable
+	for (int nObject = 0; nObject < objectManager.Count (); nObject++) {
+		CGameObject* pObject = objectManager.Object (nObject);
+
+		switch (pObject->Type ()) {
+			case OBJ_ROBOT:
+			case OBJ_HOSTAGE:
+			case OBJ_PLAYER:
+			case OBJ_POWERUP:
+			case OBJ_REACTOR:
+				break;
+
+			default:
+				// Not supported in Overload levels
+				continue;
+			}
+
+		// GUIDs
+		GUID guid;
+		CoCreateGuid (&guid);
+		char guidString [GUIDSTRING_MAX];
+		sprintf_s (guidString, "%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+			guid.Data1, guid.Data2, guid.Data3, guid.Data4 [0], guid.Data4 [1],
+			guid.Data4 [2], guid.Data4 [3], guid.Data4 [4], guid.Data4 [5], guid.Data4 [6], guid.Data4 [7]);
+		sprintf_s (path, "/entities/%d/guid", nEntity);
+		Pointer (path).Set (document, guidString);
+
+		sprintf_s (path, "/entities/%d/ref_guid", nEntity);
+		Pointer (path).Set (document, "00000000-0000-0000-0000-000000000000");
+
+		// Position
+		sprintf_s (path, "/entities/%d/position", nEntity);
+		Value& position = Pointer (path).Create (document).SetArray ();
+		for (int i = 0; i < 3; i++)
+			position.PushBack (pObject->Position () [i] / 5, allocator);
+
+		// Rotation (4x4 matrix; DLE uses 3x3 so we have to pad it)
+		sprintf_s (path, "/entities/%d/rotation", nEntity);
+		Value& rotation = Pointer (path).Create (document).SetArray ();
+		for (size_t i = 0; i < 4; i++)
+			for (size_t j = 0; j < 4; j++) {
+				if (i == 3 && j == 3)
+					rotation.PushBack (1.0f, allocator);
+				else if (i == 3 || j == 3)
+					rotation.PushBack (0.0f, allocator);
+				else
+					rotation.PushBack (pObject->Orient () [i] [j], allocator);
+				}
+
+		// Shared properties
+		sprintf_s (path, "/entities/%d/segnum", nEntity);
+		Pointer (path).Set (document, pObject->Info ().nSegment, allocator);
+		sprintf_s (path, "/entities/%d/mp_team", nEntity);
+		Pointer (path).Set (document, 0, allocator);
+
+		// Type-specific properties
+		switch (pObject->Type ()) {
+			case OBJ_ROBOT:
+				sprintf_s (path, "/entities/%d/type", nEntity);
+				Pointer (path).Set (document, "ENEMY", allocator);
+				sprintf_s (path, "/entities/%d/sub_type", nEntity);
+				Pointer (path).Set (document, "GRUNTA", allocator);
+				break;
+
+			case OBJ_HOSTAGE:
+				sprintf_s (path, "/entities/%d/type", nEntity);
+				Pointer (path).Set (document, "PROP", allocator);
+				sprintf_s (path, "/entities/%d/sub_type", nEntity);
+				Pointer (path).Set (document, "CRYOTUBE", allocator);
+				break;
+
+			case OBJ_PLAYER:
+				sprintf_s (path, "/entities/%d/type", nEntity);
+				Pointer (path).Set (document, "SPECIAL", allocator);
+				sprintf_s (path, "/entities/%d/sub_type", nEntity);
+				Pointer (path).Set (document, "PLAYER_START", allocator);
+				break;
+
+			case OBJ_POWERUP:
+				sprintf_s (path, "/entities/%d/type", nEntity);
+				Pointer (path).Set (document, "ITEM", allocator);
+				sprintf_s (path, "/entities/%d/sub_type", nEntity);
+				Pointer (path).Set (document, "CM_SPAWN", allocator);
+				break;
+
+			case OBJ_REACTOR:
+				sprintf_s (path, "/entities/%d/type", nEntity);
+				Pointer (path).Set (document, "PROP", allocator);
+				sprintf_s (path, "/entities/%d/sub_type", nEntity);
+				Pointer (path).Set (document, "REACTOR_OM", allocator);
+				break;
+			}
+
+		nEntity++;
 		}
 
 	char writeBuffer [65536] = { 0 };
@@ -365,6 +573,9 @@ else {
 	}
 
 fp.Close ();
+char msg [MAX_PATH + 30];
+sprintf_s (msg, _countof (msg), "Level exported to %s", filename);
+INFOMSG (msg);
 return 1;
 }
 

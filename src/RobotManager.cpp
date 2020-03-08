@@ -346,6 +346,16 @@ return (m_hxmExtraDataSize > 0);
 
 //------------------------------------------------------------------------------
 
+bool CRobotManager::HasModifiedRobots ()
+{
+for (int i = 0; i < (int) m_nRobotTypes; i++)
+	if (RobotInfo (i)->IsModified ())
+		return true;
+return false;
+}
+
+//------------------------------------------------------------------------------
+
 void CRobotManager::ClearHXMData ()
 {
 for (int i = 0; i < (int) m_nRobotTypes; i++) {

@@ -234,6 +234,7 @@ else {
 	m_info.count = fp->ReadSByte ();
 	}
 m_info.index = fp->ReadInt16 ();
+RecalculateVariableLightIndex ();
 }
 
 // -----------------------------------------------------------------------------
@@ -271,6 +272,13 @@ return Copy (new CLightDeltaIndex);	// only make a copy if modified
 void CLightDeltaIndex::Backup (eEditType editType)
 {
 Id () = undoManager.Backup (this, editType);
+}
+
+// -----------------------------------------------------------------------------
+
+void CLightDeltaIndex::RecalculateVariableLightIndex ()
+{
+m_nVariableLightIndex = lightManager.VariableLight (*this);
 }
 
 // -----------------------------------------------------------------------------

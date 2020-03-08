@@ -133,7 +133,7 @@ BtnCtrl (IDC_OBJ_AI_THIEF)->SetCheck (robotInfo.Info ().thief);
 BtnCtrl (IDC_OBJ_AI_SMARTBLOBS)->SetCheck (robotInfo.Info ().smartBlobs);
 BtnCtrl (IDC_OBJ_AI_PURSUE)->SetCheck (robotInfo.Info ().pursuit);
 BtnCtrl (IDC_OBJ_AI_CHARGE)->SetCheck (robotInfo.Info ().attackType);
-BtnCtrl (IDC_OBJ_AI_EDRAIN)->SetCheck (m_bEndsLevel);
+BtnCtrl (IDC_OBJ_AI_EDRAIN)->SetCheck (robotInfo.Info ().drainEnergy);
 BtnCtrl (IDC_OBJ_AI_ENDSLEVEL)->SetCheck (m_bEndsLevel);
 }
   
@@ -149,6 +149,7 @@ if (nId < 0 || nId >= MAX_ROBOT_ID_D2)
 
 CRobotInfo robotInfo = *robotManager.RobotInfo (nId);
 robotInfo.Info ().bCustom |= 1;
+robotInfo.SetModified (true);
 robotInfo.Info ().kamikaze = BtnCtrl (IDC_OBJ_AI_KAMIKAZE)->GetCheck ();
 robotInfo.Info ().companion = BtnCtrl (IDC_OBJ_AI_COMPANION)->GetCheck ();
 robotInfo.Info ().thief = BtnCtrl (IDC_OBJ_AI_THIEF)->GetCheck ();

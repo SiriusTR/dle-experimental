@@ -72,13 +72,13 @@ char contentsSelection [MAX_OBJECT_TYPES] = {
 
 // list box tables
 int modelNumList [N_ROBOT_TYPES_D2] = {
-  0x00, 0x02, 0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x0f, 0x11,
-  0x13, 0x14, 0x15, 0x16, 0x17, 0x19, 0x1a, 0x1c, 0x1d, 0x1f,
-  0x21, 0x23, 0x25, 0x27, 0x28, 0x29, 0x2b, 0x2c, 0x2d, 0x2e,
-  0x2f, 0x31, 0x32, 0x33, 0x34, 0x36, 0x37, 0x38, 0x3a, 0x3c,
-  0x3e, 0x40, 0x41, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
-  0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x50, 0x52, 0x53, 0x55, 0x56,
-  0x57, 0x58, 0x59, 0x5a, 0x5b, 0x5c
+	0x00, 0x02, 0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x0f, 0x11,
+	0x13, 0x14, 0x15, 0x16, 0x17, 0x19, 0x1a, 0x1c, 0x1d, 0x1f,
+	0x21, 0x23, 0x25, 0x27, 0x28, 0x29, 0x2b, 0x2c, 0x2d, 0x2e,
+	0x2f, 0x31, 0x32, 0x33, 0x34, 0x36, 0x37, 0x38, 0x3a, 0x3c,
+	0x3e, 0x40, 0x41, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
+	0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x50, 0x52, 0x53, 0x55, 0x56,
+	0x57, 0x58, 0x59, 0x5a, 0x5b, 0x5c
 };
 
 char *pszExplosionIds [] = {"small explosion", "medium explosion", "big explosion", "huge explosion", "red blast"};
@@ -446,6 +446,7 @@ if ((nId < 0) || (nId >= MAX_ROBOT_ID_D2))
 
 CRobotInfo robotInfo = *robotManager.RobotInfo (nId);
 robotInfo.Info ().bCustom |= 1;
+robotInfo.SetModified (true);
 Current ()->UpdateRobot ();
 #if 0
 undoManager.Begin (__FUNCTION__, udRobots);
@@ -698,25 +699,30 @@ if (QueryMsg ("Are you sure you want to delete this object?") == IDYES) {
 
 void CObjectTool::OnDeleteAll () 
 {
-undoManager.Begin (__FUNCTION__, udObjects);
-DLE.MineView ()->DelayRefresh (true);
-CGameObject *pObject = current->Object ();
-int nType = pObject->Type ();
-int nId = pObject->Id ();
-pObject = objectManager.Object (0);
-bool bAll = (segmentManager.TaggedCount (true) == 0);
-int nDeleted = 0;
-for (int h = objectManager.Count (), i = 0; i < h; ) {
-	if ((pObject->Type () == nType) && (pObject->Id () == nId) && (bAll || segmentManager.Segment (pObject->m_info.nSegment)->IsTagged ())) {
-		objectManager.Delete (i);
-		nDeleted++;
-		h--;
+	int nDeleted = 0;
+
+if (QueryMsg ("Are you sure you want to delete all objects of this type and ID?") == IDYES) {
+	undoManager.Begin (__FUNCTION__, udObjects);
+	DLE.MineView ()->DelayRefresh (true);
+	CGameObject *pObject = current->Object ();
+	int nType = pObject->Type ();
+	int nId = pObject->Id ();
+	pObject = objectManager.Object (0);
+	bool bAll = (segmentManager.TaggedCount (true) == 0);
+
+	for (int h = objectManager.Count (), i = 0; i < h; ) {
+		if ((pObject->Type () == nType) && (pObject->Id () == nId) && (bAll || segmentManager.Segment (pObject->m_info.nSegment)->IsTagged ())) {
+			objectManager.Delete (i);
+			nDeleted++;
+			h--;
+			}
+		else
+			i++, pObject++;
 		}
-	else
-		i++, pObject++;
+	DLE.MineView ()->DelayRefresh (false);
+	undoManager.End (__FUNCTION__);
 	}
-DLE.MineView ()->DelayRefresh (false);
-undoManager.End (__FUNCTION__);
+
 if (nDeleted) {
 	DLE.MineView ()->Refresh ();
 	Refresh ();
@@ -1075,7 +1081,7 @@ void CObjectTool::OnSetObjAI ()
 undoManager.Begin (__FUNCTION__, udObjects);
 CGameObject *pObject = current->Object ();
 if ((pObject->Type () == OBJ_ROBOT) || (pObject->Type () == OBJ_CAMBOT)) {
- 	int index = CBObjAI ()->GetCurSel ();
+	int index = CBObjAI ()->GetCurSel ();
 	if (index == 8) {
 		index = AIB_RUN_FROM;
 		pObject->cType.aiInfo.flags [4] |= 2; // smart bomb flag

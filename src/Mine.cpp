@@ -301,9 +301,15 @@ objectManager.ResetInfo ();
 
 void CMine::UpdateCenter (void)
 {
-CDoubleVector v = vertexManager.GetCenter ();
-vertexManager.SetCenter (v);
-objectManager.SetCenter (v);
+SetCenter (vertexManager.GetCenter ());
+}
+
+// ----------------------------------------------------------------------------------
+
+void CMine::SetCenter (const CDoubleVector &center)
+{
+vertexManager.SetCenter (center);
+objectManager.SetCenter (center);
 }
 
 // ----------------------------------------------------------------------------------

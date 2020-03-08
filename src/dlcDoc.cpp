@@ -443,7 +443,7 @@ else {
 		else
 			bSucceeded &= WriteExternalCustomFile (CUSTOM_FILETYPE_DTX);
 	
-	if (robotManager.HasCustomRobots ())
+	if (robotManager.HasModifiedRobots ())
 		bSucceeded &= WriteExternalCustomFile (CUSTOM_FILETYPE_HXM);
 	}
 
@@ -508,10 +508,8 @@ switch (nType) {
 	case CUSTOM_FILETYPE_HXM:
 		if (DLE.IsD1File ())
 			break;
-		// We don't currently track modified robots, so we'll just always prompt for overwrite (unless the
-		// custom robots have been removed in which case we won't ask as the question would be confusing)
 		if (DoesSubFileExist (m_szFile, szSubFileName))
-			bShouldModify = !robotManager.HasCustomRobots () || (QueryMsg (szOverwriteHxmQuery) == IDYES);
+			bShouldModify = robotManager.HasModifiedRobots () && (QueryMsg (szOverwriteHxmQuery) == IDYES);
 		else
 			bShouldModify = robotManager.HasCustomRobots () && (QueryMsg (szHxmQuery) == IDYES);
 		break;
@@ -556,14 +554,21 @@ switch (nType) {
 		break;
 
 	case CUSTOM_FILETYPE_DTX:
+		{
 		if (ps)
 			strcpy_s (ps, sizeof (filename) - (ps - filename), ".dtx");
 		else
 			strcat_s (filename, sizeof (filename), ".dtx");
-		if (fp.Open (filename, "wb")) {
-			bSucceeded &= textureManager.CreateDtx (fp) > 0;
+		CDtxSoundList soundList;
+		if (fp.Exist (filename) && fp.Open (filename, "rb")) {
+			soundList.Load (fp, fp.Size ());
 			fp.Close ();
 			}
+		if (fp.Open (filename, "wb")) {
+			bSucceeded &= textureManager.CreateDtx (fp, soundList) > 0;
+			fp.Close ();
+			}
+		}
 		break;
 
 	case CUSTOM_FILETYPE_HXM:

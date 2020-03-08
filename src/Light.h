@@ -67,6 +67,10 @@ class CLightDeltaIndex : public CSideKey, public CGameItem {
 	public:
 		tLightDeltaIndex m_info;
 
+		CLightDeltaIndex () :
+			m_nVariableLightIndex (-1)
+		{}
+
 		void Read (CFileManager* fp, bool bD2X);
 
 		void Write (CFileManager* fp, bool bD2X);
@@ -74,6 +78,7 @@ class CLightDeltaIndex : public CSideKey, public CGameItem {
 		virtual void Clear (void) { 
 			memset (&m_info, 0, sizeof (m_info)); 
 			CSideKey::Clear ();
+			m_nVariableLightIndex = -1;
 			}
 
 		virtual CGameItem* Clone (void);
@@ -81,6 +86,13 @@ class CLightDeltaIndex : public CSideKey, public CGameItem {
 		virtual void Backup (eEditType editType = opModify);
 
 		virtual CGameItem* Copy (CGameItem* pDest);
+
+		short VariableLightIndex () { return m_nVariableLightIndex; }
+
+		void RecalculateVariableLightIndex ();
+
+	private:
+		short m_nVariableLightIndex;
 };
 
 // -----------------------------------------------------------------------------

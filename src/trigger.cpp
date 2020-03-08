@@ -19,9 +19,11 @@
 
 short CTriggerTargets::Add (CSideKey key) 
 {
-if (m_count < MAX_TRIGGER_TARGETS)
+if (m_count < MAX_TRIGGER_TARGETS) {
 	m_targets [m_count] = key;
-return m_count++;
+	m_count++;
+	}
+return m_count;
 }
 
 //------------------------------------------------------------------------------
@@ -30,10 +32,12 @@ short CTriggerTargets::Delete (short i)
 {
 if (i < 0)
 	i = m_count - 1;
-if ((m_count > 0) && (i < --m_count)) {
+if ((m_count > 0) && (i < m_count)) {
+	m_count--;
 	int l = m_count - i;
 	if (l)
-		memcpy (m_targets + i, m_targets + i + 1, l * sizeof (m_targets [0]));
+		memcpy_s (m_targets + i, sizeof (m_targets) - (i * sizeof (m_targets [0])),
+			m_targets + i + 1, l * sizeof (m_targets [0]));
 	m_targets [m_count] = CSideKey (-1,-1);
 	}
 return m_count;

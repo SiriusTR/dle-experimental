@@ -37,7 +37,10 @@ switch (m_object->m_info.type) {
 		nModel = MINE_CLIP_NUMBER;
 		break;
 	case OBJ_REACTOR:
-		switch (m_object->m_info.id) {
+		if (DLE.IsD1File ())
+			// D1 has one reactor model regardless of ID
+			nModel = 93;
+		else switch (m_object->m_info.id) {
 			case 0:  nModel = 93;  break;
 			case 1:  nModel = 95;  break;
 			case 2:  nModel = 97;  break;

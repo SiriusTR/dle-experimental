@@ -974,17 +974,30 @@ if (i != int (paletteSize)) {
 					 "the Descent textures to a file and use it as a starting point.\n"
 					 "If you plan to use transparencies, then you may want to start\n"
 					 "with the texture called 'empty'.");
-	bool bAllowTransparent = Query2Msg ("Do you want to allow transparency for this texture?\n"
-					 "(The last two colors in the texture's palette will be treated as "
-					 "see-thru and transparent, respectively.)", MB_YESNO) == IDYES;
+
+	bool bAllowTransparent = false;
+	bool bAllowColorMatchToTransparent = false;
+	if (bmih.biClrUsed == 256)
+		bAllowTransparent = Query2Msg ("Do you want to allow transparency for this texture?\n"
+			"(The last two colors in the texture's palette will be treated as "
+			"see-thru and transparent, respectively.)", MB_YESNO) == IDYES;
+	else {
+		bAllowTransparent = Query2Msg ("Do you want to allow transparency for this texture?\n"
+			"(Because this texture has less than 256 colors, pixels will be "
+			"treated as see-thru or transparent if they most closely match "
+			"the current palette's see-thru or transparent color.)", MB_YESNO) == IDYES;
+		bAllowColorMatchToTransparent = bAllowTransparent;
+		}
+	int colorsToMatch = bAllowColorMatchToTransparent ? 256 : 254;
+
 	for (i = 0; i < int (paletteSize); i++) {
 		uint closestIndex = i;
 		if ((palette [i].rgbRed != sysPal [i].peRed) ||
 			 (palette [i].rgbGreen != sysPal [i].peGreen) ||
 			 (palette [i].rgbBlue != sysPal [i].peBlue)) {
-			if (!bAllowTransparent || ((uint) i < paletteSize - 2)) {
+			if (!bAllowTransparent || bAllowColorMatchToTransparent || ((uint) i < paletteSize - 2)) {
 				uint closestDelta = 0x7fffffff;
-				for (int j = 0; j < 254; j++) {
+				for (int j = 0; j < colorsToMatch; j++) {
 					uint delta = ColorDelta (palette + i, sysPal, j);
 					if (delta < closestDelta) {
 						closestIndex = j;

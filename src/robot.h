@@ -130,13 +130,17 @@ typedef struct tRobotInfo {
 class CRobotInfo : public CGameItem {
 	private:
 		tRobotInfo	m_info;
+		bool			m_bModified;
 
 	public:
 		void Read (CFileManager* fp, int version = 0, bool bFlag = false);
 
 		void Write (CFileManager* fp, int version = 0, bool bFlag = false);
 
-		virtual void Clear (void) { memset (&m_info, 0, sizeof (m_info)); }
+		virtual void Clear (void) {
+			memset (&m_info, 0, sizeof (m_info));
+			m_bModified = false;
+			}
 
 		virtual CGameItem* Clone (void);
 
@@ -149,6 +153,10 @@ class CRobotInfo : public CGameItem {
 		inline int GetStrength (void) { return (m_info.strength > 0) ? FixLog (m_info.strength) - 12 : 0; }
 
 		inline void SetStrength (int strength) { m_info.strength = (strength > 0) ? FixExp (strength + 12) : 0; }
+
+		inline bool IsModified () { return m_bModified; }
+
+		inline void SetModified (bool bModified) { m_bModified = bModified; }
 };
 
 //------------------------------------------------------------------------------

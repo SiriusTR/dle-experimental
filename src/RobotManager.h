@@ -49,6 +49,8 @@ class CRobotManager {
 
 		bool HasCustomRobots (void);
 
+		bool HasModifiedRobots ();
+
 		void LoadResource (int nRobot); 
 
 		int ReadHAM (CFileManager* fp, int type = NORMAL_HAM); 

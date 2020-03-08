@@ -253,9 +253,10 @@ DLE.ExpertMode () = appSettings.m_bExpertMode;
 lightManager.ApplyFaceLightSettingsGlobally () = appSettings.m_bApplyFaceLightSettingsGlobally;
 DLE.SplashScreen () = appSettings.m_bSplashScreen;
 objectManager.SortObjects () = appSettings.m_bSortObjects;
-objectManager.BumpObjects () = appSettings.m_bBumpObjects;
+objectManager.BumpObjects () = !appSettings.m_bAllowObjectOverlap;
 objectManager.BumpIncrement () = appSettings.m_bumpIncrement;
 undoManager.SetMaxSize (appSettings.m_nMaxUndo);
+segmentManager.UpdateAlignmentOnEdit () = appSettings.m_bUpdateTexAlign;
 if (bUpdate < 1)
 	Save (false);
 #ifdef _DEBUG
@@ -316,7 +317,8 @@ appSettings.m_bApplyFaceLightSettingsGlobally = lightManager.ApplyFaceLightSetti
 appSettings.m_bSortObjects = objectManager.SortObjects ();
 appSettings.m_bExpertMode = DLE.ExpertMode ();
 appSettings.m_bSplashScreen = DLE.SplashScreen ();
-appSettings.m_bBumpObjects = objectManager.BumpObjects ();
+appSettings.m_bAllowObjectOverlap = !objectManager.BumpObjects ();
+appSettings.m_bUpdateTexAlign = segmentManager.UpdateAlignmentOnEdit ();
 }
 
 //------------------------------------------------------------------------------
@@ -369,10 +371,12 @@ appSettings.m_kbRotateScale = Clamp ((double) atof (szSpeed), 0.001, 1000.0);
 appSettings.m_bFpInputLock = GetPrivateProfileInt ("DLE", "ForceFirstPersonOnInputLock", 1, DLE.IniFile ());
 appSettings.m_bExpertMode = GetPrivateProfileInt ("DLE", "ExpertMode", 1, DLE.IniFile ());
 appSettings.m_bSplashScreen = GetPrivateProfileInt ("DLE", "SplashScreen", 1, DLE.IniFile ());
-appSettings.m_bBumpObjects = GetPrivateProfileInt ("DLE", "BumpObjects", 1, DLE.IniFile ());
+// Object overlap is flipped due to the name change. Keeping .ini setting as it was for backward compatibility.
+appSettings.m_bAllowObjectOverlap = !GetPrivateProfileInt ("DLE", "BumpObjects", 1, DLE.IniFile ());
 char szBumpIncrement [100];
 GetPrivateProfileString ("DLE", "BumpIncrement", "3", szBumpIncrement, sizeof (szBumpIncrement), DLE.IniFile ());
 appSettings.m_bumpIncrement = Clamp ((double) atof (szBumpIncrement), 0.001, 1000.0);
+appSettings.m_bUpdateTexAlign = GetPrivateProfileInt ("DLE", "UpdateTexAlign", 1, DLE.IniFile ());
 appSettings.m_mineViewFlags = GetPrivateProfileInt ("DLE", "MineViewFlags", appSettings.m_mineViewFlags, DLE.IniFile ());
 appSettings.m_objViewFlags = GetPrivateProfileInt ("DLE", "ObjViewFlags", appSettings.m_objViewFlags, DLE.IniFile ());
 appSettings.m_texViewFlags = GetPrivateProfileInt ("DLE", "TexViewFlags", appSettings.m_texViewFlags, DLE.IniFile ());
@@ -413,8 +417,9 @@ WritePrivateProfileDouble ("TurnSpeed", appSettings.m_kbRotateScale);
 WritePrivateProfileInt ("ForceFirstPersonOnInputLock", appSettings.m_bFpInputLock);
 WritePrivateProfileInt ("ExpertMode", appSettings.m_bExpertMode);
 WritePrivateProfileInt ("SplashScreen", appSettings.m_bSplashScreen);
-WritePrivateProfileInt ("BumpObjects", appSettings.m_bBumpObjects);
+WritePrivateProfileInt ("BumpObjects", !appSettings.m_bAllowObjectOverlap);
 WritePrivateProfileDouble ("BumpIncrement", appSettings.m_bumpIncrement);
+WritePrivateProfileInt ("UpdateTexAlign", appSettings.m_bUpdateTexAlign);
 WritePrivateProfileInt ("DepthTest", appSettings.m_bDepthTest);
 WritePrivateProfileInt ("MineViewFlags", appSettings.m_mineViewFlags);
 WritePrivateProfileInt ("ObjViewFlags", appSettings.m_objViewFlags);

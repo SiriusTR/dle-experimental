@@ -119,6 +119,8 @@ class CMine {
 
 		void UpdateCenter (void);
 
+		void SetCenter (const CDoubleVector &center);
+
 		inline LPSTR LevelName (void) { return m_currentLevelName; }
 
 		inline int LevelNameSize (void) { return sizeof m_currentLevelName; }

@@ -842,7 +842,7 @@ for (nObject = 0; nObject < objCount ; nObject++, pObject++) {
 		if (count > 0) {
 			id = pObject->m_info.contents.id;
 			// check contains id range
-			if (h = CheckId (pObject->m_info.contents.id, pObject->m_info.contents.id)) {
+			if (h = CheckId (pObject->m_info.contents.type, pObject->m_info.contents.id)) {
 				if (h == 2)
 					sprintf_s (message, sizeof (message), "FIXED: Illegal contains id (object=%d, contains id=%d)", nObject, id);
 				else
@@ -947,7 +947,7 @@ for (nObject = 0; nObject < objCount; nObject++, pObject++) {
 	type = pObject->Type ();
 	if (type == OBJ_REACTOR) {
 		if (segmentManager.Segment (pObject->m_info.nSegment)->m_info.function != SEGMENT_FUNC_REACTOR) {
-			if (m_bAutoFixBugs && segmentManager.CreateRobotMaker (pObject->m_info.nSegment, false, false))
+			if (m_bAutoFixBugs && segmentManager.CreateReactor (pObject->m_info.nSegment, false, false))
 				sprintf_s (message, sizeof (message), "FIXED: Reactor belongs to a segment of wrong type (pObject=%d, pSegment=%d)", nObject, pObject->m_info.nSegment);
 			else
 				sprintf_s (message, sizeof (message), "WARNING: Reactor belongs to a segment of wrong type (pObject=%d, pSegment=%d)", nObject, pObject->m_info.nSegment);

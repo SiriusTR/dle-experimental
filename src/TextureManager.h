@@ -96,6 +96,22 @@ class CAnimationLoaderFactory {
 
 //------------------------------------------------------------------------
 
+class CDtxSoundList {
+public:
+	~CDtxSoundList ();
+
+	void Load (CFileManager& fp, long nFileSize);
+	int Count () { return m_headers.Length (); }
+	uint WriteHeader (CFileManager& fp, uint nItem, uint nOffset);
+	void WriteSoundClip (CFileManager& fp, uint nItem);
+
+private:
+	CDynamicArray <PIG_SOUND> m_headers;
+	CDynamicArray <void*> m_sounds;
+};
+
+//------------------------------------------------------------------------
+
 #define MAX_TEXTURES ((theMine == null) ? MAX_TEXTURES_D2 : DLE.IsD1File () ? MAX_TEXTURES_D1 : MAX_TEXTURES_D2)
 
 //------------------------------------------------------------------------
@@ -331,7 +347,7 @@ class CTextureManager {
 
 		int CreatePog (CFileManager& fp);
 
-		int CreateDtx (CFileManager& fp);
+		int CreateDtx (CFileManager& fp, CDtxSoundList& soundList);
 
 		int WriteCustomTexture (CFileManager& fp, const CTexture *pTexture, bool bUseBMPFileFormat = false);
 

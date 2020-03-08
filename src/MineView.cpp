@@ -64,6 +64,7 @@ BEGIN_MESSAGE_MAP(CMineView, CView)
 	ON_WM_KEYDOWN()
 	ON_WM_SYSKEYUP()
 	ON_WM_SYSKEYDOWN()
+	ON_WM_SETFOCUS()
 	//}}AFX_MSG_MAP
 	// Standard printing commands
 	ON_COMMAND(ID_FILE_PRINT, CView::OnFilePrint)
@@ -1269,14 +1270,25 @@ m_inputHandler.OnKeyDown (nChar, nRepCnt, nFlags);
 
 void CMineView::OnSysKeyUp (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
-m_inputHandler.OnKeyUp (nChar, nRepCnt, nFlags);
+// We need to do this so the mine view doesn't eat Alt+F4. It does make the menu
+// steal focus more easily if you press Alt, though.
+if (!m_inputHandler.OnKeyUp (nChar, nRepCnt, nFlags))
+	CView::OnSysKeyUp (nChar, nRepCnt, nFlags);
 }
 
 //------------------------------------------------------------------------------
 
 void CMineView::OnSysKeyDown (UINT nChar, UINT nRepCnt, UINT nFlags)
 {
-m_inputHandler.OnKeyDown (nChar, nRepCnt, nFlags);
+if (!m_inputHandler.OnKeyDown (nChar, nRepCnt, nFlags))
+	CView::OnSysKeyDown (nChar, nRepCnt, nFlags);
+}
+
+//------------------------------------------------------------------------------
+
+void CMineView::OnSetFocus (CWnd* pOldWnd)
+{
+m_inputHandler.OnSetFocus ();
 }
 
 //------------------------------------------------------------------------------

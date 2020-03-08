@@ -187,6 +187,7 @@ if (0 <= (index = CBWeapon2 ()->GetCurSel ()))
 
 int nSkill = SlCtrl (IDC_OBJ_SKILL_SLIDER)->GetPos ();
 robotInfo.Info ().bCustom |= 1;
+robotInfo.SetModified (true);
 robotInfo.Info ().combat [nSkill].fieldOfView = m_data [1].GetValue ();
 robotInfo.Info ().combat [nSkill].firingWait [0] = m_data [2].GetValue ();
 robotInfo.Info ().combat [nSkill].firingWait [1] = m_data [3].GetValue ();

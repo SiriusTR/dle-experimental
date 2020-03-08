@@ -183,6 +183,7 @@ class CLightManager {
 		bool IsVariableLight (CSideKey key);
 
 		int FindDeltaLight (short nSegment, short nSide, short *pi = null);
+		CLightDeltaIndex* LightDeltaIndex (CSideKey key);
 		short VariableLight (CSideKey key = CSideKey ());
 		CVariableLight* AddVariableLight (short index = -1);
 		short AddVariableLight (CSideKey key, uint mask = 0xAAAAAAAA, int time = 0x10000 / 4);
@@ -190,7 +191,7 @@ class CLightManager {
 		void DeleteVariableLight (short index, bool bUndo = false);
 		int IsExplodingLight(int nBaseTex);
 
-		int LightIsOn (CSideKey key);
+		int LightIsOn (CLightDeltaIndex light);
 		uint Brightness (CSegment* pSegment, CSide* pSide);
 		uint Brightness (CSideKey& key);
 

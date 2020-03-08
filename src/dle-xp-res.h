@@ -444,7 +444,8 @@
 #define IDC_PREFS_MINECENTER				 10452
 #define IDC_PREFS_PLAYER					 10453
 #define IDC_PREFS_UNDO						 10454
-#define IDC_PREFS_BUMPOBJECTS           10455
+#define IDC_PREFS_ALLOWOBJECTOVERLAP    10455
+#define IDC_PREFS_UPDATETEXALIGN        10456
 
 #define IDD_LIGHTDATA_HORZ              10450
 #define IDD_LIGHTDATA_VERT              10451
@@ -1147,21 +1148,23 @@
 #define ID_FINER_TUNNEL						 30966
 #define ID_COARSER_TUNNEL               30967
 #define ID_MAKE_POINTS_PARALLEL			 30968
+#define ID_EDIT_RECALCULATE_CENTER      30969
+#define ID_EDIT_SET_CENTER              30970
 
-#define ID_TOOLS_TEXTUREEDIT            30970
-#define ID_TOOLS_SEGMENTEDIT            30971
-#define ID_TOOLS_WALLEDIT               30972
-#define ID_TOOLS_TRIGGEREDIT            30973
-#define ID_TOOLS_OBJECTEDIT             30974
-#define ID_TOOLS_EFFECTEDIT             30975
-#define ID_TOOLS_ADVOBJEDIT             30976
-#define ID_TOOLS_LIGHTADJUSTMENT        30977
-#define ID_TOOLS_REACTORTRIGGERS        30978
-#define ID_TOOLS_MISSIONEDIT            30978
-#define ID_TOOLS_DIAGNOSIS              30979
-#define ID_TOOLS_TXTFILTERS             30980
-#define ID_TOOLS_PREFERENCES            30981
-#define ID_TOOLS_CURVEGENERATOR         30982
+#define ID_TOOLS_TEXTUREEDIT            31000
+#define ID_TOOLS_SEGMENTEDIT            31001
+#define ID_TOOLS_WALLEDIT               31002
+#define ID_TOOLS_TRIGGEREDIT            31003
+#define ID_TOOLS_OBJECTEDIT             31004
+#define ID_TOOLS_EFFECTEDIT             31005
+#define ID_TOOLS_ADVOBJEDIT             31006
+#define ID_TOOLS_LIGHTADJUSTMENT        31007
+#define ID_TOOLS_REACTORTRIGGERS        31008
+#define ID_TOOLS_MISSIONEDIT            31008
+#define ID_TOOLS_DIAGNOSIS              31009
+#define ID_TOOLS_TXTFILTERS             31010
+#define ID_TOOLS_PREFERENCES            31011
+#define ID_TOOLS_CURVEGENERATOR         31012
 
 
 #define ID_EDITGEO_FWD                  32913
